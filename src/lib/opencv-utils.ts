@@ -620,3 +620,53 @@ export const drawDocumentOverlay = (
     ctx.fill();
   }
 };
+
+// Detect document edges from a static image (not video)
+export const detectDocumentEdgesFromImage = async (
+  imageElement: HTMLImageElement
+): Promise<DocumentCorners | null> => {
+  await waitForOpenCV();
+  
+  const canvas = document.createElement('canvas');
+  canvas.width = imageElement.width;
+  canvas.height = imageElement.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  
+  ctx.drawImage(imageElement, 0, 0);
+  
+  // Create a dummy video element to reuse existing detection logic
+  const dummyVideo = document.createElement('video');
+  dummyVideo.width = imageElement.width;
+  dummyVideo.height = imageElement.height;
+  
+  return detectDocumentEdges(dummyVideo as any, canvas);
+};
+
+// Downscale image defensively to prevent OOM on mobile
+export const downscaleImage = (
+  imageElement: HTMLImageElement,
+  maxDimension: number = 2200
+): string => {
+  const canvas = document.createElement('canvas');
+  let { width, height } = imageElement;
+  
+  // Calculate new size maintaining aspect ratio
+  if (width > maxDimension || height > maxDimension) {
+    if (width > height) {
+      height = (height / width) * maxDimension;
+      width = maxDimension;
+    } else {
+      width = (width / height) * maxDimension;
+      height = maxDimension;
+    }
+  }
+  
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return imageElement.src;
+  
+  ctx.drawImage(imageElement, 0, 0, width, height);
+  return canvas.toDataURL('image/jpeg', 0.92);
+};
