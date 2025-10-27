@@ -30,12 +30,37 @@ export const waitForOpenCV = (): Promise<void> => {
 
 const DEBUG = false;
 
+// Helper to read corners from a 4x1 CV_32FC2 Mat
+const readCorners = (mat: any, width: number, height: number): DocumentCorners => {
+  const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
+  
+  return {
+    topLeft: { 
+      x: clamp(mat.data32F[0], 0, width), 
+      y: clamp(mat.data32F[1], 0, height) 
+    },
+    topRight: { 
+      x: clamp(mat.data32F[2], 0, width), 
+      y: clamp(mat.data32F[3], 0, height) 
+    },
+    bottomRight: { 
+      x: clamp(mat.data32F[4], 0, width), 
+      y: clamp(mat.data32F[5], 0, height) 
+    },
+    bottomLeft: { 
+      x: clamp(mat.data32F[6], 0, width), 
+      y: clamp(mat.data32F[7], 0, height) 
+    }
+  };
+};
+
 // Validate if contour is a good document candidate
 const validateDocumentContour = (
   contour: any,
   area: number,
   frameWidth: number,
   frameHeight: number,
+  gray: any, // grayscale image for whiteness check
   isFallback: boolean = false
 ): { isValid: boolean; score: number } => {
   const frameArea = frameWidth * frameHeight;
@@ -43,7 +68,7 @@ const validateDocumentContour = (
 
   // Relaxed thresholds for fallback mode
   const minArea = isFallback ? 0.2 : 0.25;
-  const maxArea = 0.9;
+  const maxArea = 0.85;
   const minAspect = isFallback ? 0.45 : 0.5;
   const maxAspect = isFallback ? 2.2 : 2.0;
 
@@ -63,16 +88,76 @@ const validateDocumentContour = (
     return { isValid: false, score: 0 };
   }
 
-  // Calculate score based on area (prefer documents that occupy 40-70% of frame)
+  // Check rectangularity: contour area vs minAreaRect area
+  const minRect = cv.minAreaRect(contour);
+  const minRectArea = minRect.size.width * minRect.size.height;
+  const rectangularity = area / minRectArea;
+  
+  if (rectangularity < 0.75) {
+    if (DEBUG) console.log('Rejected: rectangularity', rectangularity);
+    return { isValid: false, score: 0 };
+  }
+
+  // Check centroid is not too close to edges (>4% margin)
+  const moments = cv.moments(contour);
+  const cx = moments.m10 / moments.m00;
+  const cy = moments.m01 / moments.m00;
+  const edgeMargin = 0.04;
+  
+  if (
+    cx < frameWidth * edgeMargin ||
+    cx > frameWidth * (1 - edgeMargin) ||
+    cy < frameHeight * edgeMargin ||
+    cy > frameHeight * (1 - edgeMargin)
+  ) {
+    if (DEBUG) console.log('Rejected: centroid too close to edge', cx, cy);
+    return { isValid: false, score: 0 };
+  }
+
+  // Check whiteness (documents are typically lighter than background)
+  const mask = new cv.Mat.zeros(gray.rows, gray.cols, cv.CV_8UC1);
+  const contourVec = new cv.MatVector();
+  contourVec.push_back(contour);
+  cv.drawContours(mask, contourVec, 0, new cv.Scalar(255), -1);
+  const meanVal = cv.mean(gray, mask);
+  mask.delete();
+  contourVec.delete();
+  
+  const whiteness = meanVal[0] / 255; // normalize to 0-1
+
+  // Calculate score
   let score = areaRatio;
+  
+  // Bonus for ideal area (40-70%)
   if (areaRatio >= 0.4 && areaRatio <= 0.7) {
-    score += 0.3; // Bonus for ideal area
+    score += 0.3;
+  }
+  
+  // Bonus for high rectangularity
+  if (rectangularity >= 0.85) {
+    score += 0.1;
+  }
+  
+  // Bonus for high whiteness (paper is typically bright)
+  if (whiteness > 0.6) {
+    score += 0.1;
+  }
+
+  if (DEBUG) {
+    console.log('Valid contour:', {
+      areaRatio: areaRatio.toFixed(3),
+      aspectRatio: aspectRatio.toFixed(2),
+      rectangularity: rectangularity.toFixed(3),
+      whiteness: whiteness.toFixed(3),
+      score: score.toFixed(3)
+    });
   }
 
   return { isValid: true, score };
 };
 
 // Try to approximate contour to 4 points using multiple epsilon values
+// Always returns CV_32FC2 format
 const tryApproximateToQuad = (contour: any): any | null => {
   const peri = cv.arcLength(contour, true);
   const epsilons = [0.02, 0.04, 0.06, 0.08, 0.1];
@@ -82,6 +167,13 @@ const tryApproximateToQuad = (contour: any): any | null => {
     cv.approxPolyDP(contour, approx, epsilon * peri, true);
     
     if (approx.rows === 4) {
+      // Convert to CV_32FC2 if needed
+      if (approx.type() !== cv.CV_32FC2) {
+        const converted = new cv.Mat();
+        approx.convertTo(converted, cv.CV_32FC2);
+        approx.delete();
+        return converted;
+      }
       return approx;
     }
     
@@ -92,6 +184,7 @@ const tryApproximateToQuad = (contour: any): any | null => {
 };
 
 // Get 4 corners from a contour (using convexHull or minAreaRect as fallback)
+// Always returns 4x1 CV_32FC2 Mat
 const getCornersFromContour = (contour: any): any | null => {
   // Try polygonal approximation first
   let quad = tryApproximateToQuad(contour);
@@ -104,7 +197,7 @@ const getCornersFromContour = (contour: any): any | null => {
   hull.delete();
   if (quad) return quad;
   
-  // Last resort: use minAreaRect to get 4 corners
+  // Last resort: use minAreaRect to get 4 corners (always returns CV_32FC2)
   const rect = cv.minAreaRect(contour);
   const vertices = cv.RotatedRect.points(rect);
   const cornersArray = new Float32Array([
@@ -171,7 +264,7 @@ export const detectDocumentEdges = (
       const quad = getCornersFromContour(contour);
 
       if (quad) {
-        const validation = validateDocumentContour(quad, area, src.cols, src.rows, false);
+        const validation = validateDocumentContour(quad, area, src.cols, src.rows, gray, false);
 
         if (validation.isValid && validation.score > bestScore) {
           bestScore = validation.score;
@@ -185,12 +278,7 @@ export const detectDocumentEdges = (
 
     // If Stage 1 found a good document, return it
     if (bestContour) {
-      const corners: DocumentCorners = {
-        topLeft: { x: bestContour.data32S[0], y: bestContour.data32S[1] },
-        topRight: { x: bestContour.data32S[2], y: bestContour.data32S[3] },
-        bottomRight: { x: bestContour.data32S[4], y: bestContour.data32S[5] },
-        bottomLeft: { x: bestContour.data32S[6], y: bestContour.data32S[7] }
-      };
+      const corners = readCorners(bestContour, src.cols, src.rows);
 
       bestContour.delete();
       contours.delete();
@@ -249,7 +337,7 @@ export const detectDocumentEdges = (
         const quad = getCornersFromContour(contour);
 
         if (quad) {
-          const validation = validateDocumentContour(quad, area, src.cols, src.rows, true);
+          const validation = validateDocumentContour(quad, area, src.cols, src.rows, gray, true);
 
           if (validation.isValid && validation.score > bestScore) {
             bestScore = validation.score;
@@ -272,12 +360,7 @@ export const detectDocumentEdges = (
 
     // If Stage 2 found a document, return it
     if (bestContour) {
-      const corners: DocumentCorners = {
-        topLeft: { x: bestContour.data32S[0], y: bestContour.data32S[1] },
-        topRight: { x: bestContour.data32S[2], y: bestContour.data32S[3] },
-        bottomRight: { x: bestContour.data32S[4], y: bestContour.data32S[5] },
-        bottomLeft: { x: bestContour.data32S[6], y: bestContour.data32S[7] }
-      };
+      const corners = readCorners(bestContour, src.cols, src.rows);
 
       bestContour.delete();
       if (DEBUG) console.log('Stage 2: Document found with score', bestScore);
@@ -339,9 +422,31 @@ export const processDocument = (
     // Order corners
     const orderedCorners = orderCorners(corners);
 
-    // Calculate destination size (A4 aspect ratio: 210/297 ≈ 0.707)
-    const width = 800;
-    const height = Math.round(width * 1.414); // A4 ratio
+    // Calculate destination size dynamically based on document dimensions
+    const topWidth = Math.hypot(
+      orderedCorners[1][0] - orderedCorners[0][0],
+      orderedCorners[1][1] - orderedCorners[0][1]
+    );
+    const bottomWidth = Math.hypot(
+      orderedCorners[2][0] - orderedCorners[3][0],
+      orderedCorners[2][1] - orderedCorners[3][1]
+    );
+    const leftHeight = Math.hypot(
+      orderedCorners[3][0] - orderedCorners[0][0],
+      orderedCorners[3][1] - orderedCorners[0][1]
+    );
+    const rightHeight = Math.hypot(
+      orderedCorners[2][0] - orderedCorners[1][0],
+      orderedCorners[2][1] - orderedCorners[1][1]
+    );
+
+    const avgWidth = (topWidth + bottomWidth) / 2;
+    const avgHeight = (leftHeight + rightHeight) / 2;
+    
+    // Limit output width to 1500px for optimal quality
+    const maxWidth = 1500;
+    let width = Math.min(avgWidth, maxWidth);
+    let height = (avgHeight / avgWidth) * width;
 
     // Create source and destination points
     const srcPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [
@@ -364,26 +469,51 @@ export const processDocument = (
     // Apply perspective transform
     cv.warpPerspective(src, dst, M, new cv.Size(width, height));
 
-    // Convert to grayscale
-    let gray = new cv.Mat();
-    cv.cvtColor(dst, gray, cv.COLOR_RGBA2GRAY);
-
-    // Apply adaptive threshold for clean scan effect
-    let binary = new cv.Mat();
-    cv.adaptiveThreshold(gray, binary, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2);
+    // ===== Color Enhancement (sharp photo output, not fax-like) =====
+    
+    // Convert to Lab color space for illumination correction
+    let lab = new cv.Mat();
+    cv.cvtColor(dst, lab, cv.COLOR_RGBA2RGB);
+    cv.cvtColor(lab, lab, cv.COLOR_RGB2Lab);
+    
+    // Split Lab channels
+    let labChannels = new cv.MatVector();
+    cv.split(lab, labChannels);
+    
+    // Apply CLAHE to L channel to enhance contrast and fix lighting
+    let clahe = new cv.CLAHE(2.0, new cv.Size(8, 8));
+    clahe.apply(labChannels.get(0), labChannels.get(0));
+    
+    // Merge back
+    cv.merge(labChannels, lab);
+    cv.cvtColor(lab, dst, cv.COLOR_Lab2RGB);
+    cv.cvtColor(dst, dst, cv.COLOR_RGB2RGBA);
+    
+    labChannels.delete();
+    lab.delete();
+    
+    // Light denoising with bilateral filter (preserves edges)
+    let denoised = new cv.Mat();
+    cv.bilateralFilter(dst, denoised, 5, 50, 50);
+    
+    // Subtle sharpening (unsharp mask)
+    let blurred = new cv.Mat();
+    cv.GaussianBlur(denoised, blurred, new cv.Size(0, 0), 1.0);
+    cv.addWeighted(denoised, 1.5, blurred, -0.5, 0, dst);
+    
+    blurred.delete();
+    denoised.delete();
 
     // Show result on canvas
-    cv.imshow(canvas, binary);
+    cv.imshow(canvas, dst);
 
     // Clean up
     srcPoints.delete();
     dstPoints.delete();
     M.delete();
-    gray.delete();
-    binary.delete();
 
-    // Return base64 image
-    return canvas.toDataURL('image/jpeg', 0.95);
+    // Return base64 image with high quality
+    return canvas.toDataURL('image/jpeg', 0.93);
   } catch (error) {
     console.error('Error processing document:', error);
     throw error;
@@ -397,8 +527,9 @@ export const processDocument = (
 export const isDocumentWellFramed = (corners: DocumentCorners, canvasWidth: number, canvasHeight: number): boolean => {
   const orderedCorners = orderCorners(corners);
   
-  // Check if corners are not too close to edges (reduced margin to allow larger documents)
-  const margin = 30;
+  // Dynamic margin: 4% of the smaller canvas dimension
+  const margin = Math.min(canvasWidth, canvasHeight) * 0.04;
+  
   for (const corner of orderedCorners) {
     if (
       corner[0] < margin ||
@@ -417,8 +548,8 @@ export const isDocumentWellFramed = (corners: DocumentCorners, canvasWidth: numb
   const frameArea = canvasWidth * canvasHeight;
   const ratio = area / frameArea;
 
-  // Ideal range: 30% to 80% of frame
-  return ratio > 0.3 && ratio < 0.8;
+  // Ideal range: 25% to 85% of frame
+  return ratio > 0.25 && ratio < 0.85;
 };
 
 // Draw overlay with detected corners
