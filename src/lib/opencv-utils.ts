@@ -28,18 +28,28 @@ export const waitForOpenCV = (): Promise<void> => {
   });
 };
 
+const DEBUG = false;
+
 // Validate if contour is a good document candidate
 const validateDocumentContour = (
   contour: any,
   area: number,
   frameWidth: number,
-  frameHeight: number
+  frameHeight: number,
+  isFallback: boolean = false
 ): { isValid: boolean; score: number } => {
   const frameArea = frameWidth * frameHeight;
   const areaRatio = area / frameArea;
 
-  // Reject if too small (< 25%) or too large (> 90%)
-  if (areaRatio < 0.25 || areaRatio > 0.9) {
+  // Relaxed thresholds for fallback mode
+  const minArea = isFallback ? 0.2 : 0.25;
+  const maxArea = 0.9;
+  const minAspect = isFallback ? 0.45 : 0.5;
+  const maxAspect = isFallback ? 2.2 : 2.0;
+
+  // Reject if too small or too large
+  if (areaRatio < minArea || areaRatio > maxArea) {
+    if (DEBUG) console.log('Rejected: area ratio', areaRatio);
     return { isValid: false, score: 0 };
   }
 
@@ -48,7 +58,8 @@ const validateDocumentContour = (
   const aspectRatio = rect.width / rect.height;
 
   // Documents typically have aspect ratio between 0.5 and 2.0 (portrait/landscape)
-  if (aspectRatio < 0.5 || aspectRatio > 2.0) {
+  if (aspectRatio < minAspect || aspectRatio > maxAspect) {
+    if (DEBUG) console.log('Rejected: aspect ratio', aspectRatio);
     return { isValid: false, score: 0 };
   }
 
@@ -59,6 +70,51 @@ const validateDocumentContour = (
   }
 
   return { isValid: true, score };
+};
+
+// Try to approximate contour to 4 points using multiple epsilon values
+const tryApproximateToQuad = (contour: any): any | null => {
+  const peri = cv.arcLength(contour, true);
+  const epsilons = [0.02, 0.04, 0.06, 0.08, 0.1];
+  
+  for (const epsilon of epsilons) {
+    const approx = new cv.Mat();
+    cv.approxPolyDP(contour, approx, epsilon * peri, true);
+    
+    if (approx.rows === 4) {
+      return approx;
+    }
+    
+    approx.delete();
+  }
+  
+  return null;
+};
+
+// Get 4 corners from a contour (using convexHull or minAreaRect as fallback)
+const getCornersFromContour = (contour: any): any | null => {
+  // Try polygonal approximation first
+  let quad = tryApproximateToQuad(contour);
+  if (quad) return quad;
+  
+  // Try with convex hull
+  const hull = new cv.Mat();
+  cv.convexHull(contour, hull);
+  quad = tryApproximateToQuad(hull);
+  hull.delete();
+  if (quad) return quad;
+  
+  // Last resort: use minAreaRect to get 4 corners
+  const rect = cv.minAreaRect(contour);
+  const vertices = cv.RotatedRect.points(rect);
+  const cornersArray = new Float32Array([
+    vertices[0].x, vertices[0].y,
+    vertices[1].x, vertices[1].y,
+    vertices[2].x, vertices[2].y,
+    vertices[3].x, vertices[3].y
+  ]);
+  
+  return cv.matFromArray(4, 1, cv.CV_32FC2, Array.from(cornersArray));
 };
 
 // Detect document edges in the frame
@@ -85,6 +141,8 @@ export const detectDocumentEdges = (
     // Convert to grayscale
     cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
 
+    // ===== STAGE 1: Canny Edge Detection with Dynamic Approximation =====
+    
     // Apply bilateral filter to reduce noise while preserving edges
     cv.bilateralFilter(gray, blurred, 9, 75, 75);
 
@@ -92,12 +150,14 @@ export const detectDocumentEdges = (
     cv.Canny(blurred, edges, 30, 100);
 
     // Apply morphological dilation to connect broken document edges
-    const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
+    let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
     cv.dilate(edges, edges, kernel);
     kernel.delete();
 
     // Find contours
     cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+    if (DEBUG) console.log('Stage 1: Found', contours.size(), 'contours');
 
     // Find the best contour that could be a document
     let bestScore = 0;
@@ -106,30 +166,25 @@ export const detectDocumentEdges = (
     for (let i = 0; i < contours.size(); i++) {
       const contour = contours.get(i);
       const area = cv.contourArea(contour);
-      const peri = cv.arcLength(contour, true);
-      const approx = new cv.Mat();
 
-      // Approximate the contour to a polygon
-      cv.approxPolyDP(contour, approx, 0.02 * peri, true);
+      // Try to get 4 corners using dynamic approximation
+      const quad = getCornersFromContour(contour);
 
-      // Check if it's a quadrilateral
-      if (approx.rows === 4) {
-        const validation = validateDocumentContour(approx, area, src.cols, src.rows);
+      if (quad) {
+        const validation = validateDocumentContour(quad, area, src.cols, src.rows, false);
 
         if (validation.isValid && validation.score > bestScore) {
           bestScore = validation.score;
           if (bestContour) bestContour.delete();
-          bestContour = approx;
+          bestContour = quad;
         } else {
-          approx.delete();
+          quad.delete();
         }
-      } else {
-        approx.delete();
       }
     }
 
+    // If Stage 1 found a good document, return it
     if (bestContour) {
-      // Extract corners
       const corners: DocumentCorners = {
         topLeft: { x: bestContour.data32S[0], y: bestContour.data32S[1] },
         topRight: { x: bestContour.data32S[2], y: bestContour.data32S[3] },
@@ -138,9 +193,98 @@ export const detectDocumentEdges = (
       };
 
       bestContour.delete();
+      contours.delete();
+      hierarchy.delete();
+      
+      if (DEBUG) console.log('Stage 1: Document found with score', bestScore);
       return corners;
     }
 
+    if (DEBUG) console.log('Stage 1: No document found, trying Stage 2 (segmentation)');
+
+    // ===== STAGE 2: Fallback with Segmentation (OTSU) =====
+    
+    contours.delete();
+    hierarchy.delete();
+    
+    // Try both binary and inverted binary thresholding
+    const masks = [];
+    
+    // Binary OTSU
+    const binary = new cv.Mat();
+    cv.threshold(gray, binary, 0, 255, cv.THRESH_BINARY | cv.THRESH_OTSU);
+    masks.push(binary);
+    
+    // Inverted binary OTSU
+    const binaryInv = new cv.Mat();
+    cv.threshold(gray, binaryInv, 0, 255, cv.THRESH_BINARY_INV | cv.THRESH_OTSU);
+    masks.push(binaryInv);
+
+    bestScore = 0;
+    bestContour = null;
+
+    for (const mask of masks) {
+      // Apply morphological closing to fill gaps
+      const kernel2 = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(7, 7));
+      cv.morphologyEx(mask, mask, cv.MORPH_CLOSE, kernel2, new cv.Point(-1, -1), 2);
+      kernel2.delete();
+
+      // Find contours in the mask
+      const contours2 = new cv.MatVector();
+      const hierarchy2 = new cv.Mat();
+      cv.findContours(mask, contours2, hierarchy2, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+      if (DEBUG) console.log('Stage 2: Found', contours2.size(), 'contours in mask');
+
+      // Find largest contour with sufficient area
+      for (let i = 0; i < contours2.size(); i++) {
+        const contour = contours2.get(i);
+        const area = cv.contourArea(contour);
+        const areaRatio = area / (src.cols * src.rows);
+
+        // Skip if area is too small
+        if (areaRatio < 0.2) continue;
+
+        // Try to get 4 corners
+        const quad = getCornersFromContour(contour);
+
+        if (quad) {
+          const validation = validateDocumentContour(quad, area, src.cols, src.rows, true);
+
+          if (validation.isValid && validation.score > bestScore) {
+            bestScore = validation.score;
+            if (bestContour) bestContour.delete();
+            bestContour = quad;
+          } else {
+            quad.delete();
+          }
+        }
+      }
+
+      contours2.delete();
+      hierarchy2.delete();
+    }
+
+    // Clean up masks
+    for (const mask of masks) {
+      mask.delete();
+    }
+
+    // If Stage 2 found a document, return it
+    if (bestContour) {
+      const corners: DocumentCorners = {
+        topLeft: { x: bestContour.data32S[0], y: bestContour.data32S[1] },
+        topRight: { x: bestContour.data32S[2], y: bestContour.data32S[3] },
+        bottomRight: { x: bestContour.data32S[4], y: bestContour.data32S[5] },
+        bottomLeft: { x: bestContour.data32S[6], y: bestContour.data32S[7] }
+      };
+
+      bestContour.delete();
+      if (DEBUG) console.log('Stage 2: Document found with score', bestScore);
+      return corners;
+    }
+
+    if (DEBUG) console.log('Stage 2: No document found');
     return null;
   } catch (error) {
     console.error('Error detecting document edges:', error);
@@ -150,8 +294,6 @@ export const detectDocumentEdges = (
     gray.delete();
     blurred.delete();
     edges.delete();
-    contours.delete();
-    hierarchy.delete();
   }
 };
 
