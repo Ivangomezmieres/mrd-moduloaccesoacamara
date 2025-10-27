@@ -14,6 +14,7 @@ const Scan = () => {
   const [step, setStep] = useState<ScanStep>('camera');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -27,6 +28,13 @@ const Scan = () => {
       return;
     }
 
+    const { data: roles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', session.user.id);
+
+    const isSuperAdmin = roles?.some(r => r.role === 'superadmin') ?? false;
+    setIsSuperAdmin(isSuperAdmin);
     setUserId(session.user.id);
   };
 
@@ -55,9 +63,16 @@ const Scan = () => {
     <div className="min-h-screen bg-background">
       <header className="bg-card border-b border-border p-4 flex justify-between items-center">
         <h1 className="text-xl font-semibold">Escaneo de Documentos</h1>
-        <Button variant="ghost" size="icon" onClick={handleLogout}>
-          <LogOut className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {isSuperAdmin && (
+            <Button variant="outline" onClick={() => navigate('/admin/dashboard')}>
+              Ir al Dashboard
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" onClick={handleLogout}>
+            <LogOut className="h-5 w-5" />
+          </Button>
+        </div>
       </header>
 
       <main className="container mx-auto p-4 max-w-4xl">

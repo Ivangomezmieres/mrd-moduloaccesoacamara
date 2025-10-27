@@ -20,6 +20,7 @@ const Review = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -39,14 +40,16 @@ const Review = () => {
       .select('role')
       .eq('user_id', session.user.id);
 
-    const hasRevisorRole = roles?.some(r => r.role === 'revisor' || r.role === 'admin');
+    const isSuperAdmin = roles?.some(r => r.role === 'superadmin') ?? false;
+    const hasReviewerPermission = roles?.some(r => ['revisor', 'admin', 'superadmin'].includes(r.role)) ?? false;
     
-    if (!hasRevisorRole) {
+    if (!hasReviewerPermission) {
       toast.error('No tienes permisos para acceder a esta página');
       navigate('/scan');
       return;
     }
 
+    setIsSuperAdmin(isSuperAdmin);
     setUserId(session.user.id);
     loadDocuments();
   };
@@ -123,6 +126,11 @@ const Review = () => {
       <header className="bg-card border-b border-border p-4 flex justify-between items-center">
         <h1 className="text-xl font-semibold">Revisión de Documentos</h1>
         <div className="flex gap-2">
+          {isSuperAdmin && (
+            <Button variant="outline" onClick={() => navigate('/admin/dashboard')}>
+              Volver al Dashboard
+            </Button>
+          )}
           <Button variant="ghost" size="icon" onClick={loadDocuments}>
             <RefreshCw className="h-5 w-5" />
           </Button>
