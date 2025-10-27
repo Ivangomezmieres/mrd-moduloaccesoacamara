@@ -1,1 +1,4 @@
 project_id = "wgdecbqpymjayhisnxin"
+
+[functions.validate-document]
+verify_jwt = true
