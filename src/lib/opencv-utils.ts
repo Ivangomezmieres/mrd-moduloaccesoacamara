@@ -400,12 +400,50 @@ const orderCorners = (corners: DocumentCorners): number[][] => {
   return [topPoints[0], topPoints[1], bottomPoints[1], bottomPoints[0]];
 };
 
-// Apply perspective transform and enhance document
-export const processDocument = (
+// Check if image is dark (needs illumination correction)
+const isImageDark = (mat: any): boolean => {
+  const gray = new cv.Mat();
+  cv.cvtColor(mat, gray, cv.COLOR_RGBA2GRAY);
+  const meanBrightness = cv.mean(gray);
+  gray.delete();
+  return meanBrightness[0] < 120; // threshold for "dark" image
+};
+
+// Check if image is blurry (needs sharpening)
+const isImageBlurry = (mat: any): boolean => {
+  const gray = new cv.Mat();
+  cv.cvtColor(mat, gray, cv.COLOR_RGBA2GRAY);
+  
+  // Calculate Laplacian variance to detect blur
+  const laplacian = new cv.Mat();
+  cv.Laplacian(gray, laplacian, cv.CV_64F);
+  
+  const mean = new cv.Mat();
+  const stddev = new cv.Mat();
+  cv.meanStdDev(laplacian, mean, stddev);
+  
+  const variance = Math.pow(stddev.data64F[0], 2);
+  
+  gray.delete();
+  laplacian.delete();
+  mean.delete();
+  stddev.delete();
+  
+  return variance < 100; // threshold for "blurry" image
+};
+
+// Crop and straighten document with minimal, conservative processing
+export const cropAndStraighten = (
   imageElement: HTMLImageElement,
-  corners: DocumentCorners
+  corners: DocumentCorners,
+  options: {
+    autoEnhance?: boolean;
+    outputQuality?: number;
+  } = {}
 ): string => {
   if (!isOpenCVReady()) throw new Error('OpenCV not ready');
+
+  const { autoEnhance = true, outputQuality = 0.97 } = options;
 
   const canvas = document.createElement('canvas');
   canvas.width = imageElement.width;
@@ -422,7 +460,7 @@ export const processDocument = (
     // Order corners
     const orderedCorners = orderCorners(corners);
 
-    // Calculate destination size dynamically based on document dimensions
+    // Calculate destination size dynamically
     const topWidth = Math.hypot(
       orderedCorners[1][0] - orderedCorners[0][0],
       orderedCorners[1][1] - orderedCorners[0][1]
@@ -463,65 +501,66 @@ export const processDocument = (
       0, height
     ]);
 
-    // Get perspective transform matrix
+    // Get perspective transform matrix and apply warp
     const M = cv.getPerspectiveTransform(srcPoints, dstPoints);
-
-    // Apply perspective transform
     cv.warpPerspective(src, dst, M, new cv.Size(width, height));
 
-    // ===== Color Enhancement (sharp photo output, not fax-like) =====
-    
-    // Convert to Lab color space for illumination correction
-    let lab = new cv.Mat();
-    cv.cvtColor(dst, lab, cv.COLOR_RGBA2RGB);
-    cv.cvtColor(lab, lab, cv.COLOR_RGB2Lab);
-    
-    // Split Lab channels
-    let labChannels = new cv.MatVector();
-    cv.split(lab, labChannels);
-    
-    // Apply CLAHE to L channel to enhance contrast and fix lighting
-    let clahe = new cv.CLAHE(2.0, new cv.Size(8, 8));
-    clahe.apply(labChannels.get(0), labChannels.get(0));
-    
-    // Merge back
-    cv.merge(labChannels, lab);
-    cv.cvtColor(lab, dst, cv.COLOR_Lab2RGB);
-    cv.cvtColor(dst, dst, cv.COLOR_RGB2RGBA);
-    
-    labChannels.delete();
-    lab.delete();
-    
-    // Light denoising with bilateral filter (preserves edges)
-    let denoised = new cv.Mat();
-    cv.bilateralFilter(dst, denoised, 5, 50, 50);
-    
-    // Subtle sharpening (unsharp mask)
-    let blurred = new cv.Mat();
-    cv.GaussianBlur(denoised, blurred, new cv.Size(0, 0), 1.0);
-    cv.addWeighted(denoised, 1.5, blurred, -0.5, 0, dst);
-    
-    blurred.delete();
-    denoised.delete();
-
-    // Show result on canvas
-    cv.imshow(canvas, dst);
-
-    // Clean up
     srcPoints.delete();
     dstPoints.delete();
     M.delete();
 
-    // Return base64 image with high quality
-    return canvas.toDataURL('image/jpeg', 0.93);
+    // === Conservative Enhancement (only if autoEnhance is true) ===
+    if (autoEnhance) {
+      // Apply gentle CLAHE only if image is dark
+      if (isImageDark(dst)) {
+        let rgb = new cv.Mat();
+        let lab = new cv.Mat();
+        cv.cvtColor(dst, rgb, cv.COLOR_RGBA2RGB);
+        cv.cvtColor(rgb, lab, cv.COLOR_RGB2Lab);
+        
+        let labChannels = new cv.MatVector();
+        cv.split(lab, labChannels);
+        
+        // Conservative CLAHE settings
+        let clahe = new cv.CLAHE(1.0, new cv.Size(16, 16));
+        clahe.apply(labChannels.get(0), labChannels.get(0));
+        
+        cv.merge(labChannels, lab);
+        cv.cvtColor(lab, rgb, cv.COLOR_Lab2RGB);
+        cv.cvtColor(rgb, dst, cv.COLOR_RGB2RGBA);
+        
+        labChannels.delete();
+        lab.delete();
+        rgb.delete();
+      }
+
+      // Apply subtle sharpening only if image is blurry
+      if (isImageBlurry(dst)) {
+        let blurred = new cv.Mat();
+        cv.GaussianBlur(dst, blurred, new cv.Size(0, 0), 1.0);
+        
+        // Gentle unsharp mask: 1.1x original - 0.1x blurred
+        cv.addWeighted(dst, 1.1, blurred, -0.1, 0, dst);
+        blurred.delete();
+      }
+    }
+
+    // Show result on canvas
+    cv.imshow(canvas, dst);
+
+    // Return high quality JPEG
+    return canvas.toDataURL('image/jpeg', outputQuality);
   } catch (error) {
-    console.error('Error processing document:', error);
+    console.error('Error cropping and straightening document:', error);
     throw error;
   } finally {
     src.delete();
     dst.delete();
   }
 };
+
+// Legacy function kept for backward compatibility
+export const processDocument = cropAndStraighten;
 
 // Check if document is well-framed for auto-capture
 export const isDocumentWellFramed = (corners: DocumentCorners, canvasWidth: number, canvasHeight: number): boolean => {

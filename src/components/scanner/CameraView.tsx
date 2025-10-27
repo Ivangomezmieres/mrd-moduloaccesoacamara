@@ -1,16 +1,9 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import { useCamera } from '@/hooks/useCamera';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Camera, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useCamera } from '@/hooks/useCamera';
-import {
-  waitForOpenCV,
-  detectDocumentEdges,
-  isDocumentWellFramed,
-  drawDocumentOverlay,
-  processDocument,
-  DocumentCorners
-} from '@/lib/opencv-utils';
 
 interface CameraViewProps {
   onCapture: (imageData: string) => void;
@@ -18,21 +11,8 @@ interface CameraViewProps {
 
 const CameraView = ({ onCapture }: CameraViewProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
-  const { stream, error, isLoading: isCameraLoading } = useCamera();
-  const [isOpenCVReady, setIsOpenCVReady] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [detectedCorners, setDetectedCorners] = useState<DocumentCorners | null>(null);
-  const [isWellFramed, setIsWellFramed] = useState(false);
-  const animationFrameRef = useRef<number>();
-
-  useEffect(() => {
-    waitForOpenCV().then(() => {
-      setIsOpenCVReady(true);
-      toast.success('Sistema de detección listo');
-    });
-  }, []);
+  const { stream, error: cameraError, isLoading: cameraLoading } = useCamera();
 
   useEffect(() => {
     if (stream && videoRef.current) {
@@ -40,200 +20,104 @@ const CameraView = ({ onCapture }: CameraViewProps) => {
     }
   }, [stream]);
 
-  const processFrame = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current || !overlayCanvasRef.current || !isOpenCVReady) {
-      animationFrameRef.current = requestAnimationFrame(processFrame);
-      return;
-    }
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const overlayCanvas = overlayCanvasRef.current;
-
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      // Set canvas size to match video
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      overlayCanvas.width = video.videoWidth;
-      overlayCanvas.height = video.videoHeight;
-
-      // Detect document edges
-      const corners = detectDocumentEdges(video, canvas);
-      
-      if (corners) {
-        const wellFramed = isDocumentWellFramed(corners, canvas.width, canvas.height);
-        setDetectedCorners(corners);
-        setIsWellFramed(wellFramed);
-
-        // Draw overlay
-        const ctx = overlayCanvas.getContext('2d');
-        if (ctx) {
-          ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-          drawDocumentOverlay(overlayCanvas, corners, wellFramed);
-        }
-      } else {
-        setDetectedCorners(null);
-        setIsWellFramed(false);
-        
-        // Clear overlay
-        const ctx = overlayCanvas.getContext('2d');
-        if (ctx) {
-          ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-        }
-      }
-    }
-
-    animationFrameRef.current = requestAnimationFrame(processFrame);
-  }, [isOpenCVReady]);
-
-  useEffect(() => {
-    if (stream && isOpenCVReady) {
-      processFrame();
-    }
-
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, [stream, isOpenCVReady, processFrame]);
-
   const handleCapture = async () => {
-    if (!detectedCorners) {
-      toast.error('No se ha detectado ningún documento');
+    if (!videoRef.current) {
+      toast.error('Cámara no disponible');
       return;
     }
 
     setIsProcessing(true);
 
     try {
-      // Capture current frame
-      const video = videoRef.current;
       const canvas = document.createElement('canvas');
-      
-      if (!video) throw new Error('Video not available');
-
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
       const ctx = canvas.getContext('2d');
       
-      if (!ctx) throw new Error('Cannot get canvas context');
+      if (!ctx) {
+        throw new Error('No se pudo obtener el contexto del canvas');
+      }
 
-      ctx.drawImage(video, 0, 0);
-
-      // Create image element from canvas
-      const img = new Image();
-      img.src = canvas.toDataURL('image/jpeg');
-
-      await new Promise((resolve) => {
-        img.onload = resolve;
-      });
-
-      // Process document
-      const processedImage = processDocument(img, detectedCorners);
-      onCapture(processedImage);
+      // Capture current video frame directly
+      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
       
-      toast.success('Documento capturado');
+      // Return raw capture without processing
+      const imageData = canvas.toDataURL('image/jpeg', 0.98);
+      onCapture(imageData);
+      toast.success('Foto capturada');
     } catch (error) {
-      console.error('Error capturing document:', error);
-      toast.error('Error al procesar el documento');
+      console.error('Error capturing photo:', error);
+      toast.error('Error al capturar la foto');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  if (isCameraLoading) {
+  if (cameraLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-[70vh] space-y-4">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-muted-foreground">Iniciando cámara...</p>
-      </div>
+      <Card>
+        <CardContent className="p-8 text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Inicializando cámara...</p>
+        </CardContent>
+      </Card>
     );
   }
 
-  if (error) {
+  if (cameraError) {
     return (
-      <div className="flex flex-col items-center justify-center h-[70vh] space-y-4">
-        <p className="text-destructive">{error}</p>
-      </div>
+      <Card>
+        <CardContent className="p-8 text-center">
+          <p className="text-destructive">{cameraError}</p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="relative bg-black rounded-lg overflow-hidden aspect-[3/4] max-h-[70vh]">
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <canvas
-          ref={canvasRef}
-          className="hidden"
-        />
-        <canvas
-          ref={overlayCanvasRef}
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-        />
-        
-        {!isOpenCVReady && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-            <div className="text-center text-white">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-              <p className="text-sm">Cargando detector...</p>
-            </div>
-          </div>
-        )}
+    <Card>
+      <CardContent className="p-4 space-y-4">
+        <div className="relative">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            className="w-full rounded-lg"
+          />
+        </div>
 
-        {isOpenCVReady && (
-          <div className="absolute top-4 left-4 right-4">
-            <div className={`px-4 py-2 rounded-lg text-sm font-medium ${
-              detectedCorners 
-                ? isWellFramed 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'bg-yellow-500 text-white'
-                : 'bg-muted text-muted-foreground'
-            }`}>
-              {detectedCorners 
-                ? isWellFramed 
-                  ? '✓ Documento detectado - Listo para capturar' 
-                  : 'Aleja un poco - Asegúrate de que todo el documento esté visible'
-                : 'Busca el borde completo del documento'}
-            </div>
-          </div>
-        )}
-      </div>
+        <div className="space-y-2">
+          <Button
+            onClick={handleCapture}
+            disabled={isProcessing}
+            className="w-full"
+            size="lg"
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Capturando...
+              </>
+            ) : (
+              <>
+                <Camera className="mr-2 h-5 w-5" />
+                Capturar Foto
+              </>
+            )}
+          </Button>
+        </div>
 
-      <div className="flex gap-3">
-        <Button
-          onClick={handleCapture}
-          disabled={!detectedCorners || isProcessing}
-          className="flex-1"
-          size="lg"
-        >
-          {isProcessing ? (
-            <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Procesando...
-            </>
-          ) : (
-            <>
-              <Camera className="mr-2 h-5 w-5" />
-              Capturar
-            </>
-          )}
-        </Button>
-      </div>
-
-      <div className="text-center text-sm text-muted-foreground space-y-1">
-        <p className="font-medium">Consejos para una buena captura:</p>
-        <p>• Asegúrate de que todo el parte de trabajo esté dentro del marco</p>
-        <p>• El documento debe verse completo, desde el encabezado hasta el pie</p>
-        <p>• Evita sombras y mantén buena iluminación</p>
-      </div>
-    </div>
+        <div className="text-sm text-muted-foreground space-y-1">
+          <p className="font-medium">Consejos para mejor captura:</p>
+          <ul className="list-disc list-inside space-y-1 ml-2">
+            <li>Coloca el documento en una superficie plana</li>
+            <li>Asegúrate de tener buena iluminación</li>
+            <li>Mantén la cámara paralela al documento</li>
+            <li>Evita sombras sobre el documento</li>
+          </ul>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

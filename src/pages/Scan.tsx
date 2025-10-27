@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import CameraView from '@/components/scanner/CameraView';
-import DocumentPreview from '@/components/scanner/DocumentPreview';
+import DocumentCropper from '@/components/scanner/DocumentCropper';
 import DocumentForm from '@/components/scanner/DocumentForm';
 
-type ScanStep = 'camera' | 'preview' | 'form';
+type ScanStep = 'camera' | 'crop' | 'form';
 
 const Scan = () => {
   const navigate = useNavigate();
@@ -33,7 +33,7 @@ const Scan = () => {
 
   const handleCapture = (imageData: string) => {
     setCapturedImage(imageData);
-    setStep('preview');
+    setStep('crop');
   };
 
   const handleRetake = () => {
@@ -41,7 +41,8 @@ const Scan = () => {
     setStep('camera');
   };
 
-  const handleContinue = () => {
+  const handleCropContinue = (croppedImageData: string) => {
+    setCapturedImage(croppedImageData);
     setStep('form');
   };
 
@@ -68,11 +69,11 @@ const Scan = () => {
       <main className="container mx-auto p-4 max-w-4xl">
         {step === 'camera' && <CameraView onCapture={handleCapture} />}
         
-        {step === 'preview' && capturedImage && (
-          <DocumentPreview
+        {step === 'crop' && capturedImage && (
+          <DocumentCropper
             imageData={capturedImage}
-            onRetake={handleRetake}
-            onContinue={handleContinue}
+            onContinue={handleCropContinue}
+            onCancel={handleRetake}
           />
         )}
 
