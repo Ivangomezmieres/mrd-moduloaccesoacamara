@@ -22,8 +22,21 @@ const Index = () => {
         .eq('user_id', session.user.id);
 
       if (roles && roles.length > 0) {
-        const hasRevisor = roles.some(r => r.role === 'revisor' || r.role === 'admin');
-        navigate(hasRevisor ? '/review' : '/scan');
+        // Roles en orden de prioridad (de mayor a menor)
+        const hasSuperAdmin = roles.some(r => r.role === 'superadmin');
+        const hasAdmin = roles.some(r => r.role === 'admin');
+        const hasRevisor = roles.some(r => r.role === 'revisor');
+        
+        // Redirigir según el rol de mayor nivel
+        if (hasSuperAdmin) {
+          navigate('/admin/dashboard');
+        } else if (hasAdmin) {
+          navigate('/admin/users');
+        } else if (hasRevisor) {
+          navigate('/review');
+        } else {
+          navigate('/scan');
+        }
       } else {
         navigate('/scan');
       }

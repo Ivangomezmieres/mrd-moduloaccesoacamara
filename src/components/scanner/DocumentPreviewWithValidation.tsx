@@ -188,6 +188,7 @@ const DocumentPreviewWithValidation = ({
           status: 'pending',
           meta: {
             validationResult: validation,
+            extractedData: validation.extractedData || null,
             legibilityScore: score,
             processedAt: new Date().toISOString(),
             hadAutoCrop

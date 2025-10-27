@@ -9,6 +9,8 @@ import Scan from "./pages/Scan";
 import Review from "./pages/Review";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import AdminUsers from "./pages/AdminUsers";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +25,8 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/scan" element={<Scan />} />
           <Route path="/review" element={<Review />} />
+          <Route path="/admin/dashboard" element={<SuperAdminDashboard />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/install" element={<Install />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
