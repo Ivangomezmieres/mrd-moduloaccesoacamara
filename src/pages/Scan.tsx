@@ -6,9 +6,9 @@ import { LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import CameraView from '@/components/scanner/CameraView';
 import DocumentCropper from '@/components/scanner/DocumentCropper';
-import DocumentForm from '@/components/scanner/DocumentForm';
+import DocumentPreviewWithValidation from '@/components/scanner/DocumentPreviewWithValidation';
 
-type ScanStep = 'camera' | 'crop' | 'form';
+type ScanStep = 'camera' | 'crop' | 'validate';
 
 const Scan = () => {
   const navigate = useNavigate();
@@ -43,7 +43,7 @@ const Scan = () => {
 
   const handleCropContinue = (croppedImageData: string) => {
     setCapturedImage(croppedImageData);
-    setStep('form');
+    setStep('validate');
   };
 
   const handleSubmitSuccess = () => {
@@ -77,12 +77,12 @@ const Scan = () => {
           />
         )}
 
-        {step === 'form' && capturedImage && userId && (
-          <DocumentForm
+        {step === 'validate' && capturedImage && userId && (
+          <DocumentPreviewWithValidation
             imageData={capturedImage}
             userId={userId}
             onSuccess={handleSubmitSuccess}
-            onCancel={handleRetake}
+            onRetake={handleRetake}
           />
         )}
       </main>

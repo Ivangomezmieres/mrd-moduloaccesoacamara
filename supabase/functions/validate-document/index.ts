@@ -11,45 +11,36 @@ serve(async (req) => {
   }
 
   try {
-    const { imageData, metadata } = await req.json();
+    const { imageData } = await req.json();
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
     if (!OPENAI_API_KEY) {
       throw new Error('OPENAI_API_KEY is not configured');
     }
 
-    // Prepare prompt for document validation
-    const prompt = `Analiza esta imagen de un parte de trabajo y verifica que contenga los siguientes elementos obligatorios:
+    // Prepare prompt for legibility validation (80% threshold)
+    const prompt = `Analiza esta imagen de un parte de trabajo y verifica su LEGIBILIDAD.
+
+Verifica que al menos el 80% de estos elementos sean LEGIBLES (que se puedan leer):
 
 1. Nº de parte
 2. Cliente
 3. Emplazamiento
 4. Obra
 5. Trabajo realizado
-6. Datos del montador (Nombre y Apellidos, horas)
-7. Firma del Jefe de Equipo de Montaje
-8. Firma Vº Bº del Cliente / Encargado de control
-9. Fecha
+6. Datos del montador (Nombre y Apellidos)
+7. Horas trabajadas
+8. Firma del Jefe de Equipo
+9. Firma del Cliente/Encargado
+10. Fecha
 
-Metadatos proporcionados por el usuario:
-- Nº de parte: ${metadata.parteNumero}
-- Cliente: ${metadata.cliente}
-- Emplazamiento: ${metadata.emplazamiento}
-- Obra: ${metadata.obra}
-- Trabajo realizado: ${metadata.trabajoRealizado}
-- Montador: ${metadata.montadorNombre}
-- Fecha: ${metadata.fecha}
-
-Verifica que:
-1. El documento sea legible
-2. Contenga todas las firmas necesarias
-3. Los datos del formulario coincidan con lo visible en la imagen
-4. No falte ningún campo obligatorio
+NO necesitas verificar que los datos estén completos, solo que sean LEGIBLES.
 
 Responde en formato JSON con:
 {
-  "complete": boolean,
-  "missingFields": string[],
+  "legible": boolean (true si >= 80% de campos son legibles),
+  "legibilityPercentage": number (0-100),
+  "illegibleFields": string[] (campos que NO se pueden leer),
   "confidence": number (0-1),
   "observations": string
 }`;
@@ -65,7 +56,7 @@ Responde en formato JSON con:
         messages: [
           {
             role: 'system',
-            content: 'Eres un asistente especializado en validar documentos de partes de trabajo. Analiza con precisión y responde siempre en formato JSON.'
+            content: 'Eres un asistente especializado en verificar la LEGIBILIDAD de documentos de partes de trabajo. Solo debes verificar si los campos se pueden leer, no si están completos. Analiza con precisión y responde siempre en formato JSON.'
           },
           {
             role: 'user',
@@ -100,10 +91,11 @@ Responde en formato JSON con:
       validation = JSON.parse(content);
     } catch (e) {
       console.error('Failed to parse AI response:', content);
-      // Fallback: assume document is complete if AI couldn't parse
+      // Fallback: assume document is legible if AI couldn't parse
       validation = {
-        complete: true,
-        missingFields: [],
+        legible: true,
+        legibilityPercentage: 80,
+        illegibleFields: [],
         confidence: 0.5,
         observations: 'No se pudo validar automáticamente'
       };
@@ -118,8 +110,9 @@ Responde en formato JSON con:
     return new Response(
       JSON.stringify({ 
         error: errorMessage,
-        complete: true, // Allow submission on error
-        missingFields: [],
+        legible: true, // Allow submission on error
+        legibilityPercentage: 80,
+        illegibleFields: [],
         confidence: 0,
         observations: 'Error en validación automática'
       }),
