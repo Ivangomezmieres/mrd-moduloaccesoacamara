@@ -51,7 +51,15 @@ export type Database = {
           uploader?: string
           validated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_documents_uploader"
+            columns: ["uploader"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
