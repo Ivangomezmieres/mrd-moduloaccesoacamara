@@ -19,12 +19,11 @@ export type Database = {
           created_at: string
           id: string
           meta: Json | null
-          pages: number | null
           review_notes: string | null
           reviewed_by: string | null
           status: string
           storage_path: string
-          thumbnail_path: string | null
+          updated_at: string
           uploader: string
           validated_at: string | null
         }
@@ -32,12 +31,11 @@ export type Database = {
           created_at?: string
           id?: string
           meta?: Json | null
-          pages?: number | null
           review_notes?: string | null
           reviewed_by?: string | null
           status?: string
           storage_path: string
-          thumbnail_path?: string | null
+          updated_at?: string
           uploader: string
           validated_at?: string | null
         }
@@ -45,49 +43,30 @@ export type Database = {
           created_at?: string
           id?: string
           meta?: Json | null
-          pages?: number | null
           review_notes?: string | null
           reviewed_by?: string | null
           status?: string
           storage_path?: string
-          thumbnail_path?: string | null
+          updated_at?: string
           uploader?: string
           validated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "documents_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "documents_uploader_fkey"
-            columns: ["uploader"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
-          avatar_url: string | null
           created_at: string
           full_name: string | null
           id: string
           updated_at: string
         }
         Insert: {
-          avatar_url?: string | null
           created_at?: string
           full_name?: string | null
           id: string
           updated_at?: string
         }
         Update: {
-          avatar_url?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
@@ -105,7 +84,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
