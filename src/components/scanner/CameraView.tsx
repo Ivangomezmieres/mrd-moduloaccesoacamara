@@ -199,8 +199,8 @@ const CameraView = ({ onCapture }: CameraViewProps) => {
               {detectedCorners 
                 ? isWellFramed 
                   ? '✓ Documento detectado - Listo para capturar' 
-                  : 'Ajusta el encuadre'
-                : 'Apunta a un documento'}
+                  : 'Aleja un poco - Asegúrate de que todo el documento esté visible'
+                : 'Busca el borde completo del documento'}
             </div>
           </div>
         )}
@@ -227,9 +227,11 @@ const CameraView = ({ onCapture }: CameraViewProps) => {
         </Button>
       </div>
 
-      <div className="text-center text-sm text-muted-foreground">
-        <p>Posiciona el documento dentro del marco verde</p>
-        <p>La captura se optimizará automáticamente</p>
+      <div className="text-center text-sm text-muted-foreground space-y-1">
+        <p className="font-medium">Consejos para una buena captura:</p>
+        <p>• Asegúrate de que todo el parte de trabajo esté dentro del marco</p>
+        <p>• El documento debe verse completo, desde el encabezado hasta el pie</p>
+        <p>• Evita sombras y mantén buena iluminación</p>
       </div>
     </div>
   );

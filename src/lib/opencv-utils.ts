@@ -28,6 +28,39 @@ export const waitForOpenCV = (): Promise<void> => {
   });
 };
 
+// Validate if contour is a good document candidate
+const validateDocumentContour = (
+  contour: any,
+  area: number,
+  frameWidth: number,
+  frameHeight: number
+): { isValid: boolean; score: number } => {
+  const frameArea = frameWidth * frameHeight;
+  const areaRatio = area / frameArea;
+
+  // Reject if too small (< 25%) or too large (> 90%)
+  if (areaRatio < 0.25 || areaRatio > 0.9) {
+    return { isValid: false, score: 0 };
+  }
+
+  // Calculate aspect ratio
+  const rect = cv.boundingRect(contour);
+  const aspectRatio = rect.width / rect.height;
+
+  // Documents typically have aspect ratio between 0.5 and 2.0 (portrait/landscape)
+  if (aspectRatio < 0.5 || aspectRatio > 2.0) {
+    return { isValid: false, score: 0 };
+  }
+
+  // Calculate score based on area (prefer documents that occupy 40-70% of frame)
+  let score = areaRatio;
+  if (areaRatio >= 0.4 && areaRatio <= 0.7) {
+    score += 0.3; // Bonus for ideal area
+  }
+
+  return { isValid: true, score };
+};
+
 // Detect document edges in the frame
 export const detectDocumentEdges = (
   videoElement: HTMLVideoElement,
@@ -52,17 +85,22 @@ export const detectDocumentEdges = (
     // Convert to grayscale
     cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
 
-    // Apply Gaussian blur
-    cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+    // Apply bilateral filter to reduce noise while preserving edges
+    cv.bilateralFilter(gray, blurred, 9, 75, 75);
 
-    // Canny edge detection
-    cv.Canny(blurred, edges, 50, 150);
+    // Canny edge detection with adjusted thresholds for subtle edges
+    cv.Canny(blurred, edges, 30, 100);
+
+    // Apply morphological dilation to connect broken document edges
+    const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
+    cv.dilate(edges, edges, kernel);
+    kernel.delete();
 
     // Find contours
     cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-    // Find the largest contour that could be a document
-    let maxArea = 0;
+    // Find the best contour that could be a document
+    let bestScore = 0;
     let bestContour = null;
 
     for (let i = 0; i < contours.size(); i++) {
@@ -74,11 +112,17 @@ export const detectDocumentEdges = (
       // Approximate the contour to a polygon
       cv.approxPolyDP(contour, approx, 0.02 * peri, true);
 
-      // Check if it's a quadrilateral and has significant area
-      if (approx.rows === 4 && area > maxArea && area > (src.cols * src.rows * 0.1)) {
-        maxArea = area;
-        if (bestContour) bestContour.delete();
-        bestContour = approx;
+      // Check if it's a quadrilateral
+      if (approx.rows === 4) {
+        const validation = validateDocumentContour(approx, area, src.cols, src.rows);
+
+        if (validation.isValid && validation.score > bestScore) {
+          bestScore = validation.score;
+          if (bestContour) bestContour.delete();
+          bestContour = approx;
+        } else {
+          approx.delete();
+        }
       } else {
         approx.delete();
       }
@@ -211,8 +255,8 @@ export const processDocument = (
 export const isDocumentWellFramed = (corners: DocumentCorners, canvasWidth: number, canvasHeight: number): boolean => {
   const orderedCorners = orderCorners(corners);
   
-  // Check if corners are not too close to edges
-  const margin = 50;
+  // Check if corners are not too close to edges (reduced margin to allow larger documents)
+  const margin = 30;
   for (const corner of orderedCorners) {
     if (
       corner[0] < margin ||
@@ -231,7 +275,8 @@ export const isDocumentWellFramed = (corners: DocumentCorners, canvasWidth: numb
   const frameArea = canvasWidth * canvasHeight;
   const ratio = area / frameArea;
 
-  return ratio > 0.3 && ratio < 0.9;
+  // Ideal range: 30% to 80% of frame
+  return ratio > 0.3 && ratio < 0.8;
 };
 
 // Draw overlay with detected corners
