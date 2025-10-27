@@ -19,6 +19,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 import { 
   Select,
   SelectContent,
@@ -35,7 +37,15 @@ import {
   BarChart3,
   FileText,
   Users,
-  Clock
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  User,
+  Building,
+  Briefcase,
+  Calendar,
+  PenTool,
+  ZoomIn
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -527,176 +537,339 @@ const SuperAdminDashboard = () => {
       </main>
 
       <Dialog open={!!selectedDoc} onOpenChange={() => setSelectedDoc(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Detalles del Documento</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Detalles Completos del Documento
+            </DialogTitle>
           </DialogHeader>
           
           {selectedDoc && (
-            <div className="space-y-6">
-              {imageUrl && (
-                <div className="border rounded-lg overflow-hidden">
-                  <img 
-                    src={imageUrl} 
-                    alt="Documento escaneado" 
-                    className="w-full h-auto"
-                  />
+            <div className="grid grid-cols-5 gap-6 mt-4">
+              {/* Columna izquierda: Imagen del documento (2/5) */}
+              <div className="col-span-2 space-y-4">
+                {imageUrl && (
+                  <div className="relative border rounded-lg overflow-hidden bg-muted/20">
+                    <img 
+                      src={imageUrl} 
+                      alt="Documento escaneado" 
+                      className="w-full cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => window.open(imageUrl, '_blank')}
+                      title="Click para ampliar"
+                    />
+                    <div className="absolute top-2 right-2 bg-background/95 backdrop-blur-sm px-3 py-1.5 rounded-full border shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <Eye className="h-3.5 w-3.5" />
+                        <span className="text-xs font-medium">
+                          {selectedDoc.meta?.legibilityScore}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="space-y-2">
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => window.open(imageUrl, '_blank')}
+                  >
+                    <ZoomIn className="mr-2 h-4 w-4" />
+                    Ver en tamaño completo
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = imageUrl;
+                      link.download = `documento_${selectedDoc.meta?.extractedData?.parteNumero || 'sin-numero'}.jpg`;
+                      link.click();
+                      toast.success('Descargando imagen...');
+                    }}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Descargar imagen
+                  </Button>
                 </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="p-4">
-                  <h3 className="font-semibold mb-3">Información General</h3>
-                  <dl className="space-y-2 text-sm">
-                    <div>
-                      <dt className="text-muted-foreground">Nº de Parte:</dt>
-                      <dd className="font-medium">
-                        {selectedDoc.meta?.extractedData?.parteNumero || 'N/A'}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-muted-foreground">Cliente:</dt>
-                      <dd className="font-medium">
-                        {selectedDoc.meta?.extractedData?.cliente || 'N/A'}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-muted-foreground">Emplazamiento:</dt>
-                      <dd className="font-medium">
-                        {selectedDoc.meta?.extractedData?.emplazamiento || 'N/A'}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-muted-foreground">Obra:</dt>
-                      <dd className="font-medium">
-                        {selectedDoc.meta?.extractedData?.obra || 'N/A'}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-muted-foreground">Fecha:</dt>
-                      <dd className="font-medium">
-                        {selectedDoc.meta?.extractedData?.fecha 
-                          ? new Date(selectedDoc.meta.extractedData.fecha).toLocaleDateString('es-ES')
-                          : 'N/A'}
-                      </dd>
-                    </div>
-                  </dl>
-                </Card>
 
                 <Card className="p-4">
-                  <h3 className="font-semibold mb-3">Montador y Horas</h3>
-                  <dl className="space-y-2 text-sm">
+                  <h3 className="font-semibold mb-3 text-sm">Calidad del documento</h3>
+                  <div className="space-y-3">
                     <div>
-                      <dt className="text-muted-foreground">Montador:</dt>
-                      <dd className="font-medium">
-                        {selectedDoc.meta?.extractedData?.montador
-                          ? `${selectedDoc.meta.extractedData.montador.nombre || ''} ${selectedDoc.meta.extractedData.montador.apellidos || ''}`.trim()
-                          : 'N/A'}
-                      </dd>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-muted-foreground">Legibilidad</span>
+                        <span className="font-medium">{selectedDoc.meta?.legibilityScore || 0}%</span>
+                      </div>
+                      <Progress 
+                        value={selectedDoc.meta?.legibilityScore || 0} 
+                        className="h-2"
+                      />
                     </div>
-                    <div>
-                      <dt className="text-muted-foreground">Horas Ordinarias:</dt>
-                      <dd className="font-medium">
-                        {selectedDoc.meta?.extractedData?.horas?.ordinarias || 0}h
-                      </dd>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Auto-recortado:</span>
+                      <Badge variant={selectedDoc.meta?.hadAutoCrop ? "default" : "secondary"} className="text-xs">
+                        {selectedDoc.meta?.hadAutoCrop ? 'Sí' : 'No'}
+                      </Badge>
                     </div>
-                    <div>
-                      <dt className="text-muted-foreground">Horas Extras:</dt>
-                      <dd className="font-medium">
-                        {selectedDoc.meta?.extractedData?.horas?.extras || 0}h
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-muted-foreground">Horas Festivas:</dt>
-                      <dd className="font-medium">
-                        {selectedDoc.meta?.extractedData?.horas?.festivas || 0}h
-                      </dd>
-                    </div>
-                    <div className="pt-2 border-t">
-                      <dt className="text-muted-foreground">Total Horas:</dt>
-                      <dd className="font-bold text-lg">
-                        {(selectedDoc.meta?.extractedData?.horas?.ordinarias || 0) +
-                         (selectedDoc.meta?.extractedData?.horas?.extras || 0) +
-                         (selectedDoc.meta?.extractedData?.horas?.festivas || 0)}h
-                      </dd>
-                    </div>
-                  </dl>
+                  </div>
                 </Card>
               </div>
+              
+              {/* Columna derecha: Datos extraídos en Tabs (3/5) */}
+              <div className="col-span-3">
+                <Tabs defaultValue="parte" className="w-full">
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="parte">
+                      <FileText className="h-4 w-4 mr-1" />
+                      Parte
+                    </TabsTrigger>
+                    <TabsTrigger value="montador">
+                      <User className="h-4 w-4 mr-1" />
+                      Montador
+                    </TabsTrigger>
+                    <TabsTrigger value="trabajo">
+                      <Briefcase className="h-4 w-4 mr-1" />
+                      Trabajo
+                    </TabsTrigger>
+                    <TabsTrigger value="validacion">
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Validación
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  {/* Tab: Datos del Parte */}
+                  <TabsContent value="parte" className="space-y-4 mt-4">
+                    <Card className="p-4">
+                      <dl className="space-y-3">
+                        <div className="flex items-start gap-3">
+                          <FileText className="h-4 w-4 text-primary mt-0.5" />
+                          <div className="flex-1">
+                            <dt className="text-xs text-muted-foreground mb-0.5">Nº de Parte</dt>
+                            <dd className="font-semibold text-lg">
+                              {selectedDoc.meta?.extractedData?.parteNumero || (
+                                <span className="text-muted-foreground text-base">N/A</span>
+                              )}
+                            </dd>
+                          </div>
+                        </div>
 
-              <Card className="p-4">
-                <h3 className="font-semibold mb-3">Trabajo Realizado</h3>
-                <p className="text-sm">
-                  {selectedDoc.meta?.extractedData?.trabajoRealizado || 'No especificado'}
-                </p>
-              </Card>
+                        <div className="flex items-start gap-3">
+                          <Calendar className="h-4 w-4 text-primary mt-0.5" />
+                          <div className="flex-1">
+                            <dt className="text-xs text-muted-foreground mb-0.5">Fecha del Parte</dt>
+                            <dd className="font-medium">
+                              {selectedDoc.meta?.extractedData?.fecha 
+                                ? new Date(selectedDoc.meta.extractedData.fecha).toLocaleDateString('es-ES', { 
+                                    weekday: 'long', 
+                                    year: 'numeric', 
+                                    month: 'long', 
+                                    day: 'numeric' 
+                                  })
+                                : 'N/A'}
+                            </dd>
+                          </div>
+                        </div>
 
-              <Card className="p-4">
-                <h3 className="font-semibold mb-3">Información Técnica</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Estado:</p>
-                    <Badge variant={
-                      selectedDoc.status === 'approved' ? 'default' : 
-                      selectedDoc.status === 'pending' ? 'secondary' : 
-                      'destructive'
-                    }>
-                      {selectedDoc.status}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Legibilidad:</p>
-                    <p className="font-medium">{selectedDoc.meta?.legibilityScore || 0}%</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Auto-recortado:</p>
-                    <p className="font-medium">
-                      {selectedDoc.meta?.hadAutoCrop ? 'Sí' : 'No'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Firmas:</p>
-                    <div className="flex gap-1 mt-1">
-                      {selectedDoc.meta?.extractedData?.firmas?.montador && (
-                        <Badge variant="outline" className="text-xs">Montador</Badge>
-                      )}
-                      {selectedDoc.meta?.extractedData?.firmas?.cliente && (
-                        <Badge variant="outline" className="text-xs">Cliente</Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </Card>
+                        <div className="flex items-start gap-3">
+                          <Building className="h-4 w-4 text-blue-600 mt-0.5" />
+                          <div className="flex-1">
+                            <dt className="text-xs text-muted-foreground mb-0.5">Cliente</dt>
+                            <dd className="font-medium text-blue-600">
+                              {selectedDoc.meta?.extractedData?.cliente || 'N/A'}
+                            </dd>
+                          </div>
+                        </div>
 
-              <Card className="p-4">
-                <h3 className="font-semibold mb-3">Metadatos del Sistema</h3>
-                <dl className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <dt className="text-muted-foreground">Subido por:</dt>
-                    <dd className="font-medium">{selectedDoc.profiles?.full_name || 'N/A'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground">Fecha de subida:</dt>
-                    <dd className="font-medium">
-                      {new Date(selectedDoc.created_at).toLocaleString('es-ES')}
-                    </dd>
-                  </div>
-                  {selectedDoc.validated_at && (
-                    <div>
-                      <dt className="text-muted-foreground">Validado:</dt>
-                      <dd className="font-medium">
-                        {new Date(selectedDoc.validated_at).toLocaleString('es-ES')}
-                      </dd>
-                    </div>
-                  )}
-                  {selectedDoc.review_notes && (
-                    <div className="col-span-2">
-                      <dt className="text-muted-foreground">Notas de revisión:</dt>
-                      <dd className="font-medium">{selectedDoc.review_notes}</dd>
-                    </div>
-                  )}
-                </dl>
-              </Card>
+                        <div className="flex items-start gap-3">
+                          <Building className="h-4 w-4 text-muted-foreground mt-0.5" />
+                          <div className="flex-1">
+                            <dt className="text-xs text-muted-foreground mb-0.5">Emplazamiento</dt>
+                            <dd className="font-medium">
+                              {selectedDoc.meta?.extractedData?.emplazamiento || 'N/A'}
+                            </dd>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <Briefcase className="h-4 w-4 text-muted-foreground mt-0.5" />
+                          <div className="flex-1">
+                            <dt className="text-xs text-muted-foreground mb-0.5">Obra</dt>
+                            <dd className="font-medium">
+                              {selectedDoc.meta?.extractedData?.obra || 'N/A'}
+                            </dd>
+                          </div>
+                        </div>
+                      </dl>
+                    </Card>
+                  </TabsContent>
+                  
+                  {/* Tab: Montador y Horas */}
+                  <TabsContent value="montador" className="space-y-4 mt-4">
+                    <Card className="p-4">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Datos del Montador
+                      </h3>
+                      <dl className="space-y-3">
+                        <div>
+                          <dt className="text-xs text-muted-foreground mb-0.5">Nombre completo</dt>
+                          <dd className="font-medium text-lg">
+                            {selectedDoc.meta?.extractedData?.montador
+                              ? `${selectedDoc.meta.extractedData.montador.nombre || ''} ${selectedDoc.meta.extractedData.montador.apellidos || ''}`.trim() || 'N/A'
+                              : 'N/A'}
+                          </dd>
+                        </div>
+                      </dl>
+                    </Card>
+
+                    <Card className="p-4 bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2 text-green-700 dark:text-green-400">
+                        <Clock className="h-4 w-4" />
+                        Desglose de Horas
+                      </h3>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="text-center p-3 bg-background rounded-lg border">
+                          <p className="text-xs text-muted-foreground mb-1">Ordinarias</p>
+                          <p className="text-2xl font-bold text-green-600">
+                            {selectedDoc.meta?.extractedData?.horas?.ordinarias || 0}
+                          </p>
+                          <p className="text-xs text-muted-foreground">horas</p>
+                        </div>
+                        <div className="text-center p-3 bg-background rounded-lg border">
+                          <p className="text-xs text-muted-foreground mb-1">Extras</p>
+                          <p className="text-2xl font-bold text-orange-600">
+                            {selectedDoc.meta?.extractedData?.horas?.extras || 0}
+                          </p>
+                          <p className="text-xs text-muted-foreground">horas</p>
+                        </div>
+                        <div className="text-center p-3 bg-background rounded-lg border">
+                          <p className="text-xs text-muted-foreground mb-1">Festivas</p>
+                          <p className="text-2xl font-bold text-purple-600">
+                            {selectedDoc.meta?.extractedData?.horas?.festivas || 0}
+                          </p>
+                          <p className="text-xs text-muted-foreground">horas</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-green-200 dark:border-green-800">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold text-green-700 dark:text-green-400">Total de Horas:</span>
+                          <span className="text-3xl font-bold text-green-600">
+                            {(selectedDoc.meta?.extractedData?.horas?.ordinarias || 0) +
+                             (selectedDoc.meta?.extractedData?.horas?.extras || 0) +
+                             (selectedDoc.meta?.extractedData?.horas?.festivas || 0)}h
+                          </span>
+                        </div>
+                      </div>
+                    </Card>
+                  </TabsContent>
+                  
+                  {/* Tab: Trabajo Realizado */}
+                  <TabsContent value="trabajo" className="space-y-4 mt-4">
+                    <Card className="p-4">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                        <Briefcase className="h-4 w-4" />
+                        Descripción del Trabajo
+                      </h3>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                        {selectedDoc.meta?.extractedData?.trabajoRealizado || (
+                          <span className="text-muted-foreground italic">No se especificó descripción del trabajo</span>
+                        )}
+                      </p>
+                    </Card>
+                  </TabsContent>
+                  
+                  {/* Tab: Validación y Firmas */}
+                  <TabsContent value="validacion" className="space-y-4 mt-4">
+                    <Card className="p-4">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                        <PenTool className="h-4 w-4" />
+                        Estado de Firmas
+                      </h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
+                          {selectedDoc.meta?.extractedData?.firmas?.montador ? (
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                          ) : (
+                            <AlertCircle className="h-5 w-5 text-orange-600" />
+                          )}
+                          <div>
+                            <p className="text-xs text-muted-foreground">Firma Montador</p>
+                            <p className="font-medium">
+                              {selectedDoc.meta?.extractedData?.firmas?.montador ? 'Firmado' : 'Sin firmar'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
+                          {selectedDoc.meta?.extractedData?.firmas?.cliente ? (
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                          ) : (
+                            <AlertCircle className="h-5 w-5 text-orange-600" />
+                          )}
+                          <div>
+                            <p className="text-xs text-muted-foreground">Firma Cliente</p>
+                            <p className="font-medium">
+                              {selectedDoc.meta?.extractedData?.firmas?.cliente ? 'Firmado' : 'Sin firmar'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+
+                    <Card className="p-4">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4" />
+                        Estado del Documento
+                      </h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Estado actual:</span>
+                          <Badge variant={
+                            selectedDoc.status === 'approved' ? 'default' : 
+                            selectedDoc.status === 'pending' ? 'secondary' : 
+                            'destructive'
+                          } className="text-sm">
+                            {selectedDoc.status === 'approved' ? 'Aprobado' : 
+                             selectedDoc.status === 'pending' ? 'Pendiente' : 
+                             'Rechazado'}
+                          </Badge>
+                        </div>
+                        {selectedDoc.review_notes && (
+                          <div className="pt-3 border-t">
+                            <p className="text-xs text-muted-foreground mb-1">Notas de revisión:</p>
+                            <p className="text-sm">{selectedDoc.review_notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+
+                    <Card className="p-4 bg-muted/30">
+                      <h3 className="font-semibold mb-3 text-sm">Metadatos del Sistema</h3>
+                      <dl className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <dt className="text-muted-foreground">Subido por:</dt>
+                          <dd className="font-medium">{selectedDoc.profiles?.full_name || 'N/A'}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-muted-foreground">Fecha de subida:</dt>
+                          <dd className="font-medium">
+                            {new Date(selectedDoc.created_at).toLocaleString('es-ES')}
+                          </dd>
+                        </div>
+                        {selectedDoc.validated_at && (
+                          <div className="flex justify-between">
+                            <dt className="text-muted-foreground">Validado:</dt>
+                            <dd className="font-medium">
+                              {new Date(selectedDoc.validated_at).toLocaleString('es-ES')}
+                            </dd>
+                          </div>
+                        )}
+                      </dl>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </div>
             </div>
           )}
         </DialogContent>
