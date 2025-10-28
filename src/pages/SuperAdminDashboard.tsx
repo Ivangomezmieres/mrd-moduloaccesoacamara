@@ -132,20 +132,14 @@ const SuperAdminDashboard = () => {
       setImageUrl(data.signedUrl);
     }
   };
-
   const handleDeleteDocument = async (docId: string, storagePath: string) => {
-    const confirmed = window.confirm(
-      '¿Estás seguro de que deseas eliminar este documento? Esta acción no se puede deshacer.'
-    );
-    
+    const confirmed = window.confirm('¿Estás seguro de que deseas eliminar este documento? Esta acción no se puede deshacer.');
     if (!confirmed) return;
-
     try {
       // 1. Eliminar archivo del storage
-      const { error: storageError } = await supabase.storage
-        .from('scans')
-        .remove([storagePath]);
-
+      const {
+        error: storageError
+      } = await supabase.storage.from('scans').remove([storagePath]);
       if (storageError) {
         console.error('Error deleting file from storage:', storageError);
         toast.error('Error al eliminar archivo del storage');
@@ -153,11 +147,9 @@ const SuperAdminDashboard = () => {
       }
 
       // 2. Eliminar registro de la base de datos
-      const { error: dbError } = await supabase
-        .from('documents')
-        .delete()
-        .eq('id', docId);
-
+      const {
+        error: dbError
+      } = await supabase.from('documents').delete().eq('id', docId);
       if (dbError) {
         console.error('Error deleting document from database:', dbError);
         toast.error('Error al eliminar documento de la base de datos');
@@ -166,7 +158,6 @@ const SuperAdminDashboard = () => {
 
       // 3. Actualizar lista local
       setDocuments(prev => prev.filter(doc => doc.id !== docId));
-      
       toast.success('Documento eliminado correctamente');
     } catch (error) {
       console.error('Unexpected error deleting document:', error);
@@ -427,7 +418,7 @@ const SuperAdminDashboard = () => {
                               <Eye className="h-4 w-4 mr-1" />
                               Ver
                             </Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleDeleteDocument(doc.id, doc.storage_path)}>
+                            <Button size="sm" variant="destructive" onClick={() => handleDeleteDocument(doc.id, doc.storage_path)} className="text-slate-50">
                               <Trash2 className="h-4 w-4 mr-1" />
                               Eliminar
                             </Button>
