@@ -3,10 +3,11 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { CheckCircle, XCircle, Eye, Calendar, User } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, Calendar, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface Document {
   id: string;
@@ -28,14 +29,27 @@ const DocumentCard = ({ document, onApprove, onReject }: DocumentCardProps) => {
   const [rejectNotes, setRejectNotes] = useState('');
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
+  const [isLoadingImage, setIsLoadingImage] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   const loadImage = async () => {
-    const { data } = await supabase.storage
-      .from('scans')
-      .createSignedUrl(document.storage_path, 3600);
+    try {
+      setImageError(null);
+      const { data, error } = await supabase.storage
+        .from('scans')
+        .createSignedUrl(document.storage_path, 3600);
 
-    if (data?.signedUrl) {
-      setImageUrl(data.signedUrl);
+      if (error) throw error;
+      
+      if (data?.signedUrl) {
+        setImageUrl(data.signedUrl);
+      } else {
+        throw new Error('No se pudo generar URL firmada');
+      }
+    } catch (error: any) {
+      console.error('Error loading image:', error);
+      setImageError(error.message || 'Error al cargar la imagen');
+      toast.error('No se pudo cargar la imagen del documento');
     }
   };
 
@@ -52,9 +66,11 @@ const DocumentCard = ({ document, onApprove, onReject }: DocumentCardProps) => {
     setRejectNotes('');
   };
 
-  const handleViewImage = () => {
+  const handleViewImage = async () => {
     if (!imageUrl) {
-      loadImage();
+      setIsLoadingImage(true);
+      await loadImage();
+      setIsLoadingImage(false);
     }
     setShowImageDialog(true);
   };
@@ -89,20 +105,44 @@ const DocumentCard = ({ document, onApprove, onReject }: DocumentCardProps) => {
       <CardFooter className="flex gap-2">
         <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="flex-1" onClick={handleViewImage}>
-              <Eye className="h-4 w-4 mr-1" />
-              Ver
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1" 
+              onClick={handleViewImage}
+              disabled={isLoadingImage}
+            >
+              {isLoadingImage ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  Cargando...
+                </>
+              ) : (
+                <>
+                  <Eye className="h-4 w-4 mr-1" />
+                  Ver
+                </>
+              )}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-3xl">
             <DialogHeader>
               <DialogTitle>Documento escaneado</DialogTitle>
             </DialogHeader>
-            {imageUrl ? (
+            {imageError ? (
+              <div className="flex flex-col items-center justify-center h-64 gap-4">
+                <XCircle className="h-12 w-12 text-destructive" />
+                <p className="text-destructive font-medium">{imageError}</p>
+                <Button variant="outline" onClick={loadImage}>
+                  Reintentar
+                </Button>
+              </div>
+            ) : imageUrl ? (
               <img src={imageUrl} alt="Documento" className="w-full h-auto" />
             ) : (
               <div className="flex items-center justify-center h-64">
-                <p className="text-muted-foreground">Cargando imagen...</p>
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <p className="text-muted-foreground ml-2">Cargando imagen...</p>
               </div>
             )}
           </DialogContent>
