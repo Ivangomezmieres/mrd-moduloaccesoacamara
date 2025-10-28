@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { LogOut, Download, Filter, Search, Eye, BarChart3, FileText, Users, Clock, CheckCircle, AlertCircle, User, Building, Briefcase, Calendar, PenTool, ZoomIn } from 'lucide-react';
+import { LogOut, Download, Filter, Search, Eye, BarChart3, FileText, Users, Clock, CheckCircle, AlertCircle, User, Building, Briefcase, Calendar, PenTool, ZoomIn, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 interface ExtractedData {
   parteNumero: string | null;
@@ -130,6 +130,47 @@ const SuperAdminDashboard = () => {
     } = await supabase.storage.from('scans').createSignedUrl(doc.storage_path, 3600);
     if (data?.signedUrl) {
       setImageUrl(data.signedUrl);
+    }
+  };
+
+  const handleDeleteDocument = async (docId: string, storagePath: string) => {
+    const confirmed = window.confirm(
+      '¿Estás seguro de que deseas eliminar este documento? Esta acción no se puede deshacer.'
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      // 1. Eliminar archivo del storage
+      const { error: storageError } = await supabase.storage
+        .from('scans')
+        .remove([storagePath]);
+
+      if (storageError) {
+        console.error('Error deleting file from storage:', storageError);
+        toast.error('Error al eliminar archivo del storage');
+        return;
+      }
+
+      // 2. Eliminar registro de la base de datos
+      const { error: dbError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', docId);
+
+      if (dbError) {
+        console.error('Error deleting document from database:', dbError);
+        toast.error('Error al eliminar documento de la base de datos');
+        return;
+      }
+
+      // 3. Actualizar lista local
+      setDocuments(prev => prev.filter(doc => doc.id !== docId));
+      
+      toast.success('Documento eliminado correctamente');
+    } catch (error) {
+      console.error('Unexpected error deleting document:', error);
+      toast.error('Error inesperado al eliminar documento');
     }
   };
   const handleLogout = async () => {
@@ -381,10 +422,16 @@ const SuperAdminDashboard = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Button size="sm" variant="outline" onClick={() => handleViewDetails(doc)}>
-                            <Eye className="h-4 w-4 mr-1" />
-                            Ver
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline" onClick={() => handleViewDetails(doc)}>
+                              <Eye className="h-4 w-4 mr-1" />
+                              Ver
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleDeleteDocument(doc.id, doc.storage_path)}>
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Eliminar
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>;
               })}
