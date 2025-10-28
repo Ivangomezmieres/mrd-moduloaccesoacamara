@@ -67,10 +67,11 @@ const validateDocumentContour = (
   const areaRatio = area / frameArea;
 
   // Relaxed thresholds for fallback mode
-  const minArea = isFallback ? 0.2 : 0.25;
-  const maxArea = 0.85;
-  const minAspect = isFallback ? 0.45 : 0.5;
-  const maxAspect = isFallback ? 2.2 : 2.0;
+  // UMBRALES MENOS AGRESIVOS para preservar más contenido del documento
+  const minArea = isFallback ? 0.15 : 0.18;  // Reducido de 0.25 - permite documentos más pequeños en el frame
+  const maxArea = 0.95;  // Aumentado de 0.85 - permite documentos que llenan más el frame
+  const minAspect = isFallback ? 0.4 : 0.45;  // Reducido - más tolerante
+  const maxAspect = isFallback ? 2.5 : 2.3;  // Aumentado - más tolerante
 
   // Reject if too small or too large
   if (areaRatio < minArea || areaRatio > maxArea) {
@@ -93,16 +94,17 @@ const validateDocumentContour = (
   const minRectArea = minRect.size.width * minRect.size.height;
   const rectangularity = area / minRectArea;
   
-  if (rectangularity < 0.75) {
+  // Reducido de 0.75 para ser menos estricto
+  if (rectangularity < 0.65) {
     if (DEBUG) console.log('Rejected: rectangularity', rectangularity);
     return { isValid: false, score: 0 };
   }
 
-  // Check centroid is not too close to edges (>4% margin)
+  // Check centroid is not too close to edges - MARGEN REDUCIDO para permitir documentos más cerca del borde
   const moments = cv.moments(contour);
   const cx = moments.m10 / moments.m00;
   const cy = moments.m01 / moments.m00;
-  const edgeMargin = 0.04;
+  const edgeMargin = 0.02;  // Reducido de 0.04 - permite documentos más cerca de los bordes
   
   if (
     cx < frameWidth * edgeMargin ||

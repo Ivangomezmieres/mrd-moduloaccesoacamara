@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Camera, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { initJscanify, highlightDocument } from '@/lib/jscanify-utils';
 
 interface CameraViewProps {
   onCapture: (imageData: string) => void;
@@ -12,49 +11,8 @@ interface CameraViewProps {
 
 const CameraView = ({ onCapture }: CameraViewProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const highlightCanvasRef = useRef<HTMLCanvasElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [scanner, setScanner] = useState<any>(null);
   const { stream, error: cameraError, isLoading: cameraLoading } = useCamera();
-
-  // Inicializar jscanify
-  useEffect(() => {
-    initJscanify()
-      .then(setScanner)
-      .catch(err => console.warn('jscanify initialization failed:', err));
-  }, []);
-
-  // Highlighting en tiempo real
-  useEffect(() => {
-    if (!stream || !scanner || !videoRef.current || !highlightCanvasRef.current) return;
-    
-    let animationId: number;
-    const tempCanvas = document.createElement('canvas');
-    const highlightCanvas = highlightCanvasRef.current;
-    
-    const highlight = () => {
-      if (!videoRef.current || !highlightCanvas) return;
-      
-      const video = videoRef.current;
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        tempCanvas.width = video.videoWidth;
-        tempCanvas.height = video.videoHeight;
-        highlightCanvas.width = video.videoWidth;
-        highlightCanvas.height = video.videoHeight;
-        
-        const ctx = tempCanvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(video, 0, 0);
-          highlightDocument(scanner, tempCanvas, highlightCanvas);
-        }
-      }
-      
-      animationId = requestAnimationFrame(highlight);
-    };
-    
-    highlight();
-    return () => cancelAnimationFrame(animationId);
-  }, [stream, scanner]);
 
   useEffect(() => {
     if (stream && videoRef.current) {
@@ -125,11 +83,6 @@ const CameraView = ({ onCapture }: CameraViewProps) => {
             autoPlay
             playsInline
             className="w-full rounded-lg"
-          />
-          <canvas
-            ref={highlightCanvasRef}
-            className="absolute top-0 left-0 w-full h-full rounded-lg pointer-events-none"
-            style={{ mixBlendMode: 'multiply' }}
           />
         </div>
 
