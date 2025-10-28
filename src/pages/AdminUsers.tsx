@@ -139,8 +139,26 @@ const AdminUsers = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/auth');
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.warn('Logout warning:', error.message);
+        if (error.message.includes('session')) {
+          toast.info('Sesión cerrada localmente');
+        } else {
+          toast.error('Error al cerrar sesión: ' + error.message);
+        }
+      } else {
+        toast.success('Sesión cerrada correctamente');
+      }
+    } catch (err) {
+      console.error('Logout exception:', err);
+      toast.error('Error inesperado al cerrar sesión');
+    } finally {
+      localStorage.removeItem('supabase.auth.token');
+      navigate('/auth');
+    }
   };
 
   if (isLoading) {
