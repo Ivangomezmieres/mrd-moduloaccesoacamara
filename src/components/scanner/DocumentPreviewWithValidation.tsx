@@ -10,6 +10,11 @@ import {
   downscaleImage,
   type DocumentCorners 
 } from '@/lib/opencv-utils';
+import { 
+  initJscanify, 
+  detectDocumentCorners, 
+  extractAndStraightenDocument 
+} from '@/lib/jscanify-utils';
 
 type ProcessingStage = 
   | 'initializing'
@@ -82,9 +87,27 @@ const DocumentPreviewWithValidation = ({
       
       if (!mountedRef.current) return;
       
-      // FASE 4: Detectar bordes automáticamente
+      // FASE 4: Detectar bordes con jscanify (con fallback a OpenCV)
       setStage('detecting');
-      const detectedCorners = await detectDocumentEdgesFromImage(img);
+      let detectedCorners = null;
+      let usedJscanify = false;
+      
+      try {
+        const scanner = await initJscanify();
+        detectedCorners = detectDocumentCorners(scanner, img);
+        if (detectedCorners) {
+          usedJscanify = true;
+          console.log('Documento detectado con jscanify');
+        }
+      } catch (error) {
+        console.warn('jscanify falló, intentando con OpenCV:', error);
+      }
+      
+      // Fallback a OpenCV si jscanify no detectó bordes
+      if (!detectedCorners) {
+        console.log('Intentando detección con OpenCV...');
+        detectedCorners = await detectDocumentEdgesFromImage(img);
+      }
       
       if (!mountedRef.current) return;
       
@@ -95,12 +118,21 @@ const DocumentPreviewWithValidation = ({
         setStage('cropping');
         setHadAutoCrop(true);
         try {
-          finalImage = cropAndStraighten(img, detectedCorners, {
-            autoEnhance: true,
-            outputQuality: 0.92
-          });
+          if (usedJscanify) {
+            // Usar jscanify para extracción (menos agresivo)
+            const scanner = await initJscanify();
+            finalImage = extractAndStraightenDocument(scanner, img, 1800);
+            console.log('Documento extraído con jscanify');
+          } else {
+            // Fallback a OpenCV
+            finalImage = cropAndStraighten(img, detectedCorners, {
+              autoEnhance: true,
+              outputQuality: 0.92
+            });
+            console.log('Documento extraído con OpenCV');
+          }
         } catch (error) {
-          console.warn('Error en cropAndStraighten, usando imagen original:', error);
+          console.warn('Error extrayendo documento, usando imagen original:', error);
           finalImage = workingImage;
           setHadAutoCrop(false);
         }
