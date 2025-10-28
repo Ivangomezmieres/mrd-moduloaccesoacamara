@@ -366,7 +366,7 @@ const SuperAdminDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Legibilidad Media</p>
-                <p className="text-3xl font-bold text-green-600">{stats.avgLegibility}%</p>
+                
               </div>
               <Eye className="h-8 w-8 text-green-600" />
             </div>
