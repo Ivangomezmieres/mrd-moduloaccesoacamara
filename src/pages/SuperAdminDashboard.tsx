@@ -4,51 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  Table, 
-  TableHeader, 
-  TableBody, 
-  TableRow, 
-  TableHead, 
-  TableCell 
-} from '@/components/ui/table';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { 
-  LogOut, 
-  Download, 
-  Filter,
-  Search,
-  Eye,
-  BarChart3,
-  FileText,
-  Users,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  User,
-  Building,
-  Briefcase,
-  Calendar,
-  PenTool,
-  ZoomIn
-} from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LogOut, Download, Filter, Search, Eye, BarChart3, FileText, Users, Clock, CheckCircle, AlertCircle, User, Building, Briefcase, Calendar, PenTool, ZoomIn } from 'lucide-react';
 import { toast } from 'sonner';
-
 interface ExtractedData {
   parteNumero: string | null;
   cliente: string | null;
@@ -70,7 +33,6 @@ interface ExtractedData {
     cliente: boolean;
   };
 }
-
 interface Document {
   id: string;
   storage_path: string;
@@ -90,7 +52,6 @@ interface Document {
     full_name: string;
   };
 }
-
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -100,104 +61,82 @@ const SuperAdminDashboard = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [imageUrl, setImageUrl] = useState<string>('');
-
   useEffect(() => {
     checkAuth();
     loadDocuments();
   }, []);
-
   useEffect(() => {
     filterDocuments();
   }, [filterStatus, searchTerm, documents]);
-
   const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    
+    const {
+      data: {
+        session
+      }
+    } = await supabase.auth.getSession();
     if (!session) {
       navigate('/auth');
       return;
     }
-
-    const { data: roles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', session.user.id);
-
+    const {
+      data: roles
+    } = await supabase.from('user_roles').select('role').eq('user_id', session.user.id);
     const hasSuperAdmin = roles?.some(r => r.role === 'superadmin');
-    
     if (!hasSuperAdmin) {
       toast.error('No tienes permisos para acceder a esta página');
       navigate('/scan');
     }
   };
-
   const loadDocuments = async () => {
     setIsLoading(true);
-    
-    const { data, error } = await supabase
-      .from('documents')
-      .select(`
+    const {
+      data,
+      error
+    } = await supabase.from('documents').select(`
         *,
         profiles:uploader (
           full_name
         )
-      `)
-      .order('created_at', { ascending: false });
-
+      `).order('created_at', {
+      ascending: false
+    });
     if (error) {
       console.error('Error loading documents:', error);
       toast.error('Error al cargar documentos');
     } else {
       setDocuments((data || []) as any);
     }
-    
     setIsLoading(false);
   };
-
   const filterDocuments = () => {
     let filtered = documents;
-
     if (filterStatus !== 'all') {
       filtered = filtered.filter(doc => doc.status === filterStatus);
     }
-
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(doc => {
         const extractedData = doc.meta?.extractedData;
         if (!extractedData) return false;
-
-        return (
-          extractedData.parteNumero?.toLowerCase().includes(term) ||
-          extractedData.cliente?.toLowerCase().includes(term) ||
-          extractedData.emplazamiento?.toLowerCase().includes(term) ||
-          extractedData.obra?.toLowerCase().includes(term) ||
-          extractedData.montador?.nombre?.toLowerCase().includes(term) ||
-          extractedData.montador?.apellidos?.toLowerCase().includes(term) ||
-          doc.profiles?.full_name?.toLowerCase().includes(term)
-        );
+        return extractedData.parteNumero?.toLowerCase().includes(term) || extractedData.cliente?.toLowerCase().includes(term) || extractedData.emplazamiento?.toLowerCase().includes(term) || extractedData.obra?.toLowerCase().includes(term) || extractedData.montador?.nombre?.toLowerCase().includes(term) || extractedData.montador?.apellidos?.toLowerCase().includes(term) || doc.profiles?.full_name?.toLowerCase().includes(term);
       });
     }
-
     setFilteredDocuments(filtered);
   };
-
   const handleViewDetails = async (doc: Document) => {
     setSelectedDoc(doc);
-    
-    const { data } = await supabase.storage
-      .from('scans')
-      .createSignedUrl(doc.storage_path, 3600);
-    
+    const {
+      data
+    } = await supabase.storage.from('scans').createSignedUrl(doc.storage_path, 3600);
     if (data?.signedUrl) {
       setImageUrl(data.signedUrl);
     }
   };
-
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      
+      const {
+        error
+      } = await supabase.auth.signOut();
       if (error) {
         console.warn('Logout warning:', error.message);
         if (error.message.includes('session')) {
@@ -216,14 +155,10 @@ const SuperAdminDashboard = () => {
       navigate('/auth');
     }
   };
-
   const exportToCSV = () => {
     const csvData = filteredDocuments.map(doc => {
       const extracted = doc.meta?.extractedData;
-      const totalHoras = extracted?.horas 
-        ? extracted.horas.ordinarias + extracted.horas.extras + extracted.horas.festivas
-        : 0;
-
+      const totalHoras = extracted?.horas ? extracted.horas.ordinarias + extracted.horas.extras + extracted.horas.festivas : 0;
       return {
         'ID': doc.id,
         'Nº Parte': extracted?.parteNumero || 'N/A',
@@ -248,22 +183,16 @@ const SuperAdminDashboard = () => {
         'Validado': doc.validated_at ? new Date(doc.validated_at).toLocaleString('es-ES') : 'No'
       };
     });
-    
     if (csvData.length === 0) {
       toast.error('No hay documentos para exportar');
       return;
     }
-
     const headers = Object.keys(csvData[0]).join(',');
-    const rows = csvData.map(row => 
-      Object.values(row).map(val => 
-        typeof val === 'string' && val.includes(',') ? `"${val}"` : val
-      ).join(',')
-    ).join('\n');
-    
+    const rows = csvData.map(row => Object.values(row).map(val => typeof val === 'string' && val.includes(',') ? `"${val}"` : val).join(',')).join('\n');
     const csvContent = `${headers}\n${rows}`;
-    
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\ufeff' + csvContent], {
+      type: 'text/csv;charset=utf-8;'
+    });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
@@ -272,51 +201,34 @@ const SuperAdminDashboard = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
     toast.success('Archivo CSV descargado correctamente');
   };
-
   const stats = {
     total: documents.length,
     pending: documents.filter(d => d.status === 'pending').length,
     approved: documents.filter(d => d.status === 'approved').length,
     rejected: documents.filter(d => d.status === 'rejected').length,
-    avgLegibility: documents.length > 0
-      ? Math.round(documents.reduce((acc, d) => acc + (d.meta?.legibilityScore || 0), 0) / documents.length)
-      : 0,
+    avgLegibility: documents.length > 0 ? Math.round(documents.reduce((acc, d) => acc + (d.meta?.legibilityScore || 0), 0) / documents.length) : 0,
     totalHours: documents.reduce((acc, d) => {
       const horas = d.meta?.extractedData?.horas;
       if (!horas) return acc;
       return acc + horas.ordinarias + horas.extras + horas.festivas;
     }, 0),
-    uniqueClients: new Set(
-      documents
-        .map(d => d.meta?.extractedData?.cliente)
-        .filter(Boolean)
-    ).size,
-    uniqueMontadores: new Set(
-      documents
-        .map(d => {
-          const m = d.meta?.extractedData?.montador;
-          return m ? `${m.nombre} ${m.apellidos}` : null;
-        })
-        .filter(Boolean)
-    ).size
+    uniqueClients: new Set(documents.map(d => d.meta?.extractedData?.cliente).filter(Boolean)).size,
+    uniqueMontadores: new Set(documents.map(d => {
+      const m = d.meta?.extractedData?.montador;
+      return m ? `${m.nombre} ${m.apellidos}` : null;
+    }).filter(Boolean)).size
   };
-
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+    return <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Cargando dashboard...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <header className="border-b bg-card sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
@@ -380,15 +292,7 @@ const SuperAdminDashboard = () => {
             </div>
           </Card>
 
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Legibilidad Media</p>
-                
-              </div>
-              <Eye className="h-8 w-8 text-green-600" />
-            </div>
-          </Card>
+          
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -411,12 +315,7 @@ const SuperAdminDashboard = () => {
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por cliente, montador, nº parte..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+                <Input placeholder="Buscar por cliente, montador, nº parte..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
               </div>
             </div>
             
@@ -456,21 +355,14 @@ const SuperAdminDashboard = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDocuments.length === 0 ? (
-                  <TableRow>
+                {filteredDocuments.length === 0 ? <TableRow>
                     <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       No se encontraron documentos
                     </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredDocuments.map(doc => {
-                    const extracted = doc.meta?.extractedData;
-                    const totalHoras = extracted?.horas 
-                      ? extracted.horas.ordinarias + extracted.horas.extras + extracted.horas.festivas
-                      : 0;
-
-                    return (
-                      <TableRow key={doc.id}>
+                  </TableRow> : filteredDocuments.map(doc => {
+                const extracted = doc.meta?.extractedData;
+                const totalHoras = extracted?.horas ? extracted.horas.ordinarias + extracted.horas.extras + extracted.horas.festivas : 0;
+                return <TableRow key={doc.id}>
                         <TableCell className="font-medium">
                           {extracted?.parteNumero || <span className="text-muted-foreground">N/A</span>}
                         </TableCell>
@@ -478,76 +370,44 @@ const SuperAdminDashboard = () => {
                           {extracted?.cliente || <span className="text-muted-foreground">N/A</span>}
                         </TableCell>
                         <TableCell>
-                          {extracted?.montador 
-                            ? `${extracted.montador.nombre || ''} ${extracted.montador.apellidos || ''}`.trim()
-                            : <span className="text-muted-foreground">N/A</span>
-                          }
+                          {extracted?.montador ? `${extracted.montador.nombre || ''} ${extracted.montador.apellidos || ''}`.trim() : <span className="text-muted-foreground">N/A</span>}
                         </TableCell>
                         <TableCell>
-                          {extracted?.fecha 
-                            ? new Date(extracted.fecha).toLocaleDateString('es-ES')
-                            : <span className="text-muted-foreground">N/A</span>
-                          }
+                          {extracted?.fecha ? new Date(extracted.fecha).toLocaleDateString('es-ES') : <span className="text-muted-foreground">N/A</span>}
                         </TableCell>
                         <TableCell>
-                          {totalHoras > 0 ? (
-                            <div className="text-sm">
+                          {totalHoras > 0 ? <div className="text-sm">
                               <div className="font-medium">{totalHoras}h</div>
                               <div className="text-xs text-muted-foreground">
                                 {extracted?.horas?.ordinarias}+{extracted?.horas?.extras}+{extracted?.horas?.festivas}
                               </div>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">0h</span>
-                          )}
+                            </div> : <span className="text-muted-foreground">0h</span>}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={
-                            doc.status === 'approved' ? 'default' : 
-                            doc.status === 'pending' ? 'secondary' : 
-                            'destructive'
-                          }>
-                            {doc.status === 'approved' ? 'Aprobado' : 
-                             doc.status === 'pending' ? 'Pendiente' : 
-                             'Rechazado'}
+                          <Badge variant={doc.status === 'approved' ? 'default' : doc.status === 'pending' ? 'secondary' : 'destructive'}>
+                            {doc.status === 'approved' ? 'Aprobado' : doc.status === 'pending' ? 'Pendiente' : 'Rechazado'}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <span className={
-                            doc.meta?.legibilityScore >= 90 ? 'text-green-600 font-medium' :
-                            doc.meta?.legibilityScore >= 80 ? 'text-yellow-600' :
-                            'text-red-600'
-                          }>
+                          <span className={doc.meta?.legibilityScore >= 90 ? 'text-green-600 font-medium' : doc.meta?.legibilityScore >= 80 ? 'text-yellow-600' : 'text-red-600'}>
                             {doc.meta?.legibilityScore || 0}%
                           </span>
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            {extracted?.firmas?.montador && (
-                              <Badge variant="outline" className="text-xs">M</Badge>
-                            )}
-                            {extracted?.firmas?.cliente && (
-                              <Badge variant="outline" className="text-xs">C</Badge>
-                            )}
-                            {!extracted?.firmas?.montador && !extracted?.firmas?.cliente && (
-                              <span className="text-muted-foreground text-xs">Sin firmas</span>
-                            )}
+                            {extracted?.firmas?.montador && <Badge variant="outline" className="text-xs">M</Badge>}
+                            {extracted?.firmas?.cliente && <Badge variant="outline" className="text-xs">C</Badge>}
+                            {!extracted?.firmas?.montador && !extracted?.firmas?.cliente && <span className="text-muted-foreground text-xs">Sin firmas</span>}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleViewDetails(doc)}
-                          >
+                          <Button size="sm" variant="outline" onClick={() => handleViewDetails(doc)}>
                             <Eye className="h-4 w-4 mr-1" />
                             Ver
                           </Button>
                         </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
+                      </TableRow>;
+              })}
               </TableBody>
             </Table>
           </div>
@@ -563,19 +423,11 @@ const SuperAdminDashboard = () => {
             </DialogTitle>
           </DialogHeader>
           
-          {selectedDoc && (
-            <div className="grid grid-cols-5 gap-6 mt-4">
+          {selectedDoc && <div className="grid grid-cols-5 gap-6 mt-4">
               {/* Columna izquierda: Imagen del documento (2/5) */}
               <div className="col-span-2 space-y-4">
-                {imageUrl && (
-                  <div className="relative border rounded-lg overflow-hidden bg-muted/20">
-                    <img 
-                      src={imageUrl} 
-                      alt="Documento escaneado" 
-                      className="w-full cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={() => window.open(imageUrl, '_blank')}
-                      title="Click para ampliar"
-                    />
+                {imageUrl && <div className="relative border rounded-lg overflow-hidden bg-muted/20">
+                    <img src={imageUrl} alt="Documento escaneado" className="w-full cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(imageUrl, '_blank')} title="Click para ampliar" />
                     <div className="absolute top-2 right-2 bg-background/95 backdrop-blur-sm px-3 py-1.5 rounded-full border shadow-sm">
                       <div className="flex items-center gap-2">
                         <Eye className="h-3.5 w-3.5" />
@@ -584,29 +436,20 @@ const SuperAdminDashboard = () => {
                         </span>
                       </div>
                     </div>
-                  </div>
-                )}
+                  </div>}
                 
                 <div className="space-y-2">
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => window.open(imageUrl, '_blank')}
-                  >
+                  <Button variant="outline" className="w-full" onClick={() => window.open(imageUrl, '_blank')}>
                     <ZoomIn className="mr-2 h-4 w-4" />
                     Ver en tamaño completo
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => {
-                      const link = document.createElement('a');
-                      link.href = imageUrl;
-                      link.download = `documento_${selectedDoc.meta?.extractedData?.parteNumero || 'sin-numero'}.jpg`;
-                      link.click();
-                      toast.success('Descargando imagen...');
-                    }}
-                  >
+                  <Button variant="outline" className="w-full" onClick={() => {
+                const link = document.createElement('a');
+                link.href = imageUrl;
+                link.download = `documento_${selectedDoc.meta?.extractedData?.parteNumero || 'sin-numero'}.jpg`;
+                link.click();
+                toast.success('Descargando imagen...');
+              }}>
                     <Download className="mr-2 h-4 w-4" />
                     Descargar imagen
                   </Button>
@@ -620,10 +463,7 @@ const SuperAdminDashboard = () => {
                         <span className="text-muted-foreground">Legibilidad</span>
                         <span className="font-medium">{selectedDoc.meta?.legibilityScore || 0}%</span>
                       </div>
-                      <Progress 
-                        value={selectedDoc.meta?.legibilityScore || 0} 
-                        className="h-2"
-                      />
+                      <Progress value={selectedDoc.meta?.legibilityScore || 0} className="h-2" />
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Auto-recortado:</span>
@@ -666,9 +506,7 @@ const SuperAdminDashboard = () => {
                           <div className="flex-1">
                             <dt className="text-xs text-muted-foreground mb-0.5">Nº de Parte</dt>
                             <dd className="font-semibold text-lg">
-                              {selectedDoc.meta?.extractedData?.parteNumero || (
-                                <span className="text-muted-foreground text-base">N/A</span>
-                              )}
+                              {selectedDoc.meta?.extractedData?.parteNumero || <span className="text-muted-foreground text-base">N/A</span>}
                             </dd>
                           </div>
                         </div>
@@ -678,14 +516,12 @@ const SuperAdminDashboard = () => {
                           <div className="flex-1">
                             <dt className="text-xs text-muted-foreground mb-0.5">Fecha del Parte</dt>
                             <dd className="font-medium">
-                              {selectedDoc.meta?.extractedData?.fecha 
-                                ? new Date(selectedDoc.meta.extractedData.fecha).toLocaleDateString('es-ES', { 
-                                    weekday: 'long', 
-                                    year: 'numeric', 
-                                    month: 'long', 
-                                    day: 'numeric' 
-                                  })
-                                : 'N/A'}
+                              {selectedDoc.meta?.extractedData?.fecha ? new Date(selectedDoc.meta.extractedData.fecha).toLocaleDateString('es-ES', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          }) : 'N/A'}
                             </dd>
                           </div>
                         </div>
@@ -734,9 +570,7 @@ const SuperAdminDashboard = () => {
                         <div>
                           <dt className="text-xs text-muted-foreground mb-0.5">Nombre completo</dt>
                           <dd className="font-medium text-lg">
-                            {selectedDoc.meta?.extractedData?.montador
-                              ? `${selectedDoc.meta.extractedData.montador.nombre || ''} ${selectedDoc.meta.extractedData.montador.apellidos || ''}`.trim() || 'N/A'
-                              : 'N/A'}
+                            {selectedDoc.meta?.extractedData?.montador ? `${selectedDoc.meta.extractedData.montador.nombre || ''} ${selectedDoc.meta.extractedData.montador.apellidos || ''}`.trim() || 'N/A' : 'N/A'}
                           </dd>
                         </div>
                       </dl>
@@ -774,9 +608,7 @@ const SuperAdminDashboard = () => {
                         <div className="flex justify-between items-center">
                           <span className="font-semibold text-green-700 dark:text-green-400">Total de Horas:</span>
                           <span className="text-3xl font-bold text-green-600">
-                            {(selectedDoc.meta?.extractedData?.horas?.ordinarias || 0) +
-                             (selectedDoc.meta?.extractedData?.horas?.extras || 0) +
-                             (selectedDoc.meta?.extractedData?.horas?.festivas || 0)}h
+                            {(selectedDoc.meta?.extractedData?.horas?.ordinarias || 0) + (selectedDoc.meta?.extractedData?.horas?.extras || 0) + (selectedDoc.meta?.extractedData?.horas?.festivas || 0)}h
                           </span>
                         </div>
                       </div>
@@ -791,9 +623,7 @@ const SuperAdminDashboard = () => {
                         Descripción del Trabajo
                       </h3>
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                        {selectedDoc.meta?.extractedData?.trabajoRealizado || (
-                          <span className="text-muted-foreground italic">No se especificó descripción del trabajo</span>
-                        )}
+                        {selectedDoc.meta?.extractedData?.trabajoRealizado || <span className="text-muted-foreground italic">No se especificó descripción del trabajo</span>}
                       </p>
                     </Card>
                   </TabsContent>
@@ -807,11 +637,7 @@ const SuperAdminDashboard = () => {
                       </h3>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
-                          {selectedDoc.meta?.extractedData?.firmas?.montador ? (
-                            <CheckCircle className="h-5 w-5 text-green-600" />
-                          ) : (
-                            <AlertCircle className="h-5 w-5 text-orange-600" />
-                          )}
+                          {selectedDoc.meta?.extractedData?.firmas?.montador ? <CheckCircle className="h-5 w-5 text-green-600" /> : <AlertCircle className="h-5 w-5 text-orange-600" />}
                           <div>
                             <p className="text-xs text-muted-foreground">Firma Montador</p>
                             <p className="font-medium">
@@ -820,11 +646,7 @@ const SuperAdminDashboard = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
-                          {selectedDoc.meta?.extractedData?.firmas?.cliente ? (
-                            <CheckCircle className="h-5 w-5 text-green-600" />
-                          ) : (
-                            <AlertCircle className="h-5 w-5 text-orange-600" />
-                          )}
+                          {selectedDoc.meta?.extractedData?.firmas?.cliente ? <CheckCircle className="h-5 w-5 text-green-600" /> : <AlertCircle className="h-5 w-5 text-orange-600" />}
                           <div>
                             <p className="text-xs text-muted-foreground">Firma Cliente</p>
                             <p className="font-medium">
@@ -843,22 +665,14 @@ const SuperAdminDashboard = () => {
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-muted-foreground">Estado actual:</span>
-                          <Badge variant={
-                            selectedDoc.status === 'approved' ? 'default' : 
-                            selectedDoc.status === 'pending' ? 'secondary' : 
-                            'destructive'
-                          } className="text-sm">
-                            {selectedDoc.status === 'approved' ? 'Aprobado' : 
-                             selectedDoc.status === 'pending' ? 'Pendiente' : 
-                             'Rechazado'}
+                          <Badge variant={selectedDoc.status === 'approved' ? 'default' : selectedDoc.status === 'pending' ? 'secondary' : 'destructive'} className="text-sm">
+                            {selectedDoc.status === 'approved' ? 'Aprobado' : selectedDoc.status === 'pending' ? 'Pendiente' : 'Rechazado'}
                           </Badge>
                         </div>
-                        {selectedDoc.review_notes && (
-                          <div className="pt-3 border-t">
+                        {selectedDoc.review_notes && <div className="pt-3 border-t">
                             <p className="text-xs text-muted-foreground mb-1">Notas de revisión:</p>
                             <p className="text-sm">{selectedDoc.review_notes}</p>
-                          </div>
-                        )}
+                          </div>}
                       </div>
                     </Card>
 
@@ -875,25 +689,20 @@ const SuperAdminDashboard = () => {
                             {new Date(selectedDoc.created_at).toLocaleString('es-ES')}
                           </dd>
                         </div>
-                        {selectedDoc.validated_at && (
-                          <div className="flex justify-between">
+                        {selectedDoc.validated_at && <div className="flex justify-between">
                             <dt className="text-muted-foreground">Validado:</dt>
                             <dd className="font-medium">
                               {new Date(selectedDoc.validated_at).toLocaleString('es-ES')}
                             </dd>
-                          </div>
-                        )}
+                          </div>}
                       </dl>
                     </Card>
                   </TabsContent>
                 </Tabs>
               </div>
-            </div>
-          )}
+            </div>}
         </DialogContent>
       </Dialog>
-    </div>
-  );
+    </div>;
 };
-
 export default SuperAdminDashboard;
