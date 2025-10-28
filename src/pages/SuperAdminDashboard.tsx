@@ -282,15 +282,7 @@ const SuperAdminDashboard = () => {
             </div>
           </Card>
 
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Total Horas</p>
-                <p className="text-3xl font-bold">{stats.totalHours}h</p>
-              </div>
-              <BarChart3 className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </Card>
+          
 
           
         </div>
@@ -300,14 +292,8 @@ const SuperAdminDashboard = () => {
             <p className="text-sm text-muted-foreground mb-1">Aprobados</p>
             <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
           </Card>
-          <Card className="p-4">
-            <p className="text-sm text-muted-foreground mb-1">Clientes Únicos</p>
-            <p className="text-2xl font-bold">{stats.uniqueClients}</p>
-          </Card>
-          <Card className="p-4">
-            <p className="text-sm text-muted-foreground mb-1">Montadores</p>
-            <p className="text-2xl font-bold">{stats.uniqueMontadores}</p>
-          </Card>
+          
+          
         </div>
 
         <Card className="p-4 mb-4">
@@ -349,7 +335,7 @@ const SuperAdminDashboard = () => {
                   <TableHead>Fecha</TableHead>
                   <TableHead>Horas</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead>Legibilidad</TableHead>
+                  
                   <TableHead>Firmas</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
@@ -388,11 +374,7 @@ const SuperAdminDashboard = () => {
                             {doc.status === 'approved' ? 'Aprobado' : doc.status === 'pending' ? 'Pendiente' : 'Rechazado'}
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          <span className={doc.meta?.legibilityScore >= 90 ? 'text-green-600 font-medium' : doc.meta?.legibilityScore >= 80 ? 'text-yellow-600' : 'text-red-600'}>
-                            {doc.meta?.legibilityScore || 0}%
-                          </span>
-                        </TableCell>
+                        
                         <TableCell>
                           <div className="flex gap-1">
                             {extracted?.firmas?.montador && <Badge variant="outline" className="text-xs">M</Badge>}
