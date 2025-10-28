@@ -319,9 +319,7 @@ const SuperAdminDashboard = () => {
             </Select>
           </div>
           
-          <div className="mt-2 text-sm text-muted-foreground">
-            Mostrando {filteredDocuments.length} de {documents.length} documentos
-          </div>
+          
         </Card>
 
         <Card className="overflow-hidden">
