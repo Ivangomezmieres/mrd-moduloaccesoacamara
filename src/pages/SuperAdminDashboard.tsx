@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { LogOut, Download, Filter, Search, Eye, BarChart3, FileText, Users, Clock, CheckCircle, AlertCircle, User, Building, Briefcase, Calendar, PenTool, ZoomIn, Trash2 } from 'lucide-react';
+import { LogOut, Download, Filter, Search, Eye, BarChart3, FileText, Users, Clock, CheckCircle, AlertCircle, User, Building, Briefcase, Calendar, PenTool, ZoomIn, Trash2, XCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 interface ExtractedData {
   parteNumero: string | null;
@@ -61,6 +62,10 @@ const SuperAdminDashboard = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [imageUrl, setImageUrl] = useState<string>('');
+  const [userId, setUserId] = useState<string | null>(null);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectNotes, setRejectNotes] = useState('');
+  const [isUpdatingDocument, setIsUpdatingDocument] = useState(false);
   useEffect(() => {
     checkAuth();
     loadDocuments();
@@ -78,6 +83,9 @@ const SuperAdminDashboard = () => {
       navigate('/auth');
       return;
     }
+    
+    setUserId(session.user.id);
+    
     const {
       data: roles
     } = await supabase.from('user_roles').select('role').eq('user_id', session.user.id);
@@ -164,6 +172,137 @@ const SuperAdminDashboard = () => {
       toast.error('Error inesperado al eliminar documento');
     }
   };
+
+  const handleApproveDocument = async (documentId: string) => {
+    if (!userId) {
+      toast.error('No se pudo identificar el usuario');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      '¿Estás seguro de que deseas aprobar este documento?'
+    );
+    
+    if (!confirmed) return;
+
+    setIsUpdatingDocument(true);
+
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({
+          status: 'approved',
+          reviewed_by: userId,
+          validated_at: new Date().toISOString()
+        })
+        .eq('id', documentId);
+
+      if (error) {
+        console.error('Error approving document:', error);
+        toast.error('Error al aprobar documento');
+        return;
+      }
+
+      // Actualizar lista local
+      setDocuments(prev => 
+        prev.map(doc => 
+          doc.id === documentId 
+            ? { 
+                ...doc, 
+                status: 'approved', 
+                reviewed_by: userId,
+                validated_at: new Date().toISOString() 
+              }
+            : doc
+        )
+      );
+
+      // Actualizar selectedDoc si está abierto
+      if (selectedDoc && selectedDoc.id === documentId) {
+        setSelectedDoc({
+          ...selectedDoc,
+          status: 'approved',
+          reviewed_by: userId,
+          validated_at: new Date().toISOString()
+        });
+      }
+
+      toast.success('Documento aprobado correctamente');
+    } catch (error) {
+      console.error('Unexpected error approving document:', error);
+      toast.error('Error inesperado al aprobar documento');
+    } finally {
+      setIsUpdatingDocument(false);
+    }
+  };
+
+  const handleRejectDocumentWithNotes = async () => {
+    if (!selectedDoc || !userId) {
+      toast.error('No se pudo identificar el documento o usuario');
+      return;
+    }
+
+    if (!rejectNotes.trim()) {
+      toast.error('Debes proporcionar una razón para el rechazo');
+      return;
+    }
+
+    setIsUpdatingDocument(true);
+
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({
+          status: 'rejected',
+          reviewed_by: userId,
+          review_notes: rejectNotes.trim(),
+          validated_at: new Date().toISOString()
+        })
+        .eq('id', selectedDoc.id);
+
+      if (error) {
+        console.error('Error rejecting document:', error);
+        toast.error('Error al rechazar documento');
+        return;
+      }
+
+      // Actualizar lista local
+      setDocuments(prev => 
+        prev.map(doc => 
+          doc.id === selectedDoc.id 
+            ? { 
+                ...doc, 
+                status: 'rejected', 
+                reviewed_by: userId,
+                review_notes: rejectNotes.trim(),
+                validated_at: new Date().toISOString() 
+              }
+            : doc
+        )
+      );
+
+      // Actualizar selectedDoc
+      setSelectedDoc({
+        ...selectedDoc,
+        status: 'rejected',
+        reviewed_by: userId,
+        review_notes: rejectNotes.trim(),
+        validated_at: new Date().toISOString()
+      });
+
+      toast.success('Documento rechazado correctamente');
+      
+      // Cerrar dialog y limpiar notas
+      setShowRejectDialog(false);
+      setRejectNotes('');
+    } catch (error) {
+      console.error('Unexpected error rejecting document:', error);
+      toast.error('Error inesperado al rechazar documento');
+    } finally {
+      setIsUpdatingDocument(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       const {
@@ -687,6 +826,45 @@ const SuperAdminDashboard = () => {
                             {selectedDoc.status === 'approved' ? 'Aprobado' : selectedDoc.status === 'pending' ? 'Pendiente' : 'Rechazado'}
                           </Badge>
                         </div>
+                        
+                        {/* Botones de acción para documentos pendientes */}
+                        {selectedDoc.status === 'pending' && (
+                          <div className="pt-3 border-t space-y-3">
+                            <p className="text-xs text-muted-foreground">
+                              Acciones de revisión:
+                            </p>
+                            <div className="flex gap-2">
+                              <Button 
+                                onClick={() => handleApproveDocument(selectedDoc.id)}
+                                className="flex-1"
+                                variant="default"
+                                disabled={isUpdatingDocument}
+                              >
+                                {isUpdatingDocument ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Procesando...
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                    Aprobar
+                                  </>
+                                )}
+                              </Button>
+                              <Button 
+                                onClick={() => setShowRejectDialog(true)}
+                                className="flex-1"
+                                variant="destructive"
+                                disabled={isUpdatingDocument}
+                              >
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Rechazar
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        
                         {selectedDoc.review_notes && <div className="pt-3 border-t">
                             <p className="text-xs text-muted-foreground mb-1">Notas de revisión:</p>
                             <p className="text-sm">{selectedDoc.review_notes}</p>
@@ -719,6 +897,52 @@ const SuperAdminDashboard = () => {
                 </Tabs>
               </div>
             </div>}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para rechazar con notas */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rechazar Documento</DialogTitle>
+            <DialogDescription>
+              Proporciona una razón para el rechazo del documento
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              placeholder="Escribe las razones del rechazo..."
+              value={rejectNotes}
+              onChange={(e) => setRejectNotes(e.target.value)}
+              rows={4}
+              className="w-full"
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowRejectDialog(false);
+                setRejectNotes('');
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleRejectDocumentWithNotes}
+              disabled={!rejectNotes.trim() || isUpdatingDocument}
+            >
+              {isUpdatingDocument ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Rechazando...
+                </>
+              ) : (
+                'Confirmar Rechazo'
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>;
