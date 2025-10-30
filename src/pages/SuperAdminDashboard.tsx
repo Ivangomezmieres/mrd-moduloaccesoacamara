@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { LogOut, Download, Filter, Search, Eye, BarChart3, FileText, Users, Clock, CheckCircle, AlertCircle, User, Building, Briefcase, Calendar, PenTool, ZoomIn, Trash2, XCircle, Loader2, Pencil, Save } from 'lucide-react';
+import { LogOut, Download, Filter, Search, Eye, BarChart3, FileText, Users, Clock, CheckCircle, AlertCircle, User, Building, Briefcase, Calendar, PenTool, ZoomIn, Trash2, XCircle, Loader2, Pencil, Save, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 interface ExtractedData {
   parteNumero: string | null;
@@ -19,11 +19,22 @@ interface ExtractedData {
   emplazamiento: string | null;
   obra: string | null;
   trabajoRealizado: string | null;
-  montador: {
+  // Estructura antigua (compatibilidad)
+  montador?: {
     nombre: string | null;
     apellidos: string | null;
   };
-  horas: {
+  horas?: {
+    ordinarias: number;
+    extras: number;
+    festivas: number;
+  };
+  // Nueva estructura
+  montadores?: Array<{
+    nombreCompleto: string;
+    horas: number;
+  }>;
+  horasTotales?: {
     ordinarias: number;
     extras: number;
     festivas: number;
@@ -138,18 +149,45 @@ const SuperAdminDashboard = () => {
   };
   const handleViewDetails = async (doc: Document) => {
     setSelectedDoc(doc);
+    
     // Inicializar datos editables con copia profunda
-    setEditedData(doc.meta?.extractedData ? JSON.parse(JSON.stringify(doc.meta.extractedData)) : {
-      parteNumero: '',
-      fecha: '',
-      cliente: '',
-      emplazamiento: '',
-      obra: '',
-      montador: { nombre: '', apellidos: '' },
-      horas: { ordinarias: 0, extras: 0, festivas: 0 },
-      trabajoRealizado: '',
-      firmas: { montador: false, cliente: false }
-    });
+    const existingData = doc.meta?.extractedData;
+    
+    // Compatibilidad: convertir estructura antigua a nueva
+    let initialData;
+    if (existingData) {
+      initialData = JSON.parse(JSON.stringify(existingData));
+      
+      // Si tiene estructura antigua (montador singular), convertir a nueva
+      if (existingData.montador && !existingData.montadores) {
+        initialData.montadores = [
+          {
+            nombreCompleto: `${existingData.montador.nombre || ''} ${existingData.montador.apellidos || ''}`.trim(),
+            horas: existingData.horas?.ordinarias || 0
+          }
+        ];
+        
+        // Mantener horasTotales si existe, sino crear
+        if (!initialData.horasTotales) {
+          initialData.horasTotales = existingData.horas || { ordinarias: 0, extras: 0, festivas: 0 };
+        }
+      }
+    } else {
+      // Datos por defecto para documentos sin datos extraídos
+      initialData = {
+        parteNumero: '',
+        fecha: '',
+        cliente: '',
+        emplazamiento: '',
+        obra: '',
+        montadores: [],
+        horasTotales: { ordinarias: 0, extras: 0, festivas: 0 },
+        trabajoRealizado: '',
+        firmas: { montador: false, cliente: false }
+      };
+    }
+    
+    setEditedData(initialData);
     setIsEditMode(false); // Siempre empieza en modo lectura
     const {
       data
@@ -914,66 +952,122 @@ const SuperAdminDashboard = () => {
                   
                   {/* Tab: Montador y Horas */}
                   <TabsContent value="montador" className="space-y-4 mt-4">
+                    {/* Lista de Montadores */}
                     <Card className="p-4">
-                      <h3 className="font-semibold mb-3 flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        Datos del Montador
-                      </h3>
-                      <dl className="space-y-3">
-                        {/* Nombre */}
-                        <div>
-                          <dt className="text-xs text-muted-foreground mb-0.5">Nombre</dt>
-                          {isEditMode ? (
-                            <Input
-                              type="text"
-                              value={editedData?.montador?.nombre || ''}
-                              onChange={(e) => setEditedData({
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-semibold flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          Datos del Montador
+                        </h3>
+                        {isEditMode && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              const newMontadores = [...(editedData?.montadores || []), { nombreCompleto: '', horas: 0 }];
+                              setEditedData({
                                 ...editedData!,
-                                montador: {
-                                  ...editedData?.montador!,
-                                  nombre: e.target.value
-                                }
-                              })}
-                              className="font-medium"
-                              placeholder="Ingrese nombre del montador"
-                            />
-                          ) : (
-                            <dd className="font-medium text-lg">
-                              {selectedDoc.meta?.extractedData?.montador?.nombre || 'N/A'}
-                            </dd>
-                          )}
-                        </div>
-                        
-                        {/* Apellidos */}
-                        <div>
-                          <dt className="text-xs text-muted-foreground mb-0.5">Apellidos</dt>
-                          {isEditMode ? (
-                            <Input
-                              type="text"
-                              value={editedData?.montador?.apellidos || ''}
-                              onChange={(e) => setEditedData({
-                                ...editedData!,
-                                montador: {
-                                  ...editedData?.montador!,
-                                  apellidos: e.target.value
-                                }
-                              })}
-                              className="font-medium"
-                              placeholder="Ingrese apellidos del montador"
-                            />
-                          ) : (
-                            <dd className="font-medium text-lg">
-                              {selectedDoc.meta?.extractedData?.montador?.apellidos || 'N/A'}
-                            </dd>
-                          )}
-                        </div>
-                      </dl>
+                                montadores: newMontadores
+                              });
+                            }}
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Añadir Montador
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {/* Mostrar lista de montadores */}
+                        {(isEditMode ? editedData?.montadores : selectedDoc.meta?.extractedData?.montadores || []).length > 0 ? (
+                          (isEditMode ? editedData?.montadores : selectedDoc.meta?.extractedData?.montadores || []).map((montador: any, index: number) => (
+                            <div key={index} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border">
+                              <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <div className="flex-1 grid grid-cols-3 gap-3 items-center">
+                                {/* Nombre Completo */}
+                                <div className="col-span-2">
+                                  <dt className="text-xs text-muted-foreground mb-0.5">Nombre Completo</dt>
+                                  {isEditMode ? (
+                                    <Input
+                                      type="text"
+                                      value={montador.nombreCompleto || ''}
+                                      onChange={(e) => {
+                                        const newMontadores = [...editedData!.montadores!];
+                                        newMontadores[index].nombreCompleto = e.target.value;
+                                        setEditedData({
+                                          ...editedData!,
+                                          montadores: newMontadores
+                                        });
+                                      }}
+                                      className="font-medium"
+                                      placeholder="Nombre y apellidos"
+                                    />
+                                  ) : (
+                                    <dd className="font-medium text-base">
+                                      {montador.nombreCompleto || 'N/A'}
+                                    </dd>
+                                  )}
+                                </div>
+                                
+                                {/* Horas */}
+                                <div>
+                                  <dt className="text-xs text-muted-foreground mb-0.5">Horas</dt>
+                                  {isEditMode ? (
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      step="0.5"
+                                      value={montador.horas || 0}
+                                      onChange={(e) => {
+                                        const newMontadores = [...editedData!.montadores!];
+                                        newMontadores[index].horas = parseFloat(e.target.value) || 0;
+                                        setEditedData({
+                                          ...editedData!,
+                                          montadores: newMontadores
+                                        });
+                                      }}
+                                      className="font-bold text-blue-600"
+                                    />
+                                  ) : (
+                                    <dd className="font-bold text-lg text-blue-600">
+                                      {montador.horas || 0}h
+                                    </dd>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              {/* Botón eliminar en modo edición */}
+                              {isEditMode && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="text-destructive hover:text-destructive flex-shrink-0"
+                                  onClick={() => {
+                                    const newMontadores = editedData!.montadores!.filter((_: any, i: number) => i !== index);
+                                    setEditedData({
+                                      ...editedData!,
+                                      montadores: newMontadores
+                                    });
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground italic text-center py-4">
+                            No hay montadores registrados
+                          </p>
+                        )}
+                      </div>
                     </Card>
 
+                    {/* Desglose Total de Horas */}
                     <Card className="p-4 bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
                       <h3 className="font-semibold mb-3 flex items-center gap-2 text-green-700 dark:text-green-400">
                         <Clock className="h-4 w-4" />
-                        Desglose de Horas
+                        Desglose Total de Horas
                       </h3>
                       <div className="grid grid-cols-3 gap-3">
                         {/* Ordinarias */}
@@ -984,11 +1078,11 @@ const SuperAdminDashboard = () => {
                               type="number"
                               min="0"
                               step="0.5"
-                              value={editedData?.horas?.ordinarias || 0}
+                              value={editedData?.horasTotales?.ordinarias || 0}
                               onChange={(e) => setEditedData({
                                 ...editedData!,
-                                horas: {
-                                  ...editedData?.horas!,
+                                horasTotales: {
+                                  ...editedData?.horasTotales!,
                                   ordinarias: parseFloat(e.target.value) || 0
                                 }
                               })}
@@ -996,7 +1090,7 @@ const SuperAdminDashboard = () => {
                             />
                           ) : (
                             <p className="text-2xl font-bold text-green-600">
-                              {selectedDoc.meta?.extractedData?.horas?.ordinarias || 0}
+                              {selectedDoc.meta?.extractedData?.horasTotales?.ordinarias || 0}
                             </p>
                           )}
                           <p className="text-xs text-muted-foreground">horas</p>
@@ -1010,11 +1104,11 @@ const SuperAdminDashboard = () => {
                               type="number"
                               min="0"
                               step="0.5"
-                              value={editedData?.horas?.extras || 0}
+                              value={editedData?.horasTotales?.extras || 0}
                               onChange={(e) => setEditedData({
                                 ...editedData!,
-                                horas: {
-                                  ...editedData?.horas!,
+                                horasTotales: {
+                                  ...editedData?.horasTotales!,
                                   extras: parseFloat(e.target.value) || 0
                                 }
                               })}
@@ -1022,7 +1116,7 @@ const SuperAdminDashboard = () => {
                             />
                           ) : (
                             <p className="text-2xl font-bold text-orange-600">
-                              {selectedDoc.meta?.extractedData?.horas?.extras || 0}
+                              {selectedDoc.meta?.extractedData?.horasTotales?.extras || 0}
                             </p>
                           )}
                           <p className="text-xs text-muted-foreground">horas</p>
@@ -1036,11 +1130,11 @@ const SuperAdminDashboard = () => {
                               type="number"
                               min="0"
                               step="0.5"
-                              value={editedData?.horas?.festivas || 0}
+                              value={editedData?.horasTotales?.festivas || 0}
                               onChange={(e) => setEditedData({
                                 ...editedData!,
-                                horas: {
-                                  ...editedData?.horas!,
+                                horasTotales: {
+                                  ...editedData?.horasTotales!,
                                   festivas: parseFloat(e.target.value) || 0
                                 }
                               })}
@@ -1048,21 +1142,21 @@ const SuperAdminDashboard = () => {
                             />
                           ) : (
                             <p className="text-2xl font-bold text-purple-600">
-                              {selectedDoc.meta?.extractedData?.horas?.festivas || 0}
+                              {selectedDoc.meta?.extractedData?.horasTotales?.festivas || 0}
                             </p>
                           )}
                           <p className="text-xs text-muted-foreground">horas</p>
                         </div>
                       </div>
                       
-                      {/* Total (calculado automáticamente) */}
+                      {/* Total General */}
                       <div className="mt-4 pt-4 border-t border-green-200 dark:border-green-800">
                         <div className="flex justify-between items-center">
                           <span className="font-semibold text-green-700 dark:text-green-400">Total de Horas:</span>
                           <span className="text-3xl font-bold text-green-600">
                             {isEditMode 
-                              ? ((editedData?.horas?.ordinarias || 0) + (editedData?.horas?.extras || 0) + (editedData?.horas?.festivas || 0)).toFixed(1)
-                              : ((selectedDoc.meta?.extractedData?.horas?.ordinarias || 0) + (selectedDoc.meta?.extractedData?.horas?.extras || 0) + (selectedDoc.meta?.extractedData?.horas?.festivas || 0))
+                              ? ((editedData?.horasTotales?.ordinarias || 0) + (editedData?.horasTotales?.extras || 0) + (editedData?.horasTotales?.festivas || 0)).toFixed(1)
+                              : ((selectedDoc.meta?.extractedData?.horasTotales?.ordinarias || 0) + (selectedDoc.meta?.extractedData?.horasTotales?.extras || 0) + (selectedDoc.meta?.extractedData?.horasTotales?.festivas || 0))
                             }h
                           </span>
                         </div>

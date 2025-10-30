@@ -28,17 +28,25 @@ CAMPOS OBLIGATORIOS:
 - Emplazamiento (ubicación física del trabajo)
 - Obra (nombre del proyecto/obra)
 - Trabajo realizado (descripción detallada de las tareas)
-- Montador: Nombre y Apellidos (separados)
-- Horas trabajadas:
-  * Ordinarias (horas normales)
-  * Extras (horas extra)
-  * Festivas (horas en festivos)
+- Montadores: Array con TODOS los montadores listados en la tabla "DATOS MONTADOR"
+  * nombreCompleto: nombre y apellidos completos del montador
+  * horas: horas activas/ordinarias trabajadas (número)
+- Horas totales del parte:
+  * Ordinarias (suma de todas las horas ordinarias de todos los montadores)
+  * Extras (horas extra totales)
+  * Festivas (horas en festivos totales)
 - Fecha del parte (formato YYYY-MM-DD)
 - Firmas detectadas:
-  * Firma del montador (true/false)
-  * Firma del cliente (true/false)
+  * Firma del jefe de equipo/montador (true/false)
+  * Firma del cliente/encargado (true/false)
 
-IMPORTANTE:
+IMPORTANTE SOBRE MONTADORES:
+- Extrae TODOS los montadores que aparezcan en la tabla "DATOS MONTADOR"
+- Si hay 5 montadores, debes listar los 5
+- Las horas de cada montador suelen estar en la columna "H. ACTIVAS" o similar
+- Si un montador no tiene horas, usa 0
+
+IMPORTANTE GENERAL:
 - Si un campo está vacío, ilegible o no existe, usar null (excepto números: usar 0)
 - Las horas deben ser números, no texto
 - La fecha debe estar en formato ISO (YYYY-MM-DD)
@@ -52,11 +60,13 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura exacta:
   "emplazamiento": "string o null",
   "obra": "string o null",
   "trabajoRealizado": "string o null",
-  "montador": {
-    "nombre": "string o null",
-    "apellidos": "string o null"
-  },
-  "horas": {
+  "montadores": [
+    {
+      "nombreCompleto": "string",
+      "horas": 0
+    }
+  ],
+  "horasTotales": {
     "ordinarias": 0,
     "extras": 0,
     "festivas": 0
@@ -134,8 +144,8 @@ Verifica que al menos el 80% de estos elementos sean LEGIBLES (que se puedan lee
 3. Emplazamiento
 4. Obra
 5. Trabajo realizado
-6. Datos del montador (Nombre y Apellidos)
-7. Horas trabajadas
+6. Datos de los montadores (Nombres y horas)
+7. Horas trabajadas totales
 8. Firma del Jefe de Equipo
 9. Firma del Cliente/Encargado
 10. Fecha
