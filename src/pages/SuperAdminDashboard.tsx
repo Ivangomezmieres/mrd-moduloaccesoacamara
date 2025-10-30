@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { LogOut, Download, Filter, Search, Eye, BarChart3, FileText, Users, Clock, CheckCircle, AlertCircle, User, Building, Briefcase, Calendar, PenTool, ZoomIn, Trash2, XCircle, Loader2 } from 'lucide-react';
+import { LogOut, Download, Filter, Search, Eye, BarChart3, FileText, Users, Clock, CheckCircle, AlertCircle, User, Building, Briefcase, Calendar, PenTool, ZoomIn, Trash2, XCircle, Loader2, Pencil, Save } from 'lucide-react';
 import { toast } from 'sonner';
 interface ExtractedData {
   parteNumero: string | null;
@@ -66,6 +66,11 @@ const SuperAdminDashboard = () => {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectNotes, setRejectNotes] = useState('');
   const [isUpdatingDocument, setIsUpdatingDocument] = useState(false);
+  
+  // Estados para edición de datos extraídos
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editedData, setEditedData] = useState<ExtractedData | null>(null);
+  const [isSavingChanges, setIsSavingChanges] = useState(false);
   useEffect(() => {
     checkAuth();
     loadDocuments();
@@ -133,6 +138,19 @@ const SuperAdminDashboard = () => {
   };
   const handleViewDetails = async (doc: Document) => {
     setSelectedDoc(doc);
+    // Inicializar datos editables con copia profunda
+    setEditedData(doc.meta?.extractedData ? JSON.parse(JSON.stringify(doc.meta.extractedData)) : {
+      parteNumero: '',
+      fecha: '',
+      cliente: '',
+      emplazamiento: '',
+      obra: '',
+      montador: { nombre: '', apellidos: '' },
+      horas: { ordinarias: 0, extras: 0, festivas: 0 },
+      trabajoRealizado: '',
+      firmas: { montador: false, cliente: false }
+    });
+    setIsEditMode(false); // Siempre empieza en modo lectura
     const {
       data
     } = await supabase.storage.from('scans').createSignedUrl(doc.storage_path, 3600);
@@ -301,6 +319,73 @@ const SuperAdminDashboard = () => {
     } finally {
       setIsUpdatingDocument(false);
     }
+  };
+
+  const handleSaveEditedData = async () => {
+    if (!selectedDoc || !editedData) {
+      toast.error('No hay datos para guardar');
+      return;
+    }
+
+    setIsSavingChanges(true);
+
+    try {
+      // Actualizar el meta.extractedData en la base de datos
+      const { error } = await supabase
+        .from('documents')
+        .update({
+          meta: {
+            ...selectedDoc.meta,
+            extractedData: editedData
+          } as any
+        })
+        .eq('id', selectedDoc.id);
+
+      if (error) {
+        console.error('Error saving edited data:', error);
+        toast.error('Error al guardar los cambios');
+        return;
+      }
+
+      // Actualizar lista local
+      setDocuments(prev => 
+        prev.map(doc => 
+          doc.id === selectedDoc.id 
+            ? { 
+                ...doc, 
+                meta: {
+                  ...doc.meta,
+                  extractedData: editedData
+                }
+              }
+            : doc
+        )
+      );
+
+      // Actualizar selectedDoc
+      setSelectedDoc({
+        ...selectedDoc,
+        meta: {
+          ...selectedDoc.meta,
+          extractedData: editedData
+        }
+      });
+
+      toast.success('Cambios guardados correctamente');
+      setIsEditMode(false); // Volver a modo lectura
+    } catch (error) {
+      console.error('Unexpected error saving data:', error);
+      toast.error('Error inesperado al guardar');
+    } finally {
+      setIsSavingChanges(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    // Restaurar datos originales
+    setEditedData(selectedDoc?.meta?.extractedData ? JSON.parse(JSON.stringify(selectedDoc.meta.extractedData)) : null);
+    setIsEditMode(false);
+    toast.info('Cambios descartados');
   };
 
   const handleLogout = async () => {
@@ -570,10 +655,54 @@ const SuperAdminDashboard = () => {
       <Dialog open={!!selectedDoc} onOpenChange={() => setSelectedDoc(null)}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Detalles Completos del Documento
-            </DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Datos extraídos del parte
+              </DialogTitle>
+              <div className="flex gap-2">
+                {!isEditMode ? (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => setIsEditMode(true)}
+                  >
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Editar
+                  </Button>
+                ) : (
+                  <>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={handleCancelEdit}
+                      disabled={isSavingChanges}
+                    >
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Cancelar
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="default"
+                      onClick={handleSaveEditedData}
+                      disabled={isSavingChanges}
+                    >
+                      {isSavingChanges ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Guardando...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Guardar
+                        </>
+                      )}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
           </DialogHeader>
           
           {selectedDoc && <div className="grid grid-cols-5 gap-6 mt-4">
@@ -654,58 +783,129 @@ const SuperAdminDashboard = () => {
                   <TabsContent value="parte" className="space-y-4 mt-4">
                     <Card className="p-4">
                       <dl className="space-y-3">
+                        {/* Nº de Parte */}
                         <div className="flex items-start gap-3">
                           <FileText className="h-4 w-4 text-primary mt-0.5" />
                           <div className="flex-1">
                             <dt className="text-xs text-muted-foreground mb-0.5">Nº de Parte</dt>
-                            <dd className="font-semibold text-lg">
-                              {selectedDoc.meta?.extractedData?.parteNumero || <span className="text-muted-foreground text-base">N/A</span>}
-                            </dd>
+                            {isEditMode ? (
+                              <Input
+                                type="text"
+                                value={editedData?.parteNumero || ''}
+                                onChange={(e) => setEditedData({
+                                  ...editedData!,
+                                  parteNumero: e.target.value
+                                })}
+                                className="font-semibold"
+                                placeholder="Ingrese número de parte"
+                              />
+                            ) : (
+                              <dd className="font-semibold text-lg">
+                                {selectedDoc.meta?.extractedData?.parteNumero || 
+                                  <span className="text-muted-foreground text-base">N/A</span>}
+                              </dd>
+                            )}
                           </div>
                         </div>
 
+                        {/* Fecha del Parte */}
                         <div className="flex items-start gap-3">
                           <Calendar className="h-4 w-4 text-primary mt-0.5" />
                           <div className="flex-1">
                             <dt className="text-xs text-muted-foreground mb-0.5">Fecha del Parte</dt>
-                            <dd className="font-medium">
-                              {selectedDoc.meta?.extractedData?.fecha ? new Date(selectedDoc.meta.extractedData.fecha).toLocaleDateString('es-ES', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          }) : 'N/A'}
-                            </dd>
+                            {isEditMode ? (
+                              <Input
+                                type="date"
+                                value={editedData?.fecha ? new Date(editedData.fecha).toISOString().split('T')[0] : ''}
+                                onChange={(e) => setEditedData({
+                                  ...editedData!,
+                                  fecha: e.target.value
+                                })}
+                                className="font-medium"
+                              />
+                            ) : (
+                              <dd className="font-medium">
+                                {selectedDoc.meta?.extractedData?.fecha ? 
+                                  new Date(selectedDoc.meta.extractedData.fecha).toLocaleDateString('es-ES', {
+                                    weekday: 'long',
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                  }) : 'N/A'}
+                              </dd>
+                            )}
                           </div>
                         </div>
 
+                        {/* Cliente */}
                         <div className="flex items-start gap-3">
                           <Building className="h-4 w-4 text-blue-600 mt-0.5" />
                           <div className="flex-1">
                             <dt className="text-xs text-muted-foreground mb-0.5">Cliente</dt>
-                            <dd className="font-medium text-blue-600">
-                              {selectedDoc.meta?.extractedData?.cliente || 'N/A'}
-                            </dd>
+                            {isEditMode ? (
+                              <Input
+                                type="text"
+                                value={editedData?.cliente || ''}
+                                onChange={(e) => setEditedData({
+                                  ...editedData!,
+                                  cliente: e.target.value
+                                })}
+                                className="font-medium text-blue-600"
+                                placeholder="Ingrese nombre del cliente"
+                              />
+                            ) : (
+                              <dd className="font-medium text-blue-600">
+                                {selectedDoc.meta?.extractedData?.cliente || 'N/A'}
+                              </dd>
+                            )}
                           </div>
                         </div>
 
+                        {/* Emplazamiento */}
                         <div className="flex items-start gap-3">
                           <Building className="h-4 w-4 text-muted-foreground mt-0.5" />
                           <div className="flex-1">
                             <dt className="text-xs text-muted-foreground mb-0.5">Emplazamiento</dt>
-                            <dd className="font-medium">
-                              {selectedDoc.meta?.extractedData?.emplazamiento || 'N/A'}
-                            </dd>
+                            {isEditMode ? (
+                              <Input
+                                type="text"
+                                value={editedData?.emplazamiento || ''}
+                                onChange={(e) => setEditedData({
+                                  ...editedData!,
+                                  emplazamiento: e.target.value
+                                })}
+                                className="font-medium"
+                                placeholder="Ingrese emplazamiento"
+                              />
+                            ) : (
+                              <dd className="font-medium">
+                                {selectedDoc.meta?.extractedData?.emplazamiento || 'N/A'}
+                              </dd>
+                            )}
                           </div>
                         </div>
 
+                        {/* Obra */}
                         <div className="flex items-start gap-3">
                           <Briefcase className="h-4 w-4 text-muted-foreground mt-0.5" />
                           <div className="flex-1">
                             <dt className="text-xs text-muted-foreground mb-0.5">Obra</dt>
-                            <dd className="font-medium">
-                              {selectedDoc.meta?.extractedData?.obra || 'N/A'}
-                            </dd>
+                            {isEditMode ? (
+                              <Input
+                                type="text"
+                                value={editedData?.obra || ''}
+                                onChange={(e) => setEditedData({
+                                  ...editedData!,
+                                  obra: e.target.value
+                                })}
+                                className="font-medium"
+                                placeholder="Ingrese nombre de la obra"
+                              />
+                            ) : (
+                              <dd className="font-medium">
+                                {selectedDoc.meta?.extractedData?.obra || 'N/A'}
+                              </dd>
+                            )}
                           </div>
                         </div>
                       </dl>
@@ -720,11 +920,52 @@ const SuperAdminDashboard = () => {
                         Datos del Montador
                       </h3>
                       <dl className="space-y-3">
+                        {/* Nombre */}
                         <div>
-                          <dt className="text-xs text-muted-foreground mb-0.5">Nombre completo</dt>
-                          <dd className="font-medium text-lg">
-                            {selectedDoc.meta?.extractedData?.montador ? `${selectedDoc.meta.extractedData.montador.nombre || ''} ${selectedDoc.meta.extractedData.montador.apellidos || ''}`.trim() || 'N/A' : 'N/A'}
-                          </dd>
+                          <dt className="text-xs text-muted-foreground mb-0.5">Nombre</dt>
+                          {isEditMode ? (
+                            <Input
+                              type="text"
+                              value={editedData?.montador?.nombre || ''}
+                              onChange={(e) => setEditedData({
+                                ...editedData!,
+                                montador: {
+                                  ...editedData?.montador!,
+                                  nombre: e.target.value
+                                }
+                              })}
+                              className="font-medium"
+                              placeholder="Ingrese nombre del montador"
+                            />
+                          ) : (
+                            <dd className="font-medium text-lg">
+                              {selectedDoc.meta?.extractedData?.montador?.nombre || 'N/A'}
+                            </dd>
+                          )}
+                        </div>
+                        
+                        {/* Apellidos */}
+                        <div>
+                          <dt className="text-xs text-muted-foreground mb-0.5">Apellidos</dt>
+                          {isEditMode ? (
+                            <Input
+                              type="text"
+                              value={editedData?.montador?.apellidos || ''}
+                              onChange={(e) => setEditedData({
+                                ...editedData!,
+                                montador: {
+                                  ...editedData?.montador!,
+                                  apellidos: e.target.value
+                                }
+                              })}
+                              className="font-medium"
+                              placeholder="Ingrese apellidos del montador"
+                            />
+                          ) : (
+                            <dd className="font-medium text-lg">
+                              {selectedDoc.meta?.extractedData?.montador?.apellidos || 'N/A'}
+                            </dd>
+                          )}
                         </div>
                       </dl>
                     </Card>
@@ -735,33 +976,94 @@ const SuperAdminDashboard = () => {
                         Desglose de Horas
                       </h3>
                       <div className="grid grid-cols-3 gap-3">
+                        {/* Ordinarias */}
                         <div className="text-center p-3 bg-background rounded-lg border">
                           <p className="text-xs text-muted-foreground mb-1">Ordinarias</p>
-                          <p className="text-2xl font-bold text-green-600">
-                            {selectedDoc.meta?.extractedData?.horas?.ordinarias || 0}
-                          </p>
+                          {isEditMode ? (
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.5"
+                              value={editedData?.horas?.ordinarias || 0}
+                              onChange={(e) => setEditedData({
+                                ...editedData!,
+                                horas: {
+                                  ...editedData?.horas!,
+                                  ordinarias: parseFloat(e.target.value) || 0
+                                }
+                              })}
+                              className="text-center text-2xl font-bold text-green-600"
+                            />
+                          ) : (
+                            <p className="text-2xl font-bold text-green-600">
+                              {selectedDoc.meta?.extractedData?.horas?.ordinarias || 0}
+                            </p>
+                          )}
                           <p className="text-xs text-muted-foreground">horas</p>
                         </div>
+                        
+                        {/* Extras */}
                         <div className="text-center p-3 bg-background rounded-lg border">
                           <p className="text-xs text-muted-foreground mb-1">Extras</p>
-                          <p className="text-2xl font-bold text-orange-600">
-                            {selectedDoc.meta?.extractedData?.horas?.extras || 0}
-                          </p>
+                          {isEditMode ? (
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.5"
+                              value={editedData?.horas?.extras || 0}
+                              onChange={(e) => setEditedData({
+                                ...editedData!,
+                                horas: {
+                                  ...editedData?.horas!,
+                                  extras: parseFloat(e.target.value) || 0
+                                }
+                              })}
+                              className="text-center text-2xl font-bold text-orange-600"
+                            />
+                          ) : (
+                            <p className="text-2xl font-bold text-orange-600">
+                              {selectedDoc.meta?.extractedData?.horas?.extras || 0}
+                            </p>
+                          )}
                           <p className="text-xs text-muted-foreground">horas</p>
                         </div>
+                        
+                        {/* Festivas */}
                         <div className="text-center p-3 bg-background rounded-lg border">
                           <p className="text-xs text-muted-foreground mb-1">Festivas</p>
-                          <p className="text-2xl font-bold text-purple-600">
-                            {selectedDoc.meta?.extractedData?.horas?.festivas || 0}
-                          </p>
+                          {isEditMode ? (
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.5"
+                              value={editedData?.horas?.festivas || 0}
+                              onChange={(e) => setEditedData({
+                                ...editedData!,
+                                horas: {
+                                  ...editedData?.horas!,
+                                  festivas: parseFloat(e.target.value) || 0
+                                }
+                              })}
+                              className="text-center text-2xl font-bold text-purple-600"
+                            />
+                          ) : (
+                            <p className="text-2xl font-bold text-purple-600">
+                              {selectedDoc.meta?.extractedData?.horas?.festivas || 0}
+                            </p>
+                          )}
                           <p className="text-xs text-muted-foreground">horas</p>
                         </div>
                       </div>
+                      
+                      {/* Total (calculado automáticamente) */}
                       <div className="mt-4 pt-4 border-t border-green-200 dark:border-green-800">
                         <div className="flex justify-between items-center">
                           <span className="font-semibold text-green-700 dark:text-green-400">Total de Horas:</span>
                           <span className="text-3xl font-bold text-green-600">
-                            {(selectedDoc.meta?.extractedData?.horas?.ordinarias || 0) + (selectedDoc.meta?.extractedData?.horas?.extras || 0) + (selectedDoc.meta?.extractedData?.horas?.festivas || 0)}h
+                            {isEditMode 
+                              ? ((editedData?.horas?.ordinarias || 0) + (editedData?.horas?.extras || 0) + (editedData?.horas?.festivas || 0)).toFixed(1)
+                              : ((selectedDoc.meta?.extractedData?.horas?.ordinarias || 0) + (selectedDoc.meta?.extractedData?.horas?.extras || 0) + (selectedDoc.meta?.extractedData?.horas?.festivas || 0))
+                            }h
                           </span>
                         </div>
                       </div>
@@ -775,9 +1077,22 @@ const SuperAdminDashboard = () => {
                         <Briefcase className="h-4 w-4" />
                         Descripción del Trabajo
                       </h3>
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                        {selectedDoc.meta?.extractedData?.trabajoRealizado || <span className="text-muted-foreground italic">No se especificó descripción del trabajo</span>}
-                      </p>
+                      {isEditMode ? (
+                        <Textarea
+                          value={editedData?.trabajoRealizado || ''}
+                          onChange={(e) => setEditedData({
+                            ...editedData!,
+                            trabajoRealizado: e.target.value
+                          })}
+                          className="min-h-[200px] text-sm leading-relaxed"
+                          placeholder="Ingrese la descripción del trabajo realizado..."
+                        />
+                      ) : (
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                          {selectedDoc.meta?.extractedData?.trabajoRealizado || 
+                            <span className="text-muted-foreground italic">No se especificó descripción del trabajo</span>}
+                        </p>
+                      )}
                     </Card>
                   </TabsContent>
                   
