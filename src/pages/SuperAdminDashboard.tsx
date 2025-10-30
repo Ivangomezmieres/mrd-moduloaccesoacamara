@@ -82,6 +82,7 @@ const SuperAdminDashboard = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedData, setEditedData] = useState<ExtractedData | null>(null);
   const [isSavingChanges, setIsSavingChanges] = useState(false);
+  const [isReextracting, setIsReextracting] = useState(false);
   useEffect(() => {
     checkAuth();
     loadDocuments();
@@ -194,6 +195,59 @@ const SuperAdminDashboard = () => {
     } = await supabase.storage.from('scans').createSignedUrl(doc.storage_path, 3600);
     if (data?.signedUrl) {
       setImageUrl(data.signedUrl);
+      
+      // Si solo hay 0 o 1 montador, intentar reextraer automáticamente
+      if (!initialData.montadores || initialData.montadores.length <= 1) {
+        await reExtractMontadores(data.signedUrl);
+      }
+    }
+  };
+
+  const reExtractMontadores = async (imgUrl?: string) => {
+    const urlToUse = imgUrl || imageUrl;
+    if (!urlToUse) {
+      toast.error('No se pudo obtener la URL de la imagen');
+      return;
+    }
+
+    setIsReextracting(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('validate-document', {
+        body: { imageData: urlToUse }
+      });
+
+      if (error) {
+        console.error('Error reextrayendo montadores:', error);
+        toast.error('Error al reextraer montadores desde la imagen');
+        return;
+      }
+
+      const extractedData = data?.extractedData;
+      
+      if (extractedData?.montadores && extractedData.montadores.length > 1) {
+        // Calcular horasTotales desde montadores si no existe
+        const calculatedHorasTotales = extractedData.horasTotales || {
+          ordinarias: extractedData.montadores.reduce((sum: number, m: any) => sum + (m.horas || 0), 0),
+          extras: 0,
+          festivas: 0
+        };
+
+        setEditedData(prev => ({
+          ...prev!,
+          montadores: extractedData.montadores,
+          horasTotales: calculatedHorasTotales
+        }));
+        
+        toast.success(`✅ ${extractedData.montadores.length} montadores extraídos desde la imagen`);
+      } else {
+        toast.info('ℹ️ No se encontraron múltiples montadores en la imagen');
+      }
+    } catch (error) {
+      console.error('Error inesperado reextrayendo:', error);
+      toast.error('Error inesperado al reextraer datos');
+    } finally {
+      setIsReextracting(false);
     }
   };
   const handleDeleteDocument = async (docId: string, storagePath: string) => {
@@ -957,24 +1011,44 @@ const SuperAdminDashboard = () => {
                       <div className="flex items-center justify-between mb-3">
                         <h3 className="font-semibold flex items-center gap-2">
                           <User className="h-4 w-4" />
-                          Datos del Montador
+                          Datos de los Montadores
                         </h3>
-                        {isEditMode && (
+                        <div className="flex gap-2">
                           <Button 
                             size="sm" 
-                            variant="outline"
-                            onClick={() => {
-                              const newMontadores = [...(editedData?.montadores || []), { nombreCompleto: '', horas: 0 }];
-                              setEditedData({
-                                ...editedData!,
-                                montadores: newMontadores
-                              });
-                            }}
+                            variant="ghost"
+                            onClick={() => reExtractMontadores()}
+                            disabled={isReextracting || !imageUrl}
                           >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Añadir Montador
+                            {isReextracting ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Extrayendo...
+                              </>
+                            ) : (
+                              <>
+                                <ZoomIn className="mr-2 h-4 w-4" />
+                                Completar desde imagen
+                              </>
+                            )}
                           </Button>
-                        )}
+                          {isEditMode && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                const newMontadores = [...(editedData?.montadores || []), { nombreCompleto: '', horas: 0 }];
+                                setEditedData({
+                                  ...editedData!,
+                                  montadores: newMontadores
+                                });
+                              }}
+                            >
+                              <Plus className="mr-2 h-4 w-4" />
+                              Añadir Montador
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       
                       <div className="space-y-3">
@@ -1090,7 +1164,8 @@ const SuperAdminDashboard = () => {
                             />
                           ) : (
                             <p className="text-2xl font-bold text-green-600">
-                              {editedData?.horasTotales?.ordinarias || 0}
+                              {editedData?.horasTotales?.ordinarias || 
+                               (editedData?.montadores?.reduce((sum, m) => sum + (m.horas || 0), 0) || 0)}
                             </p>
                           )}
                           <p className="text-xs text-muted-foreground">horas</p>
@@ -1154,7 +1229,9 @@ const SuperAdminDashboard = () => {
                         <div className="flex justify-between items-center">
                           <span className="font-semibold text-green-700 dark:text-green-400">Total de Horas:</span>
                           <span className="text-3xl font-bold text-green-600">
-                            {((editedData?.horasTotales?.ordinarias || 0) + (editedData?.horasTotales?.extras || 0) + (editedData?.horasTotales?.festivas || 0)).toFixed(1)}h
+                            {((editedData?.horasTotales?.ordinarias || (editedData?.montadores?.reduce((sum, m) => sum + (m.horas || 0), 0) || 0)) + 
+                              (editedData?.horasTotales?.extras || 0) + 
+                              (editedData?.horasTotales?.festivas || 0)).toFixed(1)}h
                           </span>
                         </div>
                       </div>
