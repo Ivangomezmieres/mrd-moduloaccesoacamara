@@ -414,10 +414,6 @@ const SuperAdminDashboard = () => {
                 <Users className="mr-2 h-4 w-4" />
                 Usuarios
               </Button>
-              <Button variant="outline" onClick={() => navigate('/review')}>
-                <FileText className="mr-2 h-4 w-4" />
-                Revisar
-              </Button>
               <Button variant="outline" onClick={exportToCSV}>
                 <Download className="mr-2 h-4 w-4" />
                 Exportar CSV

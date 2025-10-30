@@ -52,7 +52,7 @@ const Auth = () => {
       } else if (hasAdmin) {
         navigate('/admin/users');
       } else if (hasRevisor) {
-        navigate('/review');
+        navigate('/admin/dashboard');
       } else {
         navigate('/scan');
       }

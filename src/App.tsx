@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Scan from "./pages/Scan";
-import Review from "./pages/Review";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
@@ -24,7 +23,6 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/scan" element={<Scan />} />
-          <Route path="/review" element={<Review />} />
           <Route path="/admin/dashboard" element={<SuperAdminDashboard />} />
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/install" element={<Install />} />
