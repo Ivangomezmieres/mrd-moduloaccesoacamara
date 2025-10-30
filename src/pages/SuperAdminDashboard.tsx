@@ -979,8 +979,8 @@ const SuperAdminDashboard = () => {
                       
                       <div className="space-y-3">
                         {/* Mostrar lista de montadores */}
-                        {(isEditMode ? editedData?.montadores : selectedDoc.meta?.extractedData?.montadores || []).length > 0 ? (
-                          (isEditMode ? editedData?.montadores : selectedDoc.meta?.extractedData?.montadores || []).map((montador: any, index: number) => (
+                        {(editedData?.montadores || []).length > 0 ? (
+                          (editedData?.montadores || []).map((montador: any, index: number) => (
                             <div key={index} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border">
                               <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                               <div className="flex-1 grid grid-cols-3 gap-3 items-center">
@@ -1090,7 +1090,7 @@ const SuperAdminDashboard = () => {
                             />
                           ) : (
                             <p className="text-2xl font-bold text-green-600">
-                              {selectedDoc.meta?.extractedData?.horasTotales?.ordinarias || 0}
+                              {editedData?.horasTotales?.ordinarias || 0}
                             </p>
                           )}
                           <p className="text-xs text-muted-foreground">horas</p>
@@ -1116,7 +1116,7 @@ const SuperAdminDashboard = () => {
                             />
                           ) : (
                             <p className="text-2xl font-bold text-orange-600">
-                              {selectedDoc.meta?.extractedData?.horasTotales?.extras || 0}
+                              {editedData?.horasTotales?.extras || 0}
                             </p>
                           )}
                           <p className="text-xs text-muted-foreground">horas</p>
@@ -1142,7 +1142,7 @@ const SuperAdminDashboard = () => {
                             />
                           ) : (
                             <p className="text-2xl font-bold text-purple-600">
-                              {selectedDoc.meta?.extractedData?.horasTotales?.festivas || 0}
+                              {editedData?.horasTotales?.festivas || 0}
                             </p>
                           )}
                           <p className="text-xs text-muted-foreground">horas</p>
@@ -1154,10 +1154,7 @@ const SuperAdminDashboard = () => {
                         <div className="flex justify-between items-center">
                           <span className="font-semibold text-green-700 dark:text-green-400">Total de Horas:</span>
                           <span className="text-3xl font-bold text-green-600">
-                            {isEditMode 
-                              ? ((editedData?.horasTotales?.ordinarias || 0) + (editedData?.horasTotales?.extras || 0) + (editedData?.horasTotales?.festivas || 0)).toFixed(1)
-                              : ((selectedDoc.meta?.extractedData?.horasTotales?.ordinarias || 0) + (selectedDoc.meta?.extractedData?.horasTotales?.extras || 0) + (selectedDoc.meta?.extractedData?.horasTotales?.festivas || 0))
-                            }h
+                            {((editedData?.horasTotales?.ordinarias || 0) + (editedData?.horasTotales?.extras || 0) + (editedData?.horasTotales?.festivas || 0)).toFixed(1)}h
                           </span>
                         </div>
                       </div>
