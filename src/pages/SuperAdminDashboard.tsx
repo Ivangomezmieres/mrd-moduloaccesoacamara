@@ -582,8 +582,6 @@ const SuperAdminDashboard = () => {
         'Emplazamiento': extracted?.emplazamiento || 'N/A',
         'Obra': extracted?.obra || 'N/A',
         'Trabajo': extracted?.trabajoRealizado || 'N/A',
-        'Montador Nombre': extracted?.montador?.nombre || 'N/A',
-        'Montador Apellidos': extracted?.montador?.apellidos || 'N/A',
         'Fecha Parte': extracted?.fecha || 'N/A',
         'Horas Ordinarias': horasData?.ordinarias || 0,
         'Horas Extras': horasData?.extras || 0,
@@ -631,11 +629,7 @@ const SuperAdminDashboard = () => {
       if (!horasData) return acc;
       return acc + horasData.ordinarias + horasData.extras + horasData.festivas;
     }, 0),
-    uniqueClients: new Set(documents.map(d => d.meta?.extractedData?.cliente).filter(Boolean)).size,
-    uniqueMontadores: new Set(documents.map(d => {
-      const m = d.meta?.extractedData?.montador;
-      return m ? `${m.nombre} ${m.apellidos}` : null;
-    }).filter(Boolean)).size
+    uniqueClients: new Set(documents.map(d => d.meta?.extractedData?.cliente).filter(Boolean)).size
   };
   if (isLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">
@@ -714,7 +708,7 @@ const SuperAdminDashboard = () => {
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Buscar por cliente, montador, nº parte..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
+                <Input placeholder="Buscar por cliente, nº parte..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
               </div>
             </div>
             
@@ -742,7 +736,6 @@ const SuperAdminDashboard = () => {
                 <TableRow>
                   <TableHead>Nº Parte</TableHead>
                   <TableHead>Cliente</TableHead>
-                  <TableHead>Montador</TableHead>
                   <TableHead>Fecha</TableHead>
                   <TableHead>Horas</TableHead>
                   <TableHead>Estado</TableHead>
@@ -753,7 +746,7 @@ const SuperAdminDashboard = () => {
               </TableHeader>
               <TableBody>
                 {filteredDocuments.length === 0 ? <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       No se encontraron documentos
                     </TableCell>
                   </TableRow> : filteredDocuments.map(doc => {
@@ -766,9 +759,6 @@ const SuperAdminDashboard = () => {
                         </TableCell>
                         <TableCell>
                           {extracted?.cliente || <span className="text-muted-foreground">N/A</span>}
-                        </TableCell>
-                        <TableCell>
-                          {extracted?.montador ? `${extracted.montador.nombre || ''} ${extracted.montador.apellidos || ''}`.trim() : <span className="text-muted-foreground">N/A</span>}
                         </TableCell>
                         <TableCell>
                           {extracted?.fecha ? new Date(extracted.fecha).toLocaleDateString('es-ES') : <span className="text-muted-foreground">N/A</span>}
