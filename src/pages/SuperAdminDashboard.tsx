@@ -346,6 +346,73 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  // Función para cambiar estado del documento (pendiente o aprobado)
+  const handleChangeStatus = async (newStatus: 'pending' | 'approved') => {
+    if (!selectedDoc || !userId) {
+      toast.error('No se pudo identificar el documento o usuario');
+      return;
+    }
+
+    const statusText = newStatus === 'approved' ? 'aprobar' : 'marcar como pendiente';
+    const confirmed = window.confirm(
+      `¿Estás seguro de que deseas ${statusText} este documento?`
+    );
+    
+    if (!confirmed) return;
+
+    setIsUpdatingDocument(true);
+
+    try {
+      const updateData: any = {
+        status: newStatus,
+        reviewed_by: userId,
+        validated_at: new Date().toISOString()
+      };
+
+      // Si se marca como pendiente, limpiar las notas de rechazo
+      if (newStatus === 'pending') {
+        updateData.review_notes = null;
+      }
+
+      const { error } = await supabase
+        .from('documents')
+        .update(updateData)
+        .eq('id', selectedDoc.id);
+
+      if (error) {
+        console.error('Error updating document status:', error);
+        toast.error('Error al actualizar el estado del documento');
+        return;
+      }
+
+      // Actualizar lista local
+      setDocuments(prev => 
+        prev.map(doc => 
+          doc.id === selectedDoc.id 
+            ? { ...doc, ...updateData }
+            : doc
+        )
+      );
+
+      // Actualizar selectedDoc
+      setSelectedDoc({
+        ...selectedDoc,
+        ...updateData
+      });
+
+      const successMsg = newStatus === 'approved' 
+        ? 'Documento aprobado correctamente'
+        : 'Documento marcado como pendiente';
+      
+      toast.success(successMsg);
+    } catch (error) {
+      console.error('Unexpected error updating document status:', error);
+      toast.error('Error inesperado al actualizar el estado');
+    } finally {
+      setIsUpdatingDocument(false);
+    }
+  };
+
   const handleRejectDocumentWithNotes = async () => {
     if (!selectedDoc || !userId) {
       toast.error('No se pudo identificar el documento o usuario');
@@ -1304,48 +1371,54 @@ const SuperAdminDashboard = () => {
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-muted-foreground">Estado actual:</span>
-                          <Badge variant={selectedDoc.status === 'approved' ? 'default' : selectedDoc.status === 'pending' ? 'secondary' : 'destructive'} className="text-sm">
-                            {selectedDoc.status === 'approved' ? 'Aprobado' : selectedDoc.status === 'pending' ? 'Pendiente' : 'Rechazado'}
+                          <Badge variant={selectedDoc.status === 'approved' ? 'default' : selectedDoc.status === 'rejected' ? 'destructive' : 'secondary'}>
+                            {selectedDoc.status === 'approved' ? 'Aprobado' : selectedDoc.status === 'rejected' ? 'Rechazado' : 'Pendiente'}
                           </Badge>
                         </div>
                         
-                        {/* Botones de acción para documentos pendientes */}
-                        {selectedDoc.status === 'pending' && (
-                          <div className="pt-3 border-t space-y-3">
-                            <p className="text-xs text-muted-foreground">
-                              Acciones de revisión:
-                            </p>
-                            <div className="flex gap-2">
-                              <Button 
-                                onClick={() => handleApproveDocument(selectedDoc.id)}
-                                className="flex-1"
-                                variant="default"
-                                disabled={isUpdatingDocument}
-                              >
-                                {isUpdatingDocument ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Procesando...
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckCircle className="mr-2 h-4 w-4" />
-                                    Aprobar
-                                  </>
-                                )}
-                              </Button>
-                              <Button 
-                                onClick={() => setShowRejectDialog(true)}
-                                className="flex-1"
-                                variant="destructive"
-                                disabled={isUpdatingDocument}
-                              >
-                                <XCircle className="mr-2 h-4 w-4" />
-                                Rechazar
-                              </Button>
-                            </div>
+                        <div className="pt-3 border-t space-y-3">
+                          <p className="text-xs text-muted-foreground">
+                            Cambiar estado del documento:
+                          </p>
+                          <div className="flex gap-2">
+                            <Button 
+                              onClick={() => handleChangeStatus('pending')}
+                              variant="outline"
+                              size="sm"
+                              disabled={selectedDoc.status === 'pending' || isUpdatingDocument}
+                              className="flex-1"
+                            >
+                              <Clock className="mr-2 h-4 w-4" />
+                              Pendiente
+                            </Button>
+                            
+                            <Button 
+                              onClick={() => handleChangeStatus('approved')}
+                              variant={selectedDoc.status === 'approved' ? 'default' : 'outline'}
+                              size="sm"
+                              disabled={selectedDoc.status === 'approved' || isUpdatingDocument}
+                              className="flex-1"
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Aprobar
+                            </Button>
+                            
+                            <Button 
+                              onClick={() => setShowRejectDialog(true)}
+                              variant={selectedDoc.status === 'rejected' ? 'destructive' : 'outline'}
+                              size="sm"
+                              disabled={selectedDoc.status === 'rejected' || isUpdatingDocument}
+                              className="flex-1"
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Rechazar
+                            </Button>
                           </div>
-                        )}
+                          
+                          <p className="text-xs text-muted-foreground italic">
+                            Puedes cambiar el estado en cualquier momento para rectificar la validación
+                          </p>
+                        </div>
                         
                         {selectedDoc.review_notes && <div className="pt-3 border-t">
                             <p className="text-xs text-muted-foreground mb-1">Notas de revisión:</p>
