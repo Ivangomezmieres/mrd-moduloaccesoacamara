@@ -506,7 +506,8 @@ const SuperAdminDashboard = () => {
   const exportToCSV = () => {
     const csvData = filteredDocuments.map(doc => {
       const extracted = doc.meta?.extractedData;
-      const totalHoras = extracted?.horas ? extracted.horas.ordinarias + extracted.horas.extras + extracted.horas.festivas : 0;
+      const horasData = extracted?.horasTotales || extracted?.horas;
+      const totalHoras = horasData ? horasData.ordinarias + horasData.extras + horasData.festivas : 0;
       return {
         'ID': doc.id,
         'Nº Parte': extracted?.parteNumero || 'N/A',
@@ -517,9 +518,9 @@ const SuperAdminDashboard = () => {
         'Montador Nombre': extracted?.montador?.nombre || 'N/A',
         'Montador Apellidos': extracted?.montador?.apellidos || 'N/A',
         'Fecha Parte': extracted?.fecha || 'N/A',
-        'Horas Ordinarias': extracted?.horas?.ordinarias || 0,
-        'Horas Extras': extracted?.horas?.extras || 0,
-        'Horas Festivas': extracted?.horas?.festivas || 0,
+        'Horas Ordinarias': horasData?.ordinarias || 0,
+        'Horas Extras': horasData?.extras || 0,
+        'Horas Festivas': horasData?.festivas || 0,
         'Total Horas': totalHoras,
         'Firma Montador': extracted?.firmas?.montador ? 'Sí' : 'No',
         'Firma Cliente': extracted?.firmas?.cliente ? 'Sí' : 'No',
@@ -558,9 +559,10 @@ const SuperAdminDashboard = () => {
     rejected: documents.filter(d => d.status === 'rejected').length,
     avgLegibility: documents.length > 0 ? Math.round(documents.reduce((acc, d) => acc + (d.meta?.legibilityScore || 0), 0) / documents.length) : 0,
     totalHours: documents.reduce((acc, d) => {
-      const horas = d.meta?.extractedData?.horas;
-      if (!horas) return acc;
-      return acc + horas.ordinarias + horas.extras + horas.festivas;
+      const extracted = d.meta?.extractedData;
+      const horasData = extracted?.horasTotales || extracted?.horas;
+      if (!horasData) return acc;
+      return acc + horasData.ordinarias + horasData.extras + horasData.festivas;
     }, 0),
     uniqueClients: new Set(documents.map(d => d.meta?.extractedData?.cliente).filter(Boolean)).size,
     uniqueMontadores: new Set(documents.map(d => {
@@ -689,7 +691,8 @@ const SuperAdminDashboard = () => {
                     </TableCell>
                   </TableRow> : filteredDocuments.map(doc => {
                 const extracted = doc.meta?.extractedData;
-                const totalHoras = extracted?.horas ? extracted.horas.ordinarias + extracted.horas.extras + extracted.horas.festivas : 0;
+                const horasData = extracted?.horasTotales || extracted?.horas;
+                const totalHoras = horasData ? horasData.ordinarias + horasData.extras + horasData.festivas : 0;
                 return <TableRow key={doc.id}>
                         <TableCell className="font-medium">
                           {extracted?.parteNumero || <span className="text-muted-foreground">N/A</span>}
@@ -707,7 +710,7 @@ const SuperAdminDashboard = () => {
                           {totalHoras > 0 ? <div className="text-sm">
                               <div className="font-medium">{totalHoras}h</div>
                               <div className="text-xs text-muted-foreground">
-                                {extracted?.horas?.ordinarias}+{extracted?.horas?.extras}+{extracted?.horas?.festivas}
+                                {horasData?.ordinarias}+{horasData?.extras}+{horasData?.festivas}
                               </div>
                             </div> : <span className="text-muted-foreground">0h</span>}
                         </TableCell>
