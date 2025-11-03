@@ -14,72 +14,83 @@ const extractDocumentData = async (imageBase64: string, openaiKey: string): Prom
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-5-2025-08-07',
         messages: [
           {
             role: 'system',
             content: `Eres un experto en extracción de datos de partes de trabajo de montadores.
 
-Extrae TODOS los siguientes campos del documento de manera PRECISA:
+ESTRUCTURA EXACTA DE LA TABLA "DATOS MONTADOR" EN EL DOCUMENTO:
 
-CAMPOS OBLIGATORIOS:
+┌─────────────────────┬────────────────┬────────────────┐
+│ NOMBRE Y APELLIDOS  │  H. ACTIVAS    │   H. VIAJE     │
+│                     ├────────┬───────┼────────┬───────┤
+│                     │   N    │  EX   │   N    │  EX   │
+├─────────────────────┼────────┼───────┼────────┼───────┤
+│ Dragos Negrea       │   10   │   0   │   0    │   0   │
+│ Cristian Cheseli    │   10   │   0   │   0    │   0   │
+│ Sebastian Bogdan    │   10   │   0   │   0    │   0   │
+│ Flavius Pintea      │   10   │   0   │   0    │   0   │
+└─────────────────────┴────────┴───────┴────────┴───────┘
+
+CÓMO LEER ESTA TABLA PASO A PASO:
+
+PASO 1: Localiza la tabla "DATOS MONTADOR" en el documento
+
+PASO 2: Identifica la estructura de columnas:
+   - Columna 1: "NOMBRE Y APELLIDOS" (nombres completos de los montadores)
+   - Columna 2: "H. ACTIVAS" → tiene DOS SUB-COLUMNAS: "N" (normales) y "EX" (extras)
+   - Columna 3: "H. VIAJE" → tiene DOS SUB-COLUMNAS: "N" (normales) y "EX" (extras)
+
+PASO 3: Para CADA fila de montador, extrae los valores exactamente así:
+   
+   a) Lee el nombre completo de la columna "NOMBRE Y APELLIDOS" → nombreCompleto
+   
+   b) Bajo el encabezado "H. ACTIVAS":
+      - Lee el valor en la SUB-COLUMNA "N" (primera sub-columna bajo H. ACTIVAS) → horasActivas.normales
+      - Lee el valor en la SUB-COLUMNA "EX" (segunda sub-columna bajo H. ACTIVAS) → horasActivas.extras
+   
+   c) Bajo el encabezado "H. VIAJE":
+      - Lee el valor en la SUB-COLUMNA "N" (primera sub-columna bajo H. VIAJE) → horasViaje.normales
+      - Lee el valor en la SUB-COLUMNA "EX" (segunda sub-columna bajo H. VIAJE) → horasViaje.extras
+
+PASO 4: Si una celda está vacía o tiene "0", usa el número 0 (no null)
+
+PASO 5: Repite el PASO 3 para TODAS las filas de montadores que aparezcan en la tabla
+
+PASO 6: Calcula los totales sumando las horas de TODOS los montadores:
+   - ordinarias = SUMA de (horasActivas.normales + horasViaje.normales) de TODOS los montadores
+   - extras = SUMA de (horasActivas.extras + horasViaje.extras) de TODOS los montadores
+   - festivas = busca campo específico de horas festivas en el documento
+
+ADVERTENCIAS CRÍTICAS:
+⚠️ NO confundas las sub-columnas "N" y "EX"
+⚠️ NO leas valores de columnas incorrectas
+⚠️ Asegúrate de que la SUB-COLUMNA "N" bajo "H. ACTIVAS" es la primera sub-columna de horas activas
+⚠️ Asegúrate de que la SUB-COLUMNA "EX" bajo "H. ACTIVAS" es la segunda sub-columna de horas activas
+⚠️ Lo mismo para "H. VIAJE": primera sub-columna es "N", segunda es "EX"
+
+VALIDACIÓN FINAL OBLIGATORIA:
+- Suma (horasActivas.normales + horasViaje.normales) de TODOS los montadores
+- Verifica que coincida con el total de ordinarias del documento
+- Si NO coincide, revisa celda por celda nuevamente antes de responder
+
+OTROS CAMPOS A EXTRAER DEL DOCUMENTO:
 - Nº de parte (número identificador del parte)
 - Cliente (nombre de la empresa cliente)
 - Emplazamiento (ubicación física del trabajo)
 - Obra (nombre del proyecto/obra)
 - Trabajo realizado (descripción detallada de las tareas)
-- Montadores: Array con TODOS los montadores listados en la tabla "DATOS MONTADOR"
-  * nombreCompleto: nombre y apellidos completos del montador
-  * horasActivas: { normales: número, extras: número }
-  * horasViaje: { normales: número, extras: número }
-- Horas totales del parte:
-  * Ordinarias: suma de TODAS las horas NORMALES (activas normales + viaje normales)
-  * Extras: suma de TODAS las horas EXTRAS (activas extras + viaje extras)
-  * Festivas: horas en festivos totales
 - Fecha del parte (formato YYYY-MM-DD)
 - Firmas detectadas:
-  * Firma del jefe de equipo/montador (true/false)
-  * Firma del cliente/encargado (true/false)
-
-IMPORTANTE SOBRE TIPOS DE HORAS:
-En la tabla "DATOS MONTADOR" busca estas columnas con ATENCIÓN:
-- "H. ACTIVAS" o "H. ACT.": horas de trabajo activo
-- "H. VIAJE" o "H. V.": horas de viaje/desplazamiento
-- Columnas con encabezados "N" (Normal) o "EX" (Extra): indican el tipo de hora
-
-REGLAS DE INTERPRETACIÓN DE HORAS:
-1. Si hay columnas separadas "N" y "EX" bajo "H. ACTIVAS":
-   - Valor en columna "N" = horasActivas.normales
-   - Valor en columna "EX" = horasActivas.extras
-
-2. Si hay columnas separadas "N" y "EX" bajo "H. VIAJE":
-   - Valor en columna "N" = horasViaje.normales
-   - Valor en columna "EX" = horasViaje.extras
-
-3. Si SOLO hay una columna de horas SIN indicación de tipo:
-   - Asume que son horas activas normales
-
-4. Si la tabla tiene estructura diferente, interpreta inteligentemente:
-   - Busca palabras clave: "normal", "ordinaria", "extra", "viaje", "desplazamiento"
-   - Si dice "extras" claramente, clasifícalas como extras
-   - Si no hay indicación, asume normales
-
-IMPORTANTE SOBRE MONTADORES:
-- Extrae TODOS los montadores que aparezcan en la tabla "DATOS MONTADOR"
-- Si hay 5 montadores, debes listar los 5
-- Si un montador no tiene horas en alguna categoría, usa 0
-- Asegúrate de que la suma de todos los montadores coincida con el total del parte
-
-IMPORTANTE SOBRE TOTALES:
-- horasTotales.ordinarias = suma de (horasActivas.normales + horasViaje.normales) de TODOS los montadores
-- horasTotales.extras = suma de (horasActivas.extras + horasViaje.extras) de TODOS los montadores
-- Verifica que los totales coincidan con los indicados en el documento
+  * Firma del jefe de equipo/montador (true si hay firma visible, false si no)
+  * Firma del cliente/encargado (true si hay firma visible, false si no)
 
 IMPORTANTE GENERAL:
-- Si un campo está vacío, ilegible o no existe, usar null (excepto números: usar 0)
-- Las horas deben ser números, no texto
+- Si un campo de texto está vacío o ilegible, usar null
+- Las horas deben ser números enteros, no texto
 - La fecha debe estar en formato ISO (YYYY-MM-DD)
-- Las firmas son booleanos: true si hay firma visible, false si no
+- Las firmas son booleanos: true o false
 
 Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura exacta:
 
@@ -91,9 +102,9 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura exacta:
   "trabajoRealizado": "string o null",
   "montadores": [
     {
-      "nombreCompleto": "string",
+      "nombreCompleto": "Nombre Apellido",
       "horasActivas": {
-        "normales": 0,
+        "normales": 10,
         "extras": 0
       },
       "horasViaje": {
@@ -103,24 +114,24 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura exacta:
     }
   ],
   "horasTotales": {
-    "ordinarias": 0,
+    "ordinarias": 40,
     "extras": 0,
     "festivas": 0
   },
   "desgloseDetallado": {
-    "activasNormales": 0,
+    "activasNormales": 40,
     "activasExtras": 0,
     "viajeNormales": 0,
     "viajeExtras": 0
   },
   "fecha": "YYYY-MM-DD o null",
   "firmas": {
-    "montador": false,
-    "cliente": false
+    "montador": true,
+    "cliente": true
   }
 }
 
-NO incluyas texto adicional, SOLO el JSON.`
+NO incluyas texto adicional, comentarios o explicaciones. SOLO devuelve el JSON válido.`
           },
           {
             role: 'user',
@@ -138,8 +149,7 @@ NO incluyas texto adicional, SOLO el JSON.`
             ]
           }
         ],
-        max_tokens: 1500,
-        temperature: 0.1
+        max_completion_tokens: 1500
       })
     });
 
@@ -163,10 +173,90 @@ NO incluyas texto adicional, SOLO el JSON.`
     
     try {
       const parsed = JSON.parse(jsonText);
-      console.log('Successfully extracted data:', parsed);
+      
+      // ============================================
+      // LOGGING DETALLADO PARA DEBUGGING
+      // ============================================
+      console.log('📊 OpenAI Raw Response - Document Data:');
+      console.log('  Total Montadores:', parsed.montadores?.length || 0);
+      
+      console.log('\n👷 Montadores Individuales:');
+      parsed.montadores?.forEach((m: any, idx: number) => {
+        const totalIndividual = 
+          (m.horasActivas?.normales || 0) + 
+          (m.horasActivas?.extras || 0) + 
+          (m.horasViaje?.normales || 0) + 
+          (m.horasViaje?.extras || 0);
+        
+        console.log(`  [${idx + 1}] ${m.nombreCompleto}:`);
+        console.log(`      H. Activas: N=${m.horasActivas?.normales || 0}, EX=${m.horasActivas?.extras || 0}`);
+        console.log(`      H. Viaje: N=${m.horasViaje?.normales || 0}, EX=${m.horasViaje?.extras || 0}`);
+        console.log(`      Total individual: ${totalIndividual}h`);
+      });
+      
+      // Calcular suma de horas individuales
+      const sumaActivasNormales = parsed.montadores?.reduce((sum: number, m: any) => 
+        sum + (m.horasActivas?.normales || 0), 0) || 0;
+      const sumaActivasExtras = parsed.montadores?.reduce((sum: number, m: any) => 
+        sum + (m.horasActivas?.extras || 0), 0) || 0;
+      const sumaViajeNormales = parsed.montadores?.reduce((sum: number, m: any) => 
+        sum + (m.horasViaje?.normales || 0), 0) || 0;
+      const sumaViajeExtras = parsed.montadores?.reduce((sum: number, m: any) => 
+        sum + (m.horasViaje?.extras || 0), 0) || 0;
+      
+      const sumaOrdinarias = sumaActivasNormales + sumaViajeNormales;
+      const sumaExtras = sumaActivasExtras + sumaViajeExtras;
+      const sumaTotal = sumaOrdinarias + sumaExtras + (parsed.horasTotales?.festivas || 0);
+      
+      console.log('\n📈 Totales Calculados desde Montadores:');
+      console.log(`  Activas Normales: ${sumaActivasNormales}h`);
+      console.log(`  Activas Extras: ${sumaActivasExtras}h`);
+      console.log(`  Viaje Normales: ${sumaViajeNormales}h`);
+      console.log(`  Viaje Extras: ${sumaViajeExtras}h`);
+      console.log(`  ─────────────────────────────`);
+      console.log(`  Ordinarias totales: ${sumaOrdinarias}h`);
+      console.log(`  Extras totales: ${sumaExtras}h`);
+      console.log(`  Festivas: ${parsed.horasTotales?.festivas || 0}h`);
+      console.log(`  TOTAL GENERAL: ${sumaTotal}h`);
+      
+      console.log('\n📋 Totales Declarados en el Documento:');
+      console.log(`  Ordinarias: ${parsed.horasTotales?.ordinarias || 0}h`);
+      console.log(`  Extras: ${parsed.horasTotales?.extras || 0}h`);
+      console.log(`  Festivas: ${parsed.horasTotales?.festivas || 0}h`);
+      
+      const totalDeclarado = 
+        (parsed.horasTotales?.ordinarias || 0) + 
+        (parsed.horasTotales?.extras || 0) + 
+        (parsed.horasTotales?.festivas || 0);
+      console.log(`  TOTAL: ${totalDeclarado}h`);
+      
+      console.log('\n🔍 Validación de Consistencia:');
+      const ordinariasCoinciden = sumaOrdinarias === (parsed.horasTotales?.ordinarias || 0);
+      const extrasCoinciden = sumaExtras === (parsed.horasTotales?.extras || 0);
+      const totalCoincide = sumaTotal === totalDeclarado;
+      
+      console.log(`  ✓ Ordinarias: ${ordinariasCoinciden ? '✅ COINCIDEN' : '❌ NO COINCIDEN'}`);
+      console.log(`  ✓ Extras: ${extrasCoinciden ? '✅ COINCIDEN' : '❌ NO COINCIDEN'}`);
+      console.log(`  ✓ Total: ${totalCoincide ? '✅ COINCIDEN' : '❌ NO COINCIDEN'}`);
+      
+      if (!ordinariasCoinciden || !extrasCoinciden) {
+        console.warn('\n⚠️ ADVERTENCIA: Las horas individuales NO suman correctamente.');
+        console.warn('   Esto puede indicar un error en la extracción de OpenAI.');
+        console.warn('   Revisa la tabla original del documento.');
+      }
+      
+      console.log('\n📄 Otros Datos Extraídos:');
+      console.log(`  Parte Nº: ${parsed.parteNumero || 'N/A'}`);
+      console.log(`  Cliente: ${parsed.cliente || 'N/A'}`);
+      console.log(`  Fecha: ${parsed.fecha || 'N/A'}`);
+      console.log(`  Firmas: Montador=${parsed.firmas?.montador}, Cliente=${parsed.firmas?.cliente}`);
+      
+      console.log('\n✅ Successfully extracted and validated document data');
+      console.log('============================================\n');
+      
       return parsed;
     } catch (parseError) {
-      console.error('Error parsing extracted data:', parseError);
+      console.error('❌ Error parsing extracted data:', parseError);
       console.error('Raw extracted text:', extractedText);
       return null;
     }
