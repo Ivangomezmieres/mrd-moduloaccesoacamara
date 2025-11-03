@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { LogOut, Download, Filter, Search, Eye, BarChart3, FileText, Users, Clock, CheckCircle, AlertCircle, User, Building, Briefcase, Calendar, PenTool, ZoomIn, Trash2, XCircle, Loader2, Pencil, Save, Plus } from 'lucide-react';
+import { LogOut, Download, Filter, Search, Eye, BarChart3, FileText, Users, Clock, CheckCircle, AlertCircle, User, Building, Briefcase, Calendar, PenTool, ZoomIn, Trash2, XCircle, Loader2, Pencil, Save, Plus, Shield, Database } from 'lucide-react';
 import { toast } from 'sonner';
 interface ExtractedData {
   parteNumero: string | null;
@@ -65,6 +65,7 @@ interface Document {
   uploader: string;
   status: string;
   created_at: string;
+  updated_at: string;
   validated_at: string | null;
   reviewed_by: string | null;
   review_notes: string | null;
@@ -729,7 +730,7 @@ const SuperAdminDashboard = () => {
               {/* Columna derecha: Datos extraídos en Tabs (3/5) */}
               <div className="col-span-3">
                 <Tabs defaultValue="parte" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
+                  <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="parte">
                       <FileText className="h-4 w-4 mr-1" />
                       Parte
@@ -741,6 +742,10 @@ const SuperAdminDashboard = () => {
                     <TabsTrigger value="trabajo">
                       <Briefcase className="h-4 w-4 mr-1" />
                       Trabajo
+                    </TabsTrigger>
+                    <TabsTrigger value="validacion">
+                      <Shield className="h-4 w-4 mr-1" />
+                      Validación
                     </TabsTrigger>
                   </TabsList>
                   
@@ -1296,6 +1301,99 @@ const SuperAdminDashboard = () => {
                             <span className="text-muted-foreground italic">No se especificó descripción del trabajo</span>}
                         </p>
                       )}
+                    </Card>
+                  </TabsContent>
+                  
+                  {/* Tab: Validación (Firmas y Metadatos) */}
+                  <TabsContent value="validacion" className="space-y-4 mt-4">
+                    {/* Estado de Firmas */}
+                    <Card className="p-4">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                        <PenTool className="h-4 w-4" />
+                        Estado de Firmas
+                      </h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Firma del Montador */}
+                        <div className="flex items-center gap-3 p-3 border rounded-lg">
+                          <User className="h-5 w-5 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">Firma del Montador</p>
+                            <Badge variant={editedData?.firmas?.montador ? "default" : "destructive"}>
+                              {editedData?.firmas?.montador ? "Presente" : "Ausente"}
+                            </Badge>
+                          </div>
+                        </div>
+                        
+                        {/* Firma del Cliente */}
+                        <div className="flex items-center gap-3 p-3 border rounded-lg">
+                          <Users className="h-5 w-5 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">Firma del Cliente</p>
+                            <Badge variant={editedData?.firmas?.cliente ? "default" : "destructive"}>
+                              {editedData?.firmas?.cliente ? "Presente" : "Ausente"}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                    
+                    {/* Metadatos del Sistema */}
+                    <Card className="p-4">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                        <Database className="h-4 w-4" />
+                        Metadatos del Sistema
+                      </h3>
+                      <div className="space-y-3 text-sm">
+                        {/* ID del Documento */}
+                        <div className="flex justify-between items-center py-2 border-b">
+                          <span className="text-muted-foreground">ID del Documento:</span>
+                          <code className="text-xs bg-muted px-2 py-1 rounded">
+                            {selectedDoc.id}
+                          </code>
+                        </div>
+                        
+                        {/* Fecha de Creación */}
+                        <div className="flex justify-between items-center py-2 border-b">
+                          <span className="text-muted-foreground">Fecha de Creación:</span>
+                          <span className="font-medium">
+                            {new Date(selectedDoc.created_at).toLocaleString('es-ES')}
+                          </span>
+                        </div>
+                        
+                        {/* Última Actualización */}
+                        <div className="flex justify-between items-center py-2 border-b">
+                          <span className="text-muted-foreground">Última Actualización:</span>
+                          <span className="font-medium">
+                            {new Date(selectedDoc.updated_at).toLocaleString('es-ES')}
+                          </span>
+                        </div>
+                        
+                        {/* Subido Por */}
+                        <div className="flex justify-between items-center py-2 border-b">
+                          <span className="text-muted-foreground">Subido Por:</span>
+                          <span className="font-medium">
+                            {selectedDoc.profiles?.full_name || 'Desconocido'}
+                          </span>
+                        </div>
+                        
+                        {/* Ruta de Almacenamiento */}
+                        <div className="flex justify-between items-center py-2 border-b">
+                          <span className="text-muted-foreground">Ruta de Almacenamiento:</span>
+                          <code className="text-xs bg-muted px-2 py-1 rounded max-w-xs truncate" title={selectedDoc.storage_path}>
+                            {selectedDoc.storage_path}
+                          </code>
+                        </div>
+                        
+                        {/* Score de Legibilidad */}
+                        {selectedDoc.meta?.legibilityScore !== undefined && (
+                          <div className="flex justify-between items-center py-2 border-b">
+                            <span className="text-muted-foreground">Score de Legibilidad:</span>
+                            <Badge variant={selectedDoc.meta.legibilityScore >= 80 ? "default" : "secondary"}>
+                              {selectedDoc.meta.legibilityScore}%
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
                     </Card>
                   </TabsContent>
                 </Tabs>
