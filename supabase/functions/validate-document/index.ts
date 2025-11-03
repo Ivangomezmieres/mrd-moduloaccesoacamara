@@ -30,21 +30,50 @@ CAMPOS OBLIGATORIOS:
 - Trabajo realizado (descripción detallada de las tareas)
 - Montadores: Array con TODOS los montadores listados en la tabla "DATOS MONTADOR"
   * nombreCompleto: nombre y apellidos completos del montador
-  * horas: horas activas/ordinarias trabajadas (número)
+  * horasActivas: { normales: número, extras: número }
+  * horasViaje: { normales: número, extras: número }
 - Horas totales del parte:
-  * Ordinarias (suma de todas las horas ordinarias de todos los montadores)
-  * Extras (horas extra totales)
-  * Festivas (horas en festivos totales)
+  * Ordinarias: suma de TODAS las horas NORMALES (activas normales + viaje normales)
+  * Extras: suma de TODAS las horas EXTRAS (activas extras + viaje extras)
+  * Festivas: horas en festivos totales
 - Fecha del parte (formato YYYY-MM-DD)
 - Firmas detectadas:
   * Firma del jefe de equipo/montador (true/false)
   * Firma del cliente/encargado (true/false)
 
+IMPORTANTE SOBRE TIPOS DE HORAS:
+En la tabla "DATOS MONTADOR" busca estas columnas con ATENCIÓN:
+- "H. ACTIVAS" o "H. ACT.": horas de trabajo activo
+- "H. VIAJE" o "H. V.": horas de viaje/desplazamiento
+- Columnas con encabezados "N" (Normal) o "EX" (Extra): indican el tipo de hora
+
+REGLAS DE INTERPRETACIÓN DE HORAS:
+1. Si hay columnas separadas "N" y "EX" bajo "H. ACTIVAS":
+   - Valor en columna "N" = horasActivas.normales
+   - Valor en columna "EX" = horasActivas.extras
+
+2. Si hay columnas separadas "N" y "EX" bajo "H. VIAJE":
+   - Valor en columna "N" = horasViaje.normales
+   - Valor en columna "EX" = horasViaje.extras
+
+3. Si SOLO hay una columna de horas SIN indicación de tipo:
+   - Asume que son horas activas normales
+
+4. Si la tabla tiene estructura diferente, interpreta inteligentemente:
+   - Busca palabras clave: "normal", "ordinaria", "extra", "viaje", "desplazamiento"
+   - Si dice "extras" claramente, clasifícalas como extras
+   - Si no hay indicación, asume normales
+
 IMPORTANTE SOBRE MONTADORES:
 - Extrae TODOS los montadores que aparezcan en la tabla "DATOS MONTADOR"
 - Si hay 5 montadores, debes listar los 5
-- Las horas de cada montador suelen estar en la columna "H. ACTIVAS" o similar
-- Si un montador no tiene horas, usa 0
+- Si un montador no tiene horas en alguna categoría, usa 0
+- Asegúrate de que la suma de todos los montadores coincida con el total del parte
+
+IMPORTANTE SOBRE TOTALES:
+- horasTotales.ordinarias = suma de (horasActivas.normales + horasViaje.normales) de TODOS los montadores
+- horasTotales.extras = suma de (horasActivas.extras + horasViaje.extras) de TODOS los montadores
+- Verifica que los totales coincidan con los indicados en el documento
 
 IMPORTANTE GENERAL:
 - Si un campo está vacío, ilegible o no existe, usar null (excepto números: usar 0)
@@ -63,13 +92,26 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura exacta:
   "montadores": [
     {
       "nombreCompleto": "string",
-      "horas": 0
+      "horasActivas": {
+        "normales": 0,
+        "extras": 0
+      },
+      "horasViaje": {
+        "normales": 0,
+        "extras": 0
+      }
     }
   ],
   "horasTotales": {
     "ordinarias": 0,
     "extras": 0,
     "festivas": 0
+  },
+  "desgloseDetallado": {
+    "activasNormales": 0,
+    "activasExtras": 0,
+    "viajeNormales": 0,
+    "viajeExtras": 0
   },
   "fecha": "YYYY-MM-DD o null",
   "firmas": {

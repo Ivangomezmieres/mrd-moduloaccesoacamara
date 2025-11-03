@@ -29,15 +29,29 @@ interface ExtractedData {
     extras: number;
     festivas: number;
   };
-  // Nueva estructura
+  // Nueva estructura con desglose detallado
   montadores?: Array<{
     nombreCompleto: string;
-    horas: number;
+    horas?: number; // Mantener para compatibilidad
+    horasActivas?: {
+      normales: number;
+      extras: number;
+    };
+    horasViaje?: {
+      normales: number;
+      extras: number;
+    };
   }>;
   horasTotales?: {
     ordinarias: number;
     extras: number;
     festivas: number;
+  };
+  desgloseDetallado?: {
+    activasNormales: number;
+    activasExtras: number;
+    viajeNormales: number;
+    viajeExtras: number;
   };
   fecha: string | null;
   firmas: {
@@ -1097,7 +1111,11 @@ const SuperAdminDashboard = () => {
                               size="sm" 
                               variant="outline"
                               onClick={() => {
-                                const newMontadores = [...(editedData?.montadores || []), { nombreCompleto: '', horas: 0 }];
+                                const newMontadores = [...(editedData?.montadores || []), { 
+                                  nombreCompleto: '', 
+                                  horasActivas: { normales: 0, extras: 0 },
+                                  horasViaje: { normales: 0, extras: 0 }
+                                }];
                                 setEditedData({
                                   ...editedData!,
                                   montadores: newMontadores
@@ -1115,12 +1133,10 @@ const SuperAdminDashboard = () => {
                         {/* Mostrar lista de montadores */}
                         {(editedData?.montadores || []).length > 0 ? (
                           (editedData?.montadores || []).map((montador: any, index: number) => (
-                            <div key={index} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border">
-                              <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                              <div className="flex-1 grid grid-cols-3 gap-3 items-center">
-                                {/* Nombre Completo */}
-                                <div className="col-span-2">
-                                  <dt className="text-xs text-muted-foreground mb-0.5">Nombre Completo</dt>
+                            <div key={index} className="p-4 bg-muted/30 rounded-lg border space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 flex-1">
+                                  <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                   {isEditMode ? (
                                     <Input
                                       type="text"
@@ -1137,56 +1153,168 @@ const SuperAdminDashboard = () => {
                                       placeholder="Nombre y apellidos"
                                     />
                                   ) : (
-                                    <dd className="font-medium text-base">
+                                    <div className="font-medium text-base">
                                       {montador.nombreCompleto || 'N/A'}
-                                    </dd>
+                                    </div>
                                   )}
                                 </div>
+                                {isEditMode && (
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="text-destructive hover:text-destructive flex-shrink-0"
+                                    onClick={() => {
+                                      const newMontadores = editedData!.montadores!.filter((_: any, i: number) => i !== index);
+                                      setEditedData({
+                                        ...editedData!,
+                                        montadores: newMontadores
+                                      });
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                              
+                              {/* Desglose de horas por tipo */}
+                              <div className="grid grid-cols-2 gap-3 text-sm">
+                                {/* Horas Activas */}
+                                <div className="space-y-2 p-3 bg-background rounded-lg border">
+                                  <div className="font-medium text-xs text-muted-foreground uppercase">Horas Activas</div>
+                                  <div className="space-y-1">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-xs text-muted-foreground">Normales:</span>
+                                      {isEditMode ? (
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          step="0.5"
+                                          value={montador.horasActivas?.normales || 0}
+                                          onChange={(e) => {
+                                            const newMontadores = [...editedData!.montadores!];
+                                            newMontadores[index] = {
+                                              ...newMontadores[index],
+                                              horasActivas: {
+                                                ...newMontadores[index].horasActivas,
+                                                normales: parseFloat(e.target.value) || 0
+                                              }
+                                            };
+                                            setEditedData({
+                                              ...editedData!,
+                                              montadores: newMontadores
+                                            });
+                                          }}
+                                          className="w-16 h-7 text-xs text-right"
+                                        />
+                                      ) : (
+                                        <span className="font-bold">{montador.horasActivas?.normales || 0}h</span>
+                                      )}
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-xs text-muted-foreground">Extras:</span>
+                                      {isEditMode ? (
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          step="0.5"
+                                          value={montador.horasActivas?.extras || 0}
+                                          onChange={(e) => {
+                                            const newMontadores = [...editedData!.montadores!];
+                                            newMontadores[index] = {
+                                              ...newMontadores[index],
+                                              horasActivas: {
+                                                ...newMontadores[index].horasActivas,
+                                                extras: parseFloat(e.target.value) || 0
+                                              }
+                                            };
+                                            setEditedData({
+                                              ...editedData!,
+                                              montadores: newMontadores
+                                            });
+                                          }}
+                                          className="w-16 h-7 text-xs text-right"
+                                        />
+                                      ) : (
+                                        <span className="font-bold text-orange-600">{montador.horasActivas?.extras || 0}h</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
                                 
-                                {/* Horas */}
-                                <div>
-                                  <dt className="text-xs text-muted-foreground mb-0.5">Horas</dt>
-                                  {isEditMode ? (
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      step="0.5"
-                                      value={montador.horas || 0}
-                                      onChange={(e) => {
-                                        const newMontadores = [...editedData!.montadores!];
-                                        newMontadores[index].horas = parseFloat(e.target.value) || 0;
-                                        setEditedData({
-                                          ...editedData!,
-                                          montadores: newMontadores
-                                        });
-                                      }}
-                                      className="font-bold text-blue-600"
-                                    />
-                                  ) : (
-                                    <dd className="font-bold text-lg text-blue-600">
-                                      {montador.horas || 0}h
-                                    </dd>
-                                  )}
+                                {/* Horas Viaje */}
+                                <div className="space-y-2 p-3 bg-background rounded-lg border">
+                                  <div className="font-medium text-xs text-muted-foreground uppercase">Horas Viaje</div>
+                                  <div className="space-y-1">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-xs text-muted-foreground">Normales:</span>
+                                      {isEditMode ? (
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          step="0.5"
+                                          value={montador.horasViaje?.normales || 0}
+                                          onChange={(e) => {
+                                            const newMontadores = [...editedData!.montadores!];
+                                            newMontadores[index] = {
+                                              ...newMontadores[index],
+                                              horasViaje: {
+                                                ...newMontadores[index].horasViaje,
+                                                normales: parseFloat(e.target.value) || 0
+                                              }
+                                            };
+                                            setEditedData({
+                                              ...editedData!,
+                                              montadores: newMontadores
+                                            });
+                                          }}
+                                          className="w-16 h-7 text-xs text-right"
+                                        />
+                                      ) : (
+                                        <span className="font-bold">{montador.horasViaje?.normales || 0}h</span>
+                                      )}
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-xs text-muted-foreground">Extras:</span>
+                                      {isEditMode ? (
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          step="0.5"
+                                          value={montador.horasViaje?.extras || 0}
+                                          onChange={(e) => {
+                                            const newMontadores = [...editedData!.montadores!];
+                                            newMontadores[index] = {
+                                              ...newMontadores[index],
+                                              horasViaje: {
+                                                ...newMontadores[index].horasViaje,
+                                                extras: parseFloat(e.target.value) || 0
+                                              }
+                                            };
+                                            setEditedData({
+                                              ...editedData!,
+                                              montadores: newMontadores
+                                            });
+                                          }}
+                                          className="w-16 h-7 text-xs text-right"
+                                        />
+                                      ) : (
+                                        <span className="font-bold text-orange-600">{montador.horasViaje?.extras || 0}h</span>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                               
-                              {/* Botón eliminar en modo edición */}
-                              {isEditMode && (
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="text-destructive hover:text-destructive flex-shrink-0"
-                                  onClick={() => {
-                                    const newMontadores = editedData!.montadores!.filter((_: any, i: number) => i !== index);
-                                    setEditedData({
-                                      ...editedData!,
-                                      montadores: newMontadores
-                                    });
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              )}
+                              {/* Total individual */}
+                              <div className="pt-2 border-t flex justify-between items-center">
+                                <span className="text-sm font-medium">Total Individual:</span>
+                                <span className="text-base font-bold text-blue-600">
+                                  {((montador.horasActivas?.normales || 0) + 
+                                    (montador.horasActivas?.extras || 0) + 
+                                    (montador.horasViaje?.normales || 0) + 
+                                    (montador.horasViaje?.extras || 0)).toFixed(1)}h
+                                </span>
+                              </div>
                             </div>
                           ))
                         ) : (
@@ -1212,7 +1340,13 @@ const SuperAdminDashboard = () => {
                               type="number"
                               min="0"
                               step="0.5"
-                              value={editedData?.horasTotales?.ordinarias || 0}
+                              value={editedData?.horasTotales?.ordinarias !== undefined 
+                                ? editedData.horasTotales.ordinarias 
+                                : (editedData?.montadores?.reduce((sum, m: any) => {
+                                    const activasN = m.horasActivas?.normales || m.horas || 0;
+                                    const viajeN = m.horasViaje?.normales || 0;
+                                    return sum + activasN + viajeN;
+                                  }, 0) || 0)}
                               onChange={(e) => setEditedData({
                                 ...editedData!,
                                 horasTotales: {
@@ -1224,8 +1358,13 @@ const SuperAdminDashboard = () => {
                             />
                           ) : (
                             <p className="text-2xl font-bold text-green-600">
-                              {editedData?.horasTotales?.ordinarias || 
-                               (editedData?.montadores?.reduce((sum, m) => sum + (m.horas || 0), 0) || 0)}
+                              {editedData?.horasTotales?.ordinarias !== undefined 
+                                ? editedData.horasTotales.ordinarias.toFixed(1) 
+                                : (editedData?.montadores?.reduce((sum, m: any) => {
+                                    const activasN = m.horasActivas?.normales || m.horas || 0;
+                                    const viajeN = m.horasViaje?.normales || 0;
+                                    return sum + activasN + viajeN;
+                                  }, 0) || 0).toFixed(1)}
                             </p>
                           )}
                           <p className="text-xs text-muted-foreground">horas</p>
@@ -1251,7 +1390,7 @@ const SuperAdminDashboard = () => {
                             />
                           ) : (
                             <p className="text-2xl font-bold text-orange-600">
-                              {editedData?.horasTotales?.extras || 0}
+                              {(editedData?.horasTotales?.extras || 0).toFixed(1)}
                             </p>
                           )}
                           <p className="text-xs text-muted-foreground">horas</p>
@@ -1277,19 +1416,56 @@ const SuperAdminDashboard = () => {
                             />
                           ) : (
                             <p className="text-2xl font-bold text-purple-600">
-                              {editedData?.horasTotales?.festivas || 0}
+                              {(editedData?.horasTotales?.festivas || 0).toFixed(1)}
                             </p>
                           )}
                           <p className="text-xs text-muted-foreground">horas</p>
                         </div>
                       </div>
                       
+                      {/* Desglose Detallado Expandible */}
+                      {editedData?.desgloseDetallado && 
+                       (editedData.desgloseDetallado.activasNormales > 0 || 
+                        editedData.desgloseDetallado.activasExtras > 0 || 
+                        editedData.desgloseDetallado.viajeNormales > 0 || 
+                        editedData.desgloseDetallado.viajeExtras > 0) && (
+                        <details className="mt-4 p-3 bg-background/50 rounded-lg border">
+                          <summary className="cursor-pointer font-medium text-sm flex items-center gap-2 hover:text-primary">
+                            <span>📊 Ver desglose detallado por tipo de hora</span>
+                          </summary>
+                          <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                            <div className="flex justify-between p-2 bg-background rounded border">
+                              <span className="text-muted-foreground">Activas Normales:</span>
+                              <span className="font-bold">{editedData.desgloseDetallado.activasNormales.toFixed(1)}h</span>
+                            </div>
+                            <div className="flex justify-between p-2 bg-background rounded border">
+                              <span className="text-muted-foreground">Activas Extras:</span>
+                              <span className="font-bold text-orange-600">{editedData.desgloseDetallado.activasExtras.toFixed(1)}h</span>
+                            </div>
+                            <div className="flex justify-between p-2 bg-background rounded border">
+                              <span className="text-muted-foreground">Viaje Normales:</span>
+                              <span className="font-bold">{editedData.desgloseDetallado.viajeNormales.toFixed(1)}h</span>
+                            </div>
+                            <div className="flex justify-between p-2 bg-background rounded border">
+                              <span className="text-muted-foreground">Viaje Extras:</span>
+                              <span className="font-bold text-orange-600">{editedData.desgloseDetallado.viajeExtras.toFixed(1)}h</span>
+                            </div>
+                          </div>
+                        </details>
+                      )}
+                      
                       {/* Total General */}
                       <div className="mt-4 pt-4 border-t border-green-200 dark:border-green-800">
                         <div className="flex justify-between items-center">
                           <span className="font-semibold text-green-700 dark:text-green-400">Total de Horas:</span>
                           <span className="text-3xl font-bold text-green-600">
-                            {((editedData?.horasTotales?.ordinarias || (editedData?.montadores?.reduce((sum, m) => sum + (m.horas || 0), 0) || 0)) + 
+                            {((editedData?.horasTotales?.ordinarias !== undefined 
+                                ? editedData.horasTotales.ordinarias 
+                                : (editedData?.montadores?.reduce((sum, m: any) => {
+                                    const activasN = m.horasActivas?.normales || m.horas || 0;
+                                    const viajeN = m.horasViaje?.normales || 0;
+                                    return sum + activasN + viajeN;
+                                  }, 0) || 0)) + 
                               (editedData?.horasTotales?.extras || 0) + 
                               (editedData?.horasTotales?.festivas || 0)).toFixed(1)}h
                           </span>
