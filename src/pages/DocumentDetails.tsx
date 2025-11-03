@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Download, FileText, User, Briefcase, Calendar, Building, PenTool, ZoomIn, Loader2, Pencil, Save, XCircle, Shield, Clock, MapPin, Eye } from 'lucide-react';
+import { ArrowLeft, Download, FileText, User, Briefcase, Calendar, Building, PenTool, ZoomIn, ZoomOut, Loader2, Pencil, Save, XCircle, Shield, Clock, MapPin, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ExtractedData {
@@ -88,6 +88,7 @@ const DocumentDetails = () => {
   const [editedData, setEditedData] = useState<ExtractedData | null>(null);
   const [isSavingChanges, setIsSavingChanges] = useState(false);
   const [isReextracting, setIsReextracting] = useState(false);
+  const [zoom, setZoom] = useState(100);
 
   useEffect(() => {
     if (id) {
@@ -294,6 +295,18 @@ const DocumentDetails = () => {
     toast.info('Cambios descartados');
   };
 
+  const handleZoomIn = () => {
+    setZoom(prev => Math.min(prev + 25, 200));
+  };
+
+  const handleZoomOut = () => {
+    setZoom(prev => Math.max(prev - 25, 50));
+  };
+
+  const handleResetZoom = () => {
+    setZoom(100);
+  };
+
   const renderField = (value: string | null | undefined, label: string) => {
     if (!value || value === '') {
       return (
@@ -393,60 +406,96 @@ const DocumentDetails = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 h-[calc(100vh-80px)]">
         <div className="grid grid-cols-5 gap-6 h-full">
-          {/* Left Column: Image (2/5) - CON SCROLL Y ZOOM */}
-          <div className="col-span-2 h-full flex flex-col gap-4">
-            {/* Contenedor de imagen con scroll independiente */}
-            <div className="flex-1 overflow-auto border rounded-lg bg-muted/20">
-              {imageUrl && (
-                <div className="relative min-w-full inline-block">
-                  <img 
-                    src={imageUrl} 
-                    alt="Documento escaneado" 
-                    className="w-full hover:scale-105 transition-transform cursor-zoom-in" 
-                    style={{ minWidth: '100%' }}
-                  />
-                  <div className="sticky top-2 right-2 float-right bg-background/95 backdrop-blur-sm px-3 py-1.5 rounded-full border shadow-sm">
-                    <div className="flex items-center gap-2">
-                      <Eye className="h-3.5 w-3.5" />
-                      <span className="text-xs font-medium">
-                        {document.meta?.legibilityScore}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
+          {/* Left Column: Image (2/5) - CON SCROLL Y ZOOM FUNCIONAL */}
+          <div className="col-span-2 h-full flex flex-col border rounded-lg bg-card">
+            {/* Header fijo con controles de zoom */}
+            <div className="flex-shrink-0 p-3 border-b bg-muted/50 flex items-center justify-between">
+              <span className="text-sm font-medium">Vista Previa del Documento</span>
+              <div className="flex items-center gap-2">
+                {/* Botón Zoom Out */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleZoomOut}
+                  disabled={zoom <= 50}
+                  className="h-8 w-8 p-0"
+                >
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+                
+                {/* Indicador de zoom clickeable para reset */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleResetZoom}
+                  className="h-8 px-2 text-xs font-mono"
+                >
+                  {zoom}%
+                </Button>
+                
+                {/* Botón Zoom In */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleZoomIn}
+                  disabled={zoom >= 200}
+                  className="h-8 w-8 p-0"
+                >
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+                
+                {/* Separador */}
+                <div className="h-6 w-px bg-border mx-1" />
+                
+                {/* Botón descargar compacto */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const imgElement = window.document.createElement('a');
+                    imgElement.href = imageUrl;
+                    imgElement.download = `documento_${(document.meta as any)?.extractedData?.parteNumero || 'sin-numero'}.jpg`;
+                    imgElement.click();
+                    toast.success('Descargando imagen...');
+                  }}
+                  className="h-8 w-8 p-0"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             
-            {/* Botones fijos al final */}
-            <div className="flex-shrink-0 space-y-2">
-              <Button 
-                variant="outline" 
-                className="w-full" 
-                onClick={() => window.open(imageUrl, '_blank')}
-              >
-                <ZoomIn className="mr-2 h-4 w-4" />
-                Ver en tamaño completo
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full" 
-                onClick={() => {
-                  const imgElement = window.document.createElement('a');
-                  imgElement.href = imageUrl;
-                  imgElement.download = `documento_${(document.meta as any)?.extractedData?.parteNumero || 'sin-numero'}.jpg`;
-                  imgElement.click();
-                  toast.success('Descargando imagen...');
-                }}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Descargar imagen
-              </Button>
+            {/* Contenedor scrolleable con imagen zoomeable */}
+            <div className="flex-1 overflow-auto bg-muted/20 relative">
+              <div className="min-h-full flex items-start justify-center p-4">
+                {imageUrl && (
+                  <img
+                    src={imageUrl}
+                    alt="Documento escaneado"
+                    className="shadow-lg transition-all duration-200"
+                    style={{
+                      width: `${zoom}%`,
+                      maxWidth: 'none',
+                      height: 'auto'
+                    }}
+                  />
+                )}
+              </div>
+              
+              {/* Badge de legibilidad flotante */}
+              <div className="absolute top-4 right-4 bg-background/95 backdrop-blur-sm px-3 py-1.5 rounded-full border shadow-sm">
+                <div className="flex items-center gap-2">
+                  <Eye className="h-3.5 w-3.5" />
+                  <span className="text-xs font-medium">
+                    {document.meta?.legibilityScore}%
+                  </span>
+                </div>
+              </div>
             </div>
-
-            {/* Card de calidad fijo al final */}
-            <Card className="flex-shrink-0 p-4">
-              <h3 className="font-semibold mb-3 text-sm">Calidad del documento</h3>
-              <div className="space-y-3">
+            
+            {/* Footer fijo con card de calidad */}
+            <div className="flex-shrink-0 p-3 border-t bg-muted/30">
+              <div className="space-y-2">
                 <div>
                   <div className="flex justify-between text-xs mb-1">
                     <span className="text-muted-foreground">Legibilidad</span>
@@ -461,14 +510,14 @@ const DocumentDetails = () => {
                   </Badge>
                 </div>
               </div>
-            </Card>
+            </div>
           </div>
           
           {/* Right Column: Data Tabs (3/5) - CON SCROLL INDEPENDIENTE */}
-          <div className="col-span-3 h-full flex flex-col">
+          <div className="col-span-3 h-full flex flex-col border rounded-lg bg-card">
             <Tabs defaultValue="parte" className="w-full h-full flex flex-col">
               {/* TabsList fijo arriba */}
-              <TabsList className="grid w-full grid-cols-4 flex-shrink-0">
+              <TabsList className="grid w-full grid-cols-4 flex-shrink-0 rounded-t-lg">
                 <TabsTrigger value="parte">
                   <FileText className="h-4 w-4 mr-1" />
                   Parte
@@ -488,7 +537,7 @@ const DocumentDetails = () => {
               </TabsList>
               
               {/* Contenedor scrolleable para cada TabsContent */}
-              <div className="flex-1 overflow-y-auto mt-4 pr-2">
+              <div className="flex-1 overflow-y-auto p-4">
                 {/* Tab: Datos del Parte */}
                 <TabsContent value="parte" className="space-y-4 m-0">
                 <Card className="p-4">
