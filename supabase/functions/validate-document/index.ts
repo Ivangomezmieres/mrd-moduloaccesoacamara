@@ -14,7 +14,8 @@ const extractDocumentData = async (imageBase64: string, openaiKey: string): Prom
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-5-2025-08-07',
+        model: 'gpt-4o',
+        temperature: 0.1,
         messages: [
           {
             role: 'system',
@@ -167,9 +168,18 @@ NO incluyas texto adicional, comentarios o explicaciones. SOLO devuelve el JSON 
       return null;
     }
 
-    // Limpiar posibles markdown o texto adicional
-    const jsonMatch = extractedText.match(/\{[\s\S]*\}/);
-    const jsonText = jsonMatch ? jsonMatch[0] : extractedText;
+    // Limpiar markdown backticks y texto adicional
+    let jsonText = extractedText.trim();
+
+    // Si la respuesta viene envuelta en ```json ... ```, extraer solo el JSON
+    if (jsonText.startsWith('```')) {
+      const jsonMatch = jsonText.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      jsonText = jsonMatch ? jsonMatch[1] : jsonText;
+    }
+
+    // Si aún tiene formato incorrecto, intentar extraer solo el objeto JSON
+    const cleanMatch = jsonText.match(/\{[\s\S]*\}/);
+    jsonText = cleanMatch ? cleanMatch[0] : jsonText;
     
     try {
       const parsed = JSON.parse(jsonText);
