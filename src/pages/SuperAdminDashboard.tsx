@@ -324,10 +324,7 @@ const SuperAdminDashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card className="p-4">
-            <p className="text-sm text-muted-foreground mb-1">Aprobados</p>
-            <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
-          </Card>
+          
           
           
         </div>
