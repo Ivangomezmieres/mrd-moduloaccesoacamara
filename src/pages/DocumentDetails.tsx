@@ -337,7 +337,7 @@ const DocumentDetails = () => {
               <div>
                 <h1 className="text-xl font-bold flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  Documento #{(document.meta as any)?.extractedData?.parteNumero || 'Sin número'}
+                  Panel datos extraídos del parte
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   Subido el {new Date(document.created_at).toLocaleDateString('es-ES')}
