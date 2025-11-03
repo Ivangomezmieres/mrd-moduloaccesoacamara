@@ -385,7 +385,7 @@ const SuperAdminDashboard = () => {
                               <Eye className="h-4 w-4 mr-1" />
                               Ver
                             </Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleDeleteDocument(doc.id, doc.storage_path)} className="rounded-md bg-red-400 hover:bg-red-300">
+                            <Button size="sm" variant="destructive" onClick={() => handleDeleteDocument(doc.id, doc.storage_path)} className="rounded-md bg-red-600 hover:bg-red-500">
                               <Trash2 className="h-4 w-4 mr-1" />
                               Eliminar
                             </Button>
