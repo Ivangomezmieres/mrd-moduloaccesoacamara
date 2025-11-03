@@ -388,6 +388,42 @@ const SuperAdminDashboard = () => {
         updateData.review_notes = null;
       }
 
+      // ✅ NUEVO: Si se aprueba, cargar y guardar los datos extraídos
+      if (newStatus === 'approved' && selectedDoc.meta?.extractedData) {
+        const extractedData = selectedDoc.meta.extractedData;
+        
+        console.log('📝 Auto-rellenando datos extraídos al aprobar:', extractedData);
+        
+        // Cargar datos en el estado de edición
+        setEditedData({
+          parteNumero: extractedData.parteNumero || null,
+          cliente: extractedData.cliente || null,
+          emplazamiento: extractedData.emplazamiento || null,
+          obra: extractedData.obra || null,
+          trabajoRealizado: extractedData.trabajoRealizado || null,
+          fecha: extractedData.fecha || null,
+          montadores: extractedData.montadores || [],
+          horasTotales: extractedData.horasTotales || {
+            ordinarias: 0,
+            extras: 0,
+            festivas: 0
+          },
+          desgloseDetallado: extractedData.desgloseDetallado || null,
+          firmas: extractedData.firmas || {
+            montador: false,
+            cliente: false
+          }
+        });
+        
+        // Guardar los datos extraídos en la base de datos
+        updateData.meta = {
+          ...selectedDoc.meta,
+          savedData: extractedData  // Guardar una copia de los datos extraídos
+        };
+        
+        toast.success('✅ Datos extraídos cargados automáticamente');
+      }
+
       const { error } = await supabase
         .from('documents')
         .update(updateData)
@@ -415,7 +451,7 @@ const SuperAdminDashboard = () => {
       });
 
       const successMsg = newStatus === 'approved' 
-        ? 'Documento aprobado correctamente'
+        ? 'Documento aprobado y datos cargados correctamente'
         : 'Documento marcado como pendiente';
       
       toast.success(successMsg);

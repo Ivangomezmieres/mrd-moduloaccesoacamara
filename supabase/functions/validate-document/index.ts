@@ -335,7 +335,10 @@ Responde en formato JSON con:
 
   // Parse JSON response
   try {
-    return JSON.parse(content);
+    // Limpiar posibles markdown backticks (```json ... ```)
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    const jsonText = jsonMatch ? jsonMatch[0] : content;
+    return JSON.parse(jsonText);
   } catch (e) {
     console.error('Failed to parse AI response:', content);
     // Fallback: assume document is legible if AI couldn't parse
