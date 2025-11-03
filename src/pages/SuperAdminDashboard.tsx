@@ -98,9 +98,7 @@ const SuperAdminDashboard = () => {
       navigate('/auth');
       return;
     }
-    
     setUserId(session.user.id);
-    
     const {
       data: roles
     } = await supabase.from('user_roles').select('role').eq('user_id', session.user.id);
@@ -146,7 +144,6 @@ const SuperAdminDashboard = () => {
   const handleViewDetails = (doc: Document) => {
     navigate(`/admin/document/${doc.id}`);
   };
-
   const handleDeleteDocument = async (docId: string, storagePath: string) => {
     const confirmed = window.confirm('¿Estás seguro de que deseas eliminar este documento? Esta acción no se puede deshacer.');
     if (!confirmed) return;
@@ -179,8 +176,6 @@ const SuperAdminDashboard = () => {
       toast.error('Error inesperado al eliminar documento');
     }
   };
-
-
   const handleLogout = async () => {
     try {
       const {
@@ -273,9 +268,7 @@ const SuperAdminDashboard = () => {
         </div>
       </div>;
   }
-  
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <header className="border-b bg-card sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
@@ -392,7 +385,7 @@ const SuperAdminDashboard = () => {
                               <Eye className="h-4 w-4 mr-1" />
                               Ver
                             </Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleDeleteDocument(doc.id, doc.storage_path)} className="text-slate-950 rounded-md font-medium bg-neutral-50">
+                            <Button size="sm" variant="destructive" onClick={() => handleDeleteDocument(doc.id, doc.storage_path)} className="font-medium text-inherit bg-inherit rounded-none">
                               <Trash2 className="h-4 w-4 mr-1" />
                               Eliminar
                             </Button>
@@ -405,8 +398,6 @@ const SuperAdminDashboard = () => {
           </div>
         </Card>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default SuperAdminDashboard;
