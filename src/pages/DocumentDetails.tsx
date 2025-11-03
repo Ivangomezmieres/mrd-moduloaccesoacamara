@@ -700,66 +700,185 @@ const DocumentDetails = () => {
                   {editedData?.montadores && editedData.montadores.length > 0 ? (
                     <div className="space-y-3">
                       {editedData.montadores.map((montador, index) => (
-                        <div key={index} className="border rounded-lg p-3 bg-muted/20">
-                          <div className="flex items-start gap-3">
-                            <User className="h-4 w-4 text-primary mt-0.5" />
-                            <div className="flex-1">
-                              <dt className="text-xs text-muted-foreground mb-0.5">
-                                Montador {editedData.montadores!.length > 1 ? `#${index + 1}` : ''}
-                              </dt>
-                              {isEditMode ? (
-                                <Input
-                                  type="text"
-                                  value={montador.nombreCompleto || ''}
-                                  onChange={(e) => {
-                                    const newMontadores = [...editedData.montadores!];
-                                    newMontadores[index] = {
-                                      ...newMontadores[index],
-                                      nombreCompleto: e.target.value
-                                    };
-                                    setEditedData({
-                                      ...editedData,
-                                      montadores: newMontadores
-                                    });
-                                  }}
-                                  className="font-medium"
-                                  placeholder="Nombre completo del montador"
-                                />
-                              ) : (
-                                <dd className="font-medium">
-                                  {montador.nombreCompleto || 'N/A'}
-                                </dd>
-                              )}
+                        <div key={index} className="border rounded-lg p-4 bg-muted/20 hover:bg-muted/30 transition-colors">
+                          <div className="flex items-center justify-between gap-6">
+                            {/* IZQUIERDA: Nombre del montador */}
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                              <User className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <dt className="text-xs text-muted-foreground mb-0.5">
+                                  Montador {editedData.montadores!.length > 1 ? `#${index + 1}` : ''}
+                                </dt>
+                                {isEditMode ? (
+                                  <Input
+                                    type="text"
+                                    value={montador.nombreCompleto || ''}
+                                    onChange={(e) => {
+                                      const newMontadores = [...editedData.montadores!];
+                                      newMontadores[index] = {
+                                        ...newMontadores[index],
+                                        nombreCompleto: e.target.value
+                                      };
+                                      setEditedData({
+                                        ...editedData,
+                                        montadores: newMontadores
+                                      });
+                                    }}
+                                    className="font-medium"
+                                    placeholder="Nombre completo del montador"
+                                  />
+                                ) : (
+                                  <dd className="font-medium truncate">
+                                    {montador.nombreCompleto || 'N/A'}
+                                  </dd>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* DERECHA: Desglose de horas */}
+                            <div className="flex items-center gap-4 flex-shrink-0">
+                              {/* Horas Activas */}
+                              <div className="text-center">
+                                <div className="text-xs text-muted-foreground mb-1 font-medium">H. Activas</div>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex flex-col items-center">
+                                    <span className="text-[10px] text-muted-foreground uppercase">N</span>
+                                    {isEditMode ? (
+                                      <Input
+                                        type="number"
+                                        value={montador.horasActivas?.normales ?? 0}
+                                        onChange={(e) => {
+                                          const newMontadores = [...editedData.montadores!];
+                                          newMontadores[index] = {
+                                            ...newMontadores[index],
+                                            horasActivas: {
+                                              ...newMontadores[index].horasActivas,
+                                              normales: parseFloat(e.target.value) || 0,
+                                              extras: newMontadores[index].horasActivas?.extras ?? 0
+                                            }
+                                          };
+                                          setEditedData({
+                                            ...editedData,
+                                            montadores: newMontadores
+                                          });
+                                        }}
+                                        className="w-14 h-8 text-center text-sm font-semibold"
+                                        min="0"
+                                        step="0.5"
+                                      />
+                                    ) : (
+                                      <span className="text-sm font-semibold text-blue-600">
+                                        {montador.horasActivas?.normales ?? 0}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-muted-foreground">/</span>
+                                  <div className="flex flex-col items-center">
+                                    <span className="text-[10px] text-muted-foreground uppercase">Ex</span>
+                                    {isEditMode ? (
+                                      <Input
+                                        type="number"
+                                        value={montador.horasActivas?.extras ?? 0}
+                                        onChange={(e) => {
+                                          const newMontadores = [...editedData.montadores!];
+                                          newMontadores[index] = {
+                                            ...newMontadores[index],
+                                            horasActivas: {
+                                              normales: newMontadores[index].horasActivas?.normales ?? 0,
+                                              extras: parseFloat(e.target.value) || 0
+                                            }
+                                          };
+                                          setEditedData({
+                                            ...editedData,
+                                            montadores: newMontadores
+                                          });
+                                        }}
+                                        className="w-14 h-8 text-center text-sm font-semibold"
+                                        min="0"
+                                        step="0.5"
+                                      />
+                                    ) : (
+                                      <span className="text-sm font-semibold text-orange-600">
+                                        {montador.horasActivas?.extras ?? 0}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Separador vertical */}
+                              <div className="h-12 w-px bg-border" />
+
+                              {/* Horas de Viaje */}
+                              <div className="text-center">
+                                <div className="text-xs text-muted-foreground mb-1 font-medium">H. Viaje</div>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex flex-col items-center">
+                                    <span className="text-[10px] text-muted-foreground uppercase">N</span>
+                                    {isEditMode ? (
+                                      <Input
+                                        type="number"
+                                        value={montador.horasViaje?.normales ?? 0}
+                                        onChange={(e) => {
+                                          const newMontadores = [...editedData.montadores!];
+                                          newMontadores[index] = {
+                                            ...newMontadores[index],
+                                            horasViaje: {
+                                              ...newMontadores[index].horasViaje,
+                                              normales: parseFloat(e.target.value) || 0,
+                                              extras: newMontadores[index].horasViaje?.extras ?? 0
+                                            }
+                                          };
+                                          setEditedData({
+                                            ...editedData,
+                                            montadores: newMontadores
+                                          });
+                                        }}
+                                        className="w-14 h-8 text-center text-sm font-semibold"
+                                        min="0"
+                                        step="0.5"
+                                      />
+                                    ) : (
+                                      <span className="text-sm font-semibold text-blue-600">
+                                        {montador.horasViaje?.normales ?? 0}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-muted-foreground">/</span>
+                                  <div className="flex flex-col items-center">
+                                    <span className="text-[10px] text-muted-foreground uppercase">Ex</span>
+                                    {isEditMode ? (
+                                      <Input
+                                        type="number"
+                                        value={montador.horasViaje?.extras ?? 0}
+                                        onChange={(e) => {
+                                          const newMontadores = [...editedData.montadores!];
+                                          newMontadores[index] = {
+                                            ...newMontadores[index],
+                                            horasViaje: {
+                                              normales: newMontadores[index].horasViaje?.normales ?? 0,
+                                              extras: parseFloat(e.target.value) || 0
+                                            }
+                                          };
+                                          setEditedData({
+                                            ...editedData,
+                                            montadores: newMontadores
+                                          });
+                                        }}
+                                        className="w-14 h-8 text-center text-sm font-semibold"
+                                        min="0"
+                                        step="0.5"
+                                      />
+                                    ) : (
+                                      <span className="text-sm font-semibold text-orange-600">
+                                        {montador.horasViaje?.extras ?? 0}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </div>
-
-                          {montador.horas !== undefined && (
-                            <div className="mt-2 pl-7">
-                              <dt className="text-xs text-muted-foreground mb-0.5">Horas trabajadas</dt>
-                              {isEditMode ? (
-                                <Input
-                                  type="number"
-                                  value={montador.horas || 0}
-                                  onChange={(e) => {
-                                    const newMontadores = [...editedData.montadores!];
-                                    newMontadores[index] = {
-                                      ...newMontadores[index],
-                                      horas: parseFloat(e.target.value) || 0
-                                    };
-                                    setEditedData({
-                                      ...editedData,
-                                      montadores: newMontadores
-                                    });
-                                  }}
-                                  className="font-medium"
-                                  min="0"
-                                  step="0.5"
-                                />
-                              ) : (
-                                <dd className="font-medium">{montador.horas}h</dd>
-                              )}
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>
