@@ -84,13 +84,9 @@ const SuperAdminDashboard = () => {
   const [filteredDocuments, setFilteredDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
-  const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [imageUrl, setImageUrl] = useState<string>('');
   const [userId, setUserId] = useState<string | null>(null);
-  const [showRejectDialog, setShowRejectDialog] = useState(false);
-  const [rejectNotes, setRejectNotes] = useState('');
-  const [isUpdatingDocument, setIsUpdatingDocument] = useState(false);
   
   // Estados para edición de datos extraídos
   const [isEditMode, setIsEditMode] = useState(false);
@@ -103,7 +99,7 @@ const SuperAdminDashboard = () => {
   }, []);
   useEffect(() => {
     filterDocuments();
-  }, [filterStatus, searchTerm, documents]);
+  }, [searchTerm, documents]);
   const checkAuth = async () => {
     const {
       data: {
@@ -149,9 +145,6 @@ const SuperAdminDashboard = () => {
   };
   const filterDocuments = () => {
     let filtered = documents;
-    if (filterStatus !== 'all') {
-      filtered = filtered.filter(doc => doc.status === filterStatus);
-    }
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(doc => {
@@ -165,15 +158,13 @@ const SuperAdminDashboard = () => {
   const handleViewDetails = async (doc: Document) => {
     setSelectedDoc(doc);
     
-    // Inicializar datos editables con copia profunda
+    // Cargar datos extraídos inmediatamente sin condiciones
     const existingData = doc.meta?.extractedData;
     
-    // Compatibilidad: convertir estructura antigua a nueva
-    let initialData;
     if (existingData) {
-      initialData = JSON.parse(JSON.stringify(existingData));
+      const initialData = JSON.parse(JSON.stringify(existingData));
       
-      // Si tiene estructura antigua (montador singular), convertir a nueva
+      // Compatibilidad: convertir estructura antigua a nueva
       if (existingData.montador && !existingData.montadores) {
         initialData.montadores = [
           {
@@ -182,47 +173,34 @@ const SuperAdminDashboard = () => {
           }
         ];
         
-        // Mantener horasTotales si existe, sino crear
         if (!initialData.horasTotales) {
           initialData.horasTotales = existingData.horas || { ordinarias: 0, extras: 0, festivas: 0 };
         }
       }
+      
+      setEditedData(initialData);
     } else {
-      // Datos por defecto para documentos sin datos extraídos
-      initialData = {
-        parteNumero: '',
-        fecha: '',
-        cliente: '',
-        emplazamiento: '',
-        obra: '',
+      // Datos vacíos si no hay extractedData
+      setEditedData({
+        parteNumero: null,
+        cliente: null,
+        emplazamiento: null,
+        obra: null,
+        trabajoRealizado: null,
+        fecha: null,
         montadores: [],
         horasTotales: { ordinarias: 0, extras: 0, festivas: 0 },
-        trabajoRealizado: '',
+        desgloseDetallado: null,
         firmas: { montador: false, cliente: false }
-      };
+      });
     }
     
-    setEditedData(initialData);
-    setIsEditMode(false); // Siempre empieza en modo lectura
-    const {
-      data
-    } = await supabase.storage.from('scans').createSignedUrl(doc.storage_path, 3600);
+    setIsEditMode(false);
+    
+    // Cargar imagen
+    const { data } = await supabase.storage.from('scans').createSignedUrl(doc.storage_path, 3600);
     if (data?.signedUrl) {
       setImageUrl(data.signedUrl);
-      
-      // Contar campos de cabecera faltantes
-      const missingHeaderFields = [
-        !initialData.parteNumero,
-        !initialData.cliente,
-        !initialData.fecha,
-        !initialData.emplazamiento,
-        !initialData.obra
-      ].filter(Boolean).length;
-
-      // Solo re-extraer si faltan montadores O faltan 2+ campos de cabecera
-      if ((!initialData.montadores || initialData.montadores.length <= 1) || missingHeaderFields >= 2) {
-        await reExtractMontadores(data.signedUrl);
-      }
     }
   };
 
@@ -336,67 +314,19 @@ const SuperAdminDashboard = () => {
     }
   };
 
-  const handleApproveDocument = async (documentId: string) => {
-    if (!userId) {
-      toast.error('No se pudo identificar el usuario');
-      return;
-    }
-
-    const confirmed = window.confirm(
-      '¿Estás seguro de que deseas aprobar este documento?'
-    );
-    
-    if (!confirmed) return;
-
-    setIsUpdatingDocument(true);
-
-    try {
-      const { error } = await supabase
-        .from('documents')
-        .update({
-          status: 'approved',
-          reviewed_by: userId,
-          validated_at: new Date().toISOString()
-        })
-        .eq('id', documentId);
-
-      if (error) {
-        console.error('Error approving document:', error);
-        toast.error('Error al aprobar documento');
-        return;
-      }
-
-      // Actualizar lista local
-      setDocuments(prev => 
-        prev.map(doc => 
-          doc.id === documentId 
-            ? { 
-                ...doc, 
-                status: 'approved', 
-                reviewed_by: userId,
-                validated_at: new Date().toISOString() 
-              }
-            : doc
-        )
+  // Helper para renderizar campos con aviso de "dato no reconocido"
+  const renderField = (value: string | null | undefined, label: string) => {
+    if (!value || value === '') {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground italic">N/A</span>
+          <Badge variant="outline" className="text-xs text-orange-600 border-orange-600">
+            Dato no reconocido
+          </Badge>
+        </div>
       );
-
-      // Actualizar selectedDoc si está abierto
-      if (selectedDoc && selectedDoc.id === documentId) {
-        setSelectedDoc({
-          ...selectedDoc,
-          status: 'approved',
-          reviewed_by: userId,
-          validated_at: new Date().toISOString()
-        });
-      }
-
-      toast.success('Documento aprobado correctamente');
-    } catch (error) {
-      console.error('Unexpected error approving document:', error);
-      toast.error('Error inesperado al aprobar documento');
-    } finally {
-      setIsUpdatingDocument(false);
     }
+    return <span>{value}</span>;
   };
 
   // Función para cambiar estado del documento (pendiente o aprobado)
@@ -775,32 +705,6 @@ const SuperAdminDashboard = () => {
           
         </div>
 
-        <Card className="p-4 mb-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Buscar por cliente, nº parte..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
-              </div>
-            </div>
-            
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-full md:w-[200px]">
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Filtrar por estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los estados</SelectItem>
-                <SelectItem value="pending">Pendientes</SelectItem>
-                <SelectItem value="approved">Aprobados</SelectItem>
-                <SelectItem value="rejected">Rechazados</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          
-        </Card>
-
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <Table>
@@ -810,8 +714,6 @@ const SuperAdminDashboard = () => {
                   <TableHead>Cliente</TableHead>
                   <TableHead>Fecha</TableHead>
                   <TableHead>Horas</TableHead>
-                  <TableHead>Estado</TableHead>
-                  
                   <TableHead>Firmas</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
@@ -843,12 +745,6 @@ const SuperAdminDashboard = () => {
                               </div>
                             </div> : <span className="text-muted-foreground">0h</span>}
                         </TableCell>
-                        <TableCell>
-                          <Badge variant={doc.status === 'approved' ? 'default' : doc.status === 'pending' ? 'secondary' : 'destructive'}>
-                            {doc.status === 'approved' ? 'Aprobado' : doc.status === 'pending' ? 'Pendiente' : 'Rechazado'}
-                          </Badge>
-                        </TableCell>
-                        
                         <TableCell>
                           <div className="flex gap-1">
                             {extracted?.firmas?.montador && <Badge variant="outline" className="text-xs">M</Badge>}
@@ -984,7 +880,7 @@ const SuperAdminDashboard = () => {
               {/* Columna derecha: Datos extraídos en Tabs (3/5) */}
               <div className="col-span-3">
                 <Tabs defaultValue="parte" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4">
+                  <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="parte">
                       <FileText className="h-4 w-4 mr-1" />
                       Parte
@@ -996,10 +892,6 @@ const SuperAdminDashboard = () => {
                     <TabsTrigger value="trabajo">
                       <Briefcase className="h-4 w-4 mr-1" />
                       Trabajo
-                    </TabsTrigger>
-                    <TabsTrigger value="validacion">
-                      <CheckCircle className="h-4 w-4 mr-1" />
-                      Validación
                     </TabsTrigger>
                   </TabsList>
                   
@@ -1557,173 +1449,12 @@ const SuperAdminDashboard = () => {
                       )}
                     </Card>
                   </TabsContent>
-                  
-                  {/* Tab: Validación y Firmas */}
-                  <TabsContent value="validacion" className="space-y-4 mt-4">
-                    <Card className="p-4">
-                      <h3 className="font-semibold mb-3 flex items-center gap-2">
-                        <PenTool className="h-4 w-4" />
-                        Estado de Firmas
-                      </h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
-                          {selectedDoc.meta?.extractedData?.firmas?.montador ? <CheckCircle className="h-5 w-5 text-green-600" /> : <AlertCircle className="h-5 w-5 text-orange-600" />}
-                          <div>
-                            <p className="text-xs text-muted-foreground">Firma Montador</p>
-                            <p className="font-medium">
-                              {selectedDoc.meta?.extractedData?.firmas?.montador ? 'Firmado' : 'Sin firmar'}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
-                          {selectedDoc.meta?.extractedData?.firmas?.cliente ? <CheckCircle className="h-5 w-5 text-green-600" /> : <AlertCircle className="h-5 w-5 text-orange-600" />}
-                          <div>
-                            <p className="text-xs text-muted-foreground">Firma Cliente</p>
-                            <p className="font-medium">
-                              {selectedDoc.meta?.extractedData?.firmas?.cliente ? 'Firmado' : 'Sin firmar'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-
-                    <Card className="p-4">
-                      <h3 className="font-semibold mb-3 flex items-center gap-2">
-                        <BarChart3 className="h-4 w-4" />
-                        Estado del Documento
-                      </h3>
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-muted-foreground">Estado actual:</span>
-                          <Badge variant={selectedDoc.status === 'approved' ? 'default' : selectedDoc.status === 'rejected' ? 'destructive' : 'secondary'}>
-                            {selectedDoc.status === 'approved' ? 'Aprobado' : selectedDoc.status === 'rejected' ? 'Rechazado' : 'Pendiente'}
-                          </Badge>
-                        </div>
-                        
-                        <div className="pt-3 border-t space-y-3">
-                          <p className="text-xs text-muted-foreground">
-                            Cambiar estado del documento:
-                          </p>
-                          <div className="flex gap-2">
-                            <Button 
-                              onClick={() => handleChangeStatus('pending')}
-                              variant="outline"
-                              size="sm"
-                              disabled={selectedDoc.status === 'pending' || isUpdatingDocument}
-                              className="flex-1"
-                            >
-                              <Clock className="mr-2 h-4 w-4" />
-                              Pendiente
-                            </Button>
-                            
-                            <Button 
-                              onClick={() => handleChangeStatus('approved')}
-                              variant={selectedDoc.status === 'approved' ? 'default' : 'outline'}
-                              size="sm"
-                              disabled={selectedDoc.status === 'approved' || isUpdatingDocument}
-                              className="flex-1"
-                            >
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                              Aprobar
-                            </Button>
-                            
-                            <Button 
-                              onClick={() => setShowRejectDialog(true)}
-                              variant={selectedDoc.status === 'rejected' ? 'destructive' : 'outline'}
-                              size="sm"
-                              disabled={selectedDoc.status === 'rejected' || isUpdatingDocument}
-                              className="flex-1"
-                            >
-                              <XCircle className="mr-2 h-4 w-4" />
-                              Rechazar
-                            </Button>
-                          </div>
-                          
-                          <p className="text-xs text-muted-foreground italic">
-                            Puedes cambiar el estado en cualquier momento para rectificar la validación
-                          </p>
-                        </div>
-                        
-                        {selectedDoc.review_notes && <div className="pt-3 border-t">
-                            <p className="text-xs text-muted-foreground mb-1">Notas de revisión:</p>
-                            <p className="text-sm">{selectedDoc.review_notes}</p>
-                          </div>}
-                      </div>
-                    </Card>
-
-                    <Card className="p-4 bg-muted/30">
-                      <h3 className="font-semibold mb-3 text-sm">Metadatos del Sistema</h3>
-                      <dl className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <dt className="text-muted-foreground">Subido por:</dt>
-                          <dd className="font-medium">{selectedDoc.profiles?.full_name || 'N/A'}</dd>
-                        </div>
-                        <div className="flex justify-between">
-                          <dt className="text-muted-foreground">Fecha de subida:</dt>
-                          <dd className="font-medium">
-                            {new Date(selectedDoc.created_at).toLocaleString('es-ES')}
-                          </dd>
-                        </div>
-                        {selectedDoc.validated_at && <div className="flex justify-between">
-                            <dt className="text-muted-foreground">Validado:</dt>
-                            <dd className="font-medium">
-                              {new Date(selectedDoc.validated_at).toLocaleString('es-ES')}
-                            </dd>
-                          </div>}
-                      </dl>
-                    </Card>
-                  </TabsContent>
                 </Tabs>
               </div>
             </div>}
         </DialogContent>
       </Dialog>
-
-      {/* Dialog para rechazar con notas */}
-      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Rechazar Documento</DialogTitle>
-            <DialogDescription>
-              Proporciona una razón para el rechazo del documento
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Textarea
-              placeholder="Escribe las razones del rechazo..."
-              value={rejectNotes}
-              onChange={(e) => setRejectNotes(e.target.value)}
-              rows={4}
-              className="w-full"
-            />
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setShowRejectDialog(false);
-                setRejectNotes('');
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleRejectDocumentWithNotes}
-              disabled={!rejectNotes.trim() || isUpdatingDocument}
-            >
-              {isUpdatingDocument ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Rechazando...
-                </>
-              ) : (
-                'Confirmar Rechazo'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>;
+    </div>
+  );
 };
 export default SuperAdminDashboard;

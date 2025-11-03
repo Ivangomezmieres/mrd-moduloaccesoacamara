@@ -149,19 +149,7 @@ const DocumentPreviewWithValidation = ({
       const score = validation.legibilityPercentage || 0;
       setValidationScore(score);
       
-      // Verificar umbral del 80%
-      if (!validation.legible || score < 80) {
-        setStage('failed');
-        setErrorMessage(
-          `La foto no es legible (${score}% legible). Se requiere al menos 80%.`
-        );
-        toast.error(`Foto no legible (${score}%)`, {
-          description: 'Por favor, repite la foto con mejor iluminación'
-        });
-        return;
-      }
-
-      // FASE 7: Documento legible, guardar en storage
+      // FASE 7: Guardar documento automáticamente
       setStage('saving');
       
       // Convertir base64 a blob
@@ -201,7 +189,9 @@ const DocumentPreviewWithValidation = ({
 
       // Éxito
       setStage('success');
-      toast.success(`Documento guardado correctamente (${score}% legible)`);
+      toast.success('Documento procesado correctamente', {
+        description: score >= 80 ? 'Datos extraídos automáticamente' : 'Algunos campos pueden requerir revisión'
+      });
       
       // Volver a cámara después de 1 segundo
       setTimeout(() => {
@@ -233,9 +223,9 @@ const DocumentPreviewWithValidation = ({
       case 'saving':
         return 'Guardando documento...';
       case 'success':
-        return `Documento legible (${validationScore}%)`;
+        return `Documento procesado correctamente`;
       case 'failed':
-        return errorMessage || 'La foto no es legible';
+        return errorMessage || 'Error al procesar el documento';
       default:
         return '';
     }
@@ -284,13 +274,10 @@ const DocumentPreviewWithValidation = ({
                 <XCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-destructive">
-                    La foto no es lo suficientemente legible
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Legibilidad: {validationScore}% (mínimo: 80%)
+                    Error al procesar el documento
                   </p>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Asegúrate de que el documento esté bien iluminado y enfocado
+                    Por favor, intenta de nuevo con mejor iluminación y enfoque
                   </p>
                 </div>
               </div>

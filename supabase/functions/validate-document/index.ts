@@ -514,22 +514,20 @@ serve(async (req) => {
     // PASO 1: Validar legibilidad
     const legibilityResult = await validateLegibility(imageData, OPENAI_API_KEY);
     
+    const legibilityPercentage = legibilityResult.legibilityPercentage || 0;
+    console.log(`Legibilidad: ${legibilityPercentage}%`);
     console.log('Legibility result:', legibilityResult);
 
-    // PASO 2: Si es legible (>= 80%), extraer datos estructurados
+    // PASO 2: Extraer datos estructurados SIEMPRE (sin importar legibilidad)
+    console.log('Proceeding with data extraction...');
     let extractedData = null;
     
-    if (legibilityResult.legible && legibilityResult.legibilityPercentage >= 80) {
-      console.log('Document is legible, proceeding with data extraction...');
-      extractedData = await extractDocumentData(imageData, OPENAI_API_KEY);
-      
-      if (extractedData) {
-        console.log('Data extraction successful');
-      } else {
-        console.warn('Data extraction failed, but document is still legible');
-      }
+    extractedData = await extractDocumentData(imageData, OPENAI_API_KEY);
+    
+    if (extractedData) {
+      console.log('Data extraction successful');
     } else {
-      console.log('Document not legible enough for data extraction');
+      console.warn('Data extraction failed');
     }
 
     // Respuesta con ambos resultados
