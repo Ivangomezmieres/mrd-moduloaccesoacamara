@@ -150,8 +150,7 @@ NO incluyas texto adicional, comentarios o explicaciones. SOLO devuelve el JSON 
               }
             ]
           }
-        ],
-        max_completion_tokens: 1500
+        ]
       })
     });
 
