@@ -391,31 +391,34 @@ const DocumentDetails = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-5 gap-6">
-          {/* Left Column: Image (2/5) */}
-          <div className="col-span-2 space-y-4">
-            {imageUrl && (
-              <div className="relative border rounded-lg overflow-hidden bg-muted/20">
-                <img 
-                  src={imageUrl} 
-                  alt="Documento escaneado" 
-                  className="w-full cursor-pointer hover:opacity-90 transition-opacity" 
-                  onClick={() => window.open(imageUrl, '_blank')}
-                  title="Click para ampliar"
-                />
-                <div className="absolute top-2 right-2 bg-background/95 backdrop-blur-sm px-3 py-1.5 rounded-full border shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <Eye className="h-3.5 w-3.5" />
-                    <span className="text-xs font-medium">
-                      {document.meta?.legibilityScore}%
-                    </span>
+      <main className="container mx-auto px-4 py-6 h-[calc(100vh-80px)]">
+        <div className="grid grid-cols-5 gap-6 h-full">
+          {/* Left Column: Image (2/5) - CON SCROLL Y ZOOM */}
+          <div className="col-span-2 h-full flex flex-col gap-4">
+            {/* Contenedor de imagen con scroll independiente */}
+            <div className="flex-1 overflow-auto border rounded-lg bg-muted/20">
+              {imageUrl && (
+                <div className="relative min-w-full inline-block">
+                  <img 
+                    src={imageUrl} 
+                    alt="Documento escaneado" 
+                    className="w-full hover:scale-105 transition-transform cursor-zoom-in" 
+                    style={{ minWidth: '100%' }}
+                  />
+                  <div className="sticky top-2 right-2 float-right bg-background/95 backdrop-blur-sm px-3 py-1.5 rounded-full border shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <Eye className="h-3.5 w-3.5" />
+                      <span className="text-xs font-medium">
+                        {document.meta?.legibilityScore}%
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
             
-            <div className="space-y-2">
+            {/* Botones fijos al final */}
+            <div className="flex-shrink-0 space-y-2">
               <Button 
                 variant="outline" 
                 className="w-full" 
@@ -440,7 +443,8 @@ const DocumentDetails = () => {
               </Button>
             </div>
 
-            <Card className="p-4">
+            {/* Card de calidad fijo al final */}
+            <Card className="flex-shrink-0 p-4">
               <h3 className="font-semibold mb-3 text-sm">Calidad del documento</h3>
               <div className="space-y-3">
                 <div>
@@ -460,10 +464,11 @@ const DocumentDetails = () => {
             </Card>
           </div>
           
-          {/* Right Column: Data Tabs (3/5) */}
-          <div className="col-span-3">
-            <Tabs defaultValue="parte" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+          {/* Right Column: Data Tabs (3/5) - CON SCROLL INDEPENDIENTE */}
+          <div className="col-span-3 h-full flex flex-col">
+            <Tabs defaultValue="parte" className="w-full h-full flex flex-col">
+              {/* TabsList fijo arriba */}
+              <TabsList className="grid w-full grid-cols-4 flex-shrink-0">
                 <TabsTrigger value="parte">
                   <FileText className="h-4 w-4 mr-1" />
                   Parte
@@ -482,8 +487,10 @@ const DocumentDetails = () => {
                 </TabsTrigger>
               </TabsList>
               
-              {/* Tab: Datos del Parte */}
-              <TabsContent value="parte" className="space-y-4 mt-4">
+              {/* Contenedor scrolleable para cada TabsContent */}
+              <div className="flex-1 overflow-y-auto mt-4 pr-2">
+                {/* Tab: Datos del Parte */}
+                <TabsContent value="parte" className="space-y-4 m-0">
                 <Card className="p-4">
                   <dl className="space-y-3">
                     {/* Nº de Parte */}
@@ -616,7 +623,7 @@ const DocumentDetails = () => {
               </TabsContent>
 
               {/* Tab: Montador */}
-              <TabsContent value="montador" className="space-y-4 mt-4">
+              <TabsContent value="montador" className="space-y-4 m-0">
                 <Card className="p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-sm flex items-center gap-2">
@@ -837,7 +844,7 @@ const DocumentDetails = () => {
               </TabsContent>
 
               {/* Tab: Trabajo */}
-              <TabsContent value="trabajo" className="space-y-4 mt-4">
+              <TabsContent value="trabajo" className="space-y-4 m-0">
                 <Card className="p-4">
                   <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
                     <Briefcase className="h-4 w-4" />
@@ -884,7 +891,7 @@ const DocumentDetails = () => {
               </TabsContent>
 
               {/* Tab: Validación */}
-              <TabsContent value="validacion" className="space-y-4 mt-4">
+              <TabsContent value="validacion" className="space-y-4 m-0">
                 <Card className="p-4">
                   <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
                     <Shield className="h-4 w-4" />
@@ -943,6 +950,7 @@ const DocumentDetails = () => {
                   </Card>
                 )}
               </TabsContent>
+              </div>
             </Tabs>
           </div>
         </div>
