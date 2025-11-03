@@ -515,19 +515,30 @@ serve(async (req) => {
     const legibilityResult = await validateLegibility(imageData, OPENAI_API_KEY);
     
     const legibilityPercentage = legibilityResult.legibilityPercentage || 0;
-    console.log(`Legibilidad: ${legibilityPercentage}%`);
+    console.log(`📊 Legibilidad detectada: ${legibilityPercentage}%`);
     console.log('Legibility result:', legibilityResult);
 
-    // PASO 2: Extraer datos estructurados SIEMPRE (sin importar legibilidad)
-    console.log('Proceeding with data extraction...');
+    // PASO 2: Extraer datos estructurados SOLO si legibilidad >= 80%
     let extractedData = null;
     
-    extractedData = await extractDocumentData(imageData, OPENAI_API_KEY);
-    
-    if (extractedData) {
-      console.log('Data extraction successful');
+    if (legibilityPercentage >= 80) {
+      console.log('✅ Legibilidad suficiente (≥80%), extrayendo datos del documento...');
+      extractedData = await extractDocumentData(imageData, OPENAI_API_KEY);
+      
+      if (extractedData) {
+        console.log('✅ Extracción de datos completada correctamente');
+        console.log('📋 Datos extraídos:', JSON.stringify({
+          parteNumero: extractedData.parteNumero,
+          cliente: extractedData.cliente,
+          montadores: extractedData.montadores?.length || 0,
+          fecha: extractedData.fecha
+        }));
+      } else {
+        console.warn('⚠️ Extracción de datos falló (OpenAI no devolvió datos válidos)');
+      }
     } else {
-      console.warn('Data extraction failed');
+      console.warn(`⚠️ Legibilidad insuficiente (${legibilityPercentage}% < 80%), NO se extraerán datos`);
+      console.warn('   El documento debe ser capturado nuevamente con mejor calidad');
     }
 
     // Respuesta con ambos resultados
