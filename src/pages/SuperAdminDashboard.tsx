@@ -381,7 +381,7 @@ const SuperAdminDashboard = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
-                            <Button size="sm" variant="outline" onClick={() => handleViewDetails(doc)} className="rounded-md">
+                            <Button size="sm" variant="default" onClick={() => handleViewDetails(doc)} className="rounded-md bg-green-700 hover:bg-green-800 text-white">
                               <Eye className="h-4 w-4 mr-1" />
                               Ver
                             </Button>
