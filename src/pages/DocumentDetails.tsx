@@ -908,104 +908,79 @@ const DocumentDetails = () => {
                   )}
                 </Card>
 
-                {/* Horas */}
+                {/* Horas Totales */}
                 <Card className="p-4">
                   <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
                     <Clock className="h-4 w-4" />
-                    Horas trabajadas
+                    Horas totales trabajadas
                   </h3>
                   <dl className="space-y-2">
-                    {(editedData?.horasTotales || editedData?.horas) ? (
+                    {editedData?.montadores && editedData.montadores.length > 0 ? (
                       <>
-                        <div className="flex justify-between items-center py-2 border-b">
-                          <dt className="text-sm text-muted-foreground">Ordinarias</dt>
-                          {isEditMode ? (
-                            <Input
-                              type="number"
-                              value={(editedData.horasTotales || editedData.horas)?.ordinarias || 0}
-                              onChange={(e) => {
-                                const field = editedData.horasTotales ? 'horasTotales' : 'horas';
-                                setEditedData({
-                                  ...editedData!,
-                                  [field]: {
-                                    ...(editedData[field as keyof ExtractedData] as any),
-                                    ordinarias: parseFloat(e.target.value) || 0
-                                  }
-                                });
-                              }}
-                              className="w-24 text-right"
-                              min="0"
-                              step="0.5"
-                            />
-                          ) : (
-                            <dd className="font-medium">
-                              {(editedData.horasTotales || editedData.horas)?.ordinarias || 0}h
-                            </dd>
-                          )}
-                        </div>
-                        <div className="flex justify-between items-center py-2 border-b">
-                          <dt className="text-sm text-muted-foreground">Extras</dt>
-                          {isEditMode ? (
-                            <Input
-                              type="number"
-                              value={(editedData.horasTotales || editedData.horas)?.extras || 0}
-                              onChange={(e) => {
-                                const field = editedData.horasTotales ? 'horasTotales' : 'horas';
-                                setEditedData({
-                                  ...editedData!,
-                                  [field]: {
-                                    ...(editedData[field as keyof ExtractedData] as any),
-                                    extras: parseFloat(e.target.value) || 0
-                                  }
-                                });
-                              }}
-                              className="w-24 text-right"
-                              min="0"
-                              step="0.5"
-                            />
-                          ) : (
-                            <dd className="font-medium">
-                              {(editedData.horasTotales || editedData.horas)?.extras || 0}h
-                            </dd>
-                          )}
-                        </div>
-                        <div className="flex justify-between items-center py-2">
-                          <dt className="text-sm text-muted-foreground">Festivas</dt>
-                          {isEditMode ? (
-                            <Input
-                              type="number"
-                              value={(editedData.horasTotales || editedData.horas)?.festivas || 0}
-                              onChange={(e) => {
-                                const field = editedData.horasTotales ? 'horasTotales' : 'horas';
-                                setEditedData({
-                                  ...editedData!,
-                                  [field]: {
-                                    ...(editedData[field as keyof ExtractedData] as any),
-                                    festivas: parseFloat(e.target.value) || 0
-                                  }
-                                });
-                              }}
-                              className="w-24 text-right"
-                              min="0"
-                              step="0.5"
-                            />
-                          ) : (
-                            <dd className="font-medium">
-                              {(editedData.horasTotales || editedData.horas)?.festivas || 0}h
-                            </dd>
-                          )}
-                        </div>
-                        <div className="flex justify-between items-center pt-2 border-t-2">
-                          <dt className="font-semibold">Total</dt>
-                          <dd className="font-bold text-lg">
-                            {((editedData.horasTotales || editedData.horas)?.ordinarias || 0) +
-                             ((editedData.horasTotales || editedData.horas)?.extras || 0) +
-                             ((editedData.horasTotales || editedData.horas)?.festivas || 0)}h
-                          </dd>
-                        </div>
+                        {/* Calcular totales automáticamente */}
+                        {(() => {
+                          const totales = editedData.montadores.reduce((acc, montador) => ({
+                            activasNormales: acc.activasNormales + (montador.horasActivas?.normales ?? 0),
+                            activasExtras: acc.activasExtras + (montador.horasActivas?.extras ?? 0),
+                            viajeNormales: acc.viajeNormales + (montador.horasViaje?.normales ?? 0),
+                            viajeExtras: acc.viajeExtras + (montador.horasViaje?.extras ?? 0)
+                          }), {
+                            activasNormales: 0,
+                            activasExtras: 0,
+                            viajeNormales: 0,
+                            viajeExtras: 0
+                          });
+
+                          return (
+                            <>
+                              {/* Horas Activas (N) */}
+                              <div className="flex justify-between items-center py-2 border-b">
+                                <dt className="text-sm text-muted-foreground">Horas Activas (N)</dt>
+                                <dd className="font-medium text-blue-600">
+                                  {totales.activasNormales}h
+                                </dd>
+                              </div>
+
+                              {/* Horas Activas (Ex) */}
+                              <div className="flex justify-between items-center py-2 border-b">
+                                <dt className="text-sm text-muted-foreground">Horas Activas (Ex)</dt>
+                                <dd className="font-medium text-orange-600">
+                                  {totales.activasExtras}h
+                                </dd>
+                              </div>
+
+                              {/* Horas de Viaje (N) */}
+                              <div className="flex justify-between items-center py-2 border-b">
+                                <dt className="text-sm text-muted-foreground">Horas de Viaje (N)</dt>
+                                <dd className="font-medium text-blue-600">
+                                  {totales.viajeNormales}h
+                                </dd>
+                              </div>
+
+                              {/* Horas de Viaje (Ex) */}
+                              <div className="flex justify-between items-center py-2 border-b">
+                                <dt className="text-sm text-muted-foreground">Horas de Viaje (Ex)</dt>
+                                <dd className="font-medium text-orange-600">
+                                  {totales.viajeExtras}h
+                                </dd>
+                              </div>
+
+                              {/* Total General */}
+                              <div className="flex justify-between items-center pt-3 border-t-2">
+                                <dt className="font-semibold">Total</dt>
+                                <dd className="font-bold text-lg">
+                                  {totales.activasNormales + 
+                                   totales.activasExtras + 
+                                   totales.viajeNormales + 
+                                   totales.viajeExtras}h
+                                </dd>
+                              </div>
+                            </>
+                          );
+                        })()}
                       </>
                     ) : (
-                      <p className="text-muted-foreground text-sm">No hay datos de horas disponibles</p>
+                      <p className="text-muted-foreground text-sm">No hay datos de montadores disponibles</p>
                     )}
                   </dl>
                 </Card>
