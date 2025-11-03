@@ -210,8 +210,17 @@ const SuperAdminDashboard = () => {
     if (data?.signedUrl) {
       setImageUrl(data.signedUrl);
       
-      // Si solo hay 0 o 1 montador, intentar reextraer automáticamente
-      if (!initialData.montadores || initialData.montadores.length <= 1) {
+      // Contar campos de cabecera faltantes
+      const missingHeaderFields = [
+        !initialData.parteNumero,
+        !initialData.cliente,
+        !initialData.fecha,
+        !initialData.emplazamiento,
+        !initialData.obra
+      ].filter(Boolean).length;
+
+      // Solo re-extraer si faltan montadores O faltan 2+ campos de cabecera
+      if ((!initialData.montadores || initialData.montadores.length <= 1) || missingHeaderFields >= 2) {
         await reExtractMontadores(data.signedUrl);
       }
     }
@@ -239,23 +248,53 @@ const SuperAdminDashboard = () => {
 
       const extractedData = data?.extractedData;
       
-      if (extractedData?.montadores && extractedData.montadores.length > 1) {
-        // Calcular horasTotales desde montadores si no existe
-        const calculatedHorasTotales = extractedData.horasTotales || {
-          ordinarias: extractedData.montadores.reduce((sum: number, m: any) => sum + (m.horas || 0), 0),
-          extras: 0,
-          festivas: 0
-        };
-
-        setEditedData(prev => ({
-          ...prev!,
-          montadores: extractedData.montadores,
-          horasTotales: calculatedHorasTotales
-        }));
+      if (extractedData) {
+        // Preparar datos para fusionar
+        const updates: any = {};
+        let hasUpdates = false;
+        let headerUpdates = 0;
         
-        toast.success(`✅ ${extractedData.montadores.length} montadores extraídos desde la imagen`);
+        // Fusionar campos de cabecera si existen
+        const headerFields = ['parteNumero', 'cliente', 'emplazamiento', 'obra', 'trabajoRealizado', 'fecha', 'firmas'];
+        headerFields.forEach(field => {
+          if (extractedData[field]) {
+            updates[field] = extractedData[field];
+            if (field !== 'firmas') headerUpdates++;
+            hasUpdates = true;
+          }
+        });
+        
+        // Fusionar montadores si hay más de 1
+        if (extractedData.montadores && extractedData.montadores.length > 1) {
+          updates.montadores = extractedData.montadores;
+          hasUpdates = true;
+          
+          // Calcular horasTotales desde montadores si no existe
+          updates.horasTotales = extractedData.horasTotales || {
+            ordinarias: extractedData.montadores.reduce((sum: number, m: any) => sum + (m.horas || 0), 0),
+            extras: 0,
+            festivas: 0
+          };
+        }
+
+        if (hasUpdates) {
+          setEditedData(prev => ({
+            ...prev!,
+            ...updates
+          }));
+          
+          // Toasts informativos
+          if (extractedData.montadores && extractedData.montadores.length > 1) {
+            toast.success(`✅ ${extractedData.montadores.length} montadores extraídos`);
+          }
+          if (headerUpdates > 0) {
+            toast.success(`✅ ${headerUpdates} campos de cabecera actualizados`);
+          }
+        } else {
+          toast.info('ℹ️ No se encontraron datos adicionales en la imagen');
+        }
       } else {
-        toast.info('ℹ️ No se encontraron múltiples montadores en la imagen');
+        toast.info('ℹ️ No se pudieron extraer datos de la imagen');
       }
     } catch (error) {
       console.error('Error inesperado reextrayendo:', error);
@@ -388,40 +427,23 @@ const SuperAdminDashboard = () => {
         updateData.review_notes = null;
       }
 
-      // ✅ NUEVO: Si se aprueba, cargar y guardar los datos extraídos
-      if (newStatus === 'approved' && selectedDoc.meta?.extractedData) {
-        const extractedData = selectedDoc.meta.extractedData;
+      // ✅ NUEVO: Si se aprueba, persistir editedData en extractedData
+      if (newStatus === 'approved') {
+        // Si hay datos editados, usarlos; sino usar extractedData existente
+        const dataToSave = editedData || selectedDoc.meta?.extractedData;
         
-        console.log('📝 Auto-rellenando datos extraídos al aprobar:', extractedData);
-        
-        // Cargar datos en el estado de edición
-        setEditedData({
-          parteNumero: extractedData.parteNumero || null,
-          cliente: extractedData.cliente || null,
-          emplazamiento: extractedData.emplazamiento || null,
-          obra: extractedData.obra || null,
-          trabajoRealizado: extractedData.trabajoRealizado || null,
-          fecha: extractedData.fecha || null,
-          montadores: extractedData.montadores || [],
-          horasTotales: extractedData.horasTotales || {
-            ordinarias: 0,
-            extras: 0,
-            festivas: 0
-          },
-          desgloseDetallado: extractedData.desgloseDetallado || null,
-          firmas: extractedData.firmas || {
-            montador: false,
-            cliente: false
-          }
-        });
-        
-        // Guardar los datos extraídos en la base de datos
-        updateData.meta = {
-          ...selectedDoc.meta,
-          savedData: extractedData  // Guardar una copia de los datos extraídos
-        };
-        
-        toast.success('✅ Datos extraídos cargados automáticamente');
+        if (dataToSave) {
+          console.log('📝 Guardando datos al aprobar:', dataToSave);
+          
+          // Persistir en meta.extractedData
+          updateData.meta = {
+            ...selectedDoc.meta,
+            extractedData: dataToSave,
+            savedData: dataToSave  // Mantener también savedData por compatibilidad
+          };
+          
+          toast.success('✅ Datos guardados correctamente');
+        }
       }
 
       const { error } = await supabase
@@ -1003,7 +1025,7 @@ const SuperAdminDashboard = () => {
                               />
                             ) : (
                               <dd className="font-semibold text-lg">
-                                {selectedDoc.meta?.extractedData?.parteNumero || 
+                                {selectedDoc.meta?.extractedData?.parteNumero || editedData?.parteNumero || 
                                   <span className="text-muted-foreground text-base">N/A</span>}
                               </dd>
                             )}
@@ -1027,8 +1049,8 @@ const SuperAdminDashboard = () => {
                               />
                             ) : (
                               <dd className="font-medium">
-                                {selectedDoc.meta?.extractedData?.fecha ? 
-                                  new Date(selectedDoc.meta.extractedData.fecha).toLocaleDateString('es-ES', {
+                                {(selectedDoc.meta?.extractedData?.fecha || editedData?.fecha) ? 
+                                  new Date(selectedDoc.meta?.extractedData?.fecha || editedData?.fecha).toLocaleDateString('es-ES', {
                                     weekday: 'long',
                                     year: 'numeric',
                                     month: 'long',
@@ -1057,7 +1079,7 @@ const SuperAdminDashboard = () => {
                               />
                             ) : (
                               <dd className="font-medium text-blue-600">
-                                {selectedDoc.meta?.extractedData?.cliente || 'N/A'}
+                                {selectedDoc.meta?.extractedData?.cliente || editedData?.cliente || 'N/A'}
                               </dd>
                             )}
                           </div>
@@ -1081,7 +1103,7 @@ const SuperAdminDashboard = () => {
                               />
                             ) : (
                               <dd className="font-medium">
-                                {selectedDoc.meta?.extractedData?.emplazamiento || 'N/A'}
+                                {selectedDoc.meta?.extractedData?.emplazamiento || editedData?.emplazamiento || 'N/A'}
                               </dd>
                             )}
                           </div>
@@ -1105,7 +1127,7 @@ const SuperAdminDashboard = () => {
                               />
                             ) : (
                               <dd className="font-medium">
-                                {selectedDoc.meta?.extractedData?.obra || 'N/A'}
+                                {selectedDoc.meta?.extractedData?.obra || editedData?.obra || 'N/A'}
                               </dd>
                             )}
                           </div>

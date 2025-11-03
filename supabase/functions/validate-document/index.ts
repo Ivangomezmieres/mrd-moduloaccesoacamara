@@ -16,6 +16,7 @@ const extractDocumentData = async (imageBase64: string, openaiKey: string): Prom
       body: JSON.stringify({
         model: 'gpt-4o',
         temperature: 0.1,
+        max_tokens: 1500,
         messages: [
           {
             role: 'system',
@@ -184,6 +185,48 @@ NO incluyas texto adicional, comentarios o explicaciones. SOLO devuelve el JSON 
     try {
       const parsed = JSON.parse(jsonText);
       
+      // Normalizar campos de cabecera: convertir strings vacíos a null
+      const headerFields = ['parteNumero', 'cliente', 'emplazamiento', 'obra', 'trabajoRealizado', 'fecha'];
+      headerFields.forEach(field => {
+        if (parsed[field] === '') {
+          parsed[field] = null;
+        }
+      });
+
+      // Verificar si faltan campos críticos de cabecera
+      const missingCriticalFields = [
+        !parsed.parteNumero,
+        !parsed.cliente,
+        !parsed.fecha
+      ].filter(Boolean).length;
+
+      const missingHeaderFields = headerFields.filter(field => !parsed[field]).length;
+
+      // Si faltan campos críticos O más de 2 campos de cabecera, intentar segunda extracción
+      if (missingCriticalFields > 0 || missingHeaderFields >= 2) {
+        console.log(`\n⚠️ Faltan ${missingHeaderFields} campos de cabecera. Intentando extracción específica...`);
+        
+        const headerData = await extractHeaderOnly(imageBase64, openaiKey);
+        if (headerData) {
+          // Fusionar datos: completar solo los campos null con los del segundo intento
+          headerFields.forEach(field => {
+            if (!parsed[field] && headerData[field]) {
+              parsed[field] = headerData[field];
+            }
+          });
+          
+          // Fusionar firmas si existen
+          if (!parsed.firmas && headerData.firmas) {
+            parsed.firmas = headerData.firmas;
+          } else if (headerData.firmas) {
+            parsed.firmas = {
+              montador: parsed.firmas?.montador ?? headerData.firmas.montador,
+              cliente: parsed.firmas?.cliente ?? headerData.firmas.cliente
+            };
+          }
+        }
+      }
+      
       // ============================================
       // LOGGING DETALLADO PARA DEBUGGING
       // ============================================
@@ -262,6 +305,16 @@ NO incluyas texto adicional, comentarios o explicaciones. SOLO devuelve el JSON 
       console.log(`  Firmas: Montador=${parsed.firmas?.montador}, Cliente=${parsed.firmas?.cliente}`);
       
       console.log('\n✅ Successfully extracted and validated document data');
+      
+      // Logging de cabecera final
+      console.log('\n📋 Cabecera final:');
+      console.log(`  Parte Nº: ${parsed.parteNumero || 'N/A'}`);
+      console.log(`  Cliente: ${parsed.cliente || 'N/A'}`);
+      console.log(`  Emplazamiento: ${parsed.emplazamiento || 'N/A'}`);
+      console.log(`  Obra: ${parsed.obra || 'N/A'}`);
+      console.log(`  Trabajo: ${parsed.trabajoRealizado || 'N/A'}`);
+      console.log(`  Fecha: ${parsed.fecha || 'N/A'}`);
+      console.log(`  Firmas: Montador=${parsed.firmas?.montador}, Cliente=${parsed.firmas?.cliente}`);
       console.log('============================================\n');
       
       return parsed;
@@ -275,6 +328,83 @@ NO incluyas texto adicional, comentarios o explicaciones. SOLO devuelve el JSON 
     return null;
   }
 };
+
+// Función para extraer solo datos de cabecera (segundo intento)
+async function extractHeaderOnly(imageBase64: string, openaiKey: string) {
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        temperature: 0.1,
+        max_tokens: 600,
+        messages: [
+          {
+            role: 'system',
+            content: 'Extrae únicamente los datos de cabecera del documento. Responde SOLO con JSON válido.'
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Extrae únicamente estos campos:
+- parteNumero: Número del parte
+- cliente: Nombre del cliente
+- emplazamiento: Ubicación/emplazamiento
+- obra: Nombre de la obra
+- trabajoRealizado: Descripción del trabajo
+- fecha: Fecha en formato YYYY-MM-DD
+- firmas: { montador: boolean, cliente: boolean }
+
+Responde SOLO con JSON válido, sin explicaciones.`
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/jpeg;base64,${imageBase64}`
+                }
+              }
+            ]
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      console.error('Error en extracción de cabecera:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    
+    if (!content) {
+      console.error('No se recibió contenido en extracción de cabecera');
+      return null;
+    }
+
+    // Limpiar markdown
+    let jsonText = content.trim();
+    if (jsonText.startsWith('```')) {
+      const match = jsonText.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      jsonText = match ? match[1] : jsonText;
+    }
+    const cleanMatch = jsonText.match(/\{[\s\S]*\}/);
+    jsonText = cleanMatch ? cleanMatch[0] : jsonText;
+
+    const parsed = JSON.parse(jsonText);
+    console.log('✅ Cabecera extraída en segundo intento:', parsed);
+    return parsed;
+  } catch (error) {
+    console.error('Error en extractHeaderOnly:', error);
+    return null;
+  }
+}
 
 const validateLegibility = async (imageData: string, openaiKey: string) => {
   const prompt = `Analiza esta imagen de un parte de trabajo y verifica su LEGIBILIDAD.
