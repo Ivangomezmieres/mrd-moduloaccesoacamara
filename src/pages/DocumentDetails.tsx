@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, Download, FileText, User, Briefcase, Calendar, Building, PenTool, ZoomIn, ZoomOut, Loader2, Pencil, Save, XCircle, Shield, Clock, MapPin, Eye } from 'lucide-react';
 import { toast } from 'sonner';
@@ -513,35 +513,18 @@ const DocumentDetails = () => {
             </div>
           </div>
           
-          {/* Right Column: Data Tabs (3/5) - CON SCROLL INDEPENDIENTE */}
-          <div className="col-span-3 h-full flex flex-col border rounded-lg bg-card">
-            <Tabs defaultValue="parte" className="w-full h-full flex flex-col">
-              {/* TabsList fijo arriba */}
-              <TabsList className="grid w-full grid-cols-4 flex-shrink-0 rounded-t-lg">
-                <TabsTrigger value="parte">
-                  <FileText className="h-4 w-4 mr-1" />
-                  Parte
-                </TabsTrigger>
-                <TabsTrigger value="montador">
-                  <User className="h-4 w-4 mr-1" />
-                  Montador
-                </TabsTrigger>
-                <TabsTrigger value="trabajo">
-                  <Briefcase className="h-4 w-4 mr-1" />
-                  Trabajo
-                </TabsTrigger>
-                <TabsTrigger value="validacion">
-                  <Shield className="h-4 w-4 mr-1" />
-                  Validación
-                </TabsTrigger>
-              </TabsList>
-              
-              {/* Contenedor scrolleable para cada TabsContent */}
-              <div className="flex-1 overflow-y-auto p-4">
-                {/* Tab: Datos del Parte */}
-                <TabsContent value="parte" className="space-y-4 m-0">
-                <Card className="p-4">
-                  <dl className="space-y-3">
+          {/* Right Column: Unified Data Card with Scroll */}
+          <div className="col-span-3 h-full flex flex-col">
+            <ScrollArea className="h-full">
+              <div className="p-6 space-y-6">
+                
+                {/* === SECCIÓN 1: DATOS DEL PARTE === */}
+                <Card className="p-6">
+                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 border-b pb-3">
+                    <FileText className="h-5 w-5 text-primary" />
+                    Datos del Parte
+                  </h2>
+                  <dl className="space-y-4">
                     {/* Nº de Parte */}
                     <div className="flex items-start gap-3">
                       <FileText className="h-4 w-4 text-primary mt-0.5" />
@@ -669,16 +652,64 @@ const DocumentDetails = () => {
                     </div>
                   </dl>
                 </Card>
-              </TabsContent>
 
-              {/* Tab: Montador */}
-              <TabsContent value="montador" className="space-y-4 m-0">
-                <Card className="p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-sm flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      Datos del Montador
+                {/* === SECCIÓN 2: TRABAJO REALIZADO === */}
+                <Card className="p-6">
+                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 border-b pb-3">
+                    <Briefcase className="h-5 w-5 text-primary" />
+                    Trabajo Realizado
+                  </h2>
+                  
+                  {/* Descripción del trabajo */}
+                  <div className="mb-6">
+                    {isEditMode ? (
+                      <Textarea
+                        value={editedData?.trabajoRealizado || ''}
+                        onChange={(e) => setEditedData({
+                          ...editedData!,
+                          trabajoRealizado: e.target.value
+                        })}
+                        className="min-h-[200px]"
+                        placeholder="Descripción del trabajo realizado"
+                      />
+                    ) : (
+                      <p className="text-sm whitespace-pre-wrap">
+                        {(document.meta as any)?.extractedData?.trabajoRealizado || editedData?.trabajoRealizado || 
+                          <span className="text-muted-foreground italic">No hay descripción del trabajo</span>}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Estado de Firmas */}
+                  <div>
+                    <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                      <PenTool className="h-4 w-4" />
+                      Estado de Firmas
                     </h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <span className="text-sm">Firma del Montador</span>
+                        <Badge variant={editedData?.firmas?.montador ? "default" : "secondary"}>
+                          {editedData?.firmas?.montador ? 'Firmado' : 'No firmado'}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between py-2">
+                        <span className="text-sm">Firma del Cliente</span>
+                        <Badge variant={editedData?.firmas?.cliente ? "default" : "secondary"}>
+                          {editedData?.firmas?.cliente ? 'Firmado' : 'No firmado'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* === SECCIÓN 3: DATOS DE MONTADORES === */}
+                <Card className="p-6">
+                  <div className="flex items-center justify-between mb-4 border-b pb-3">
+                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                      <User className="h-5 w-5 text-primary" />
+                      Datos de Montadores
+                    </h2>
                     <Button
                       size="sm"
                       variant="outline"
@@ -696,9 +727,9 @@ const DocumentDetails = () => {
                     </Button>
                   </div>
 
-                  {/* Mostrar montadores */}
+                  {/* Listado de montadores individuales */}
                   {editedData?.montadores && editedData.montadores.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="space-y-3 mb-6">
                       {editedData.montadores.map((montador, index) => (
                         <div key={index} className="border rounded-lg p-4 bg-muted/20 hover:bg-muted/30 transition-colors">
                           <div className="flex items-center justify-between gap-6">
@@ -883,7 +914,7 @@ const DocumentDetails = () => {
                       ))}
                     </div>
                   ) : editedData?.montador ? (
-                    <div className="space-y-3">
+                    <div className="space-y-3 mb-6">
                       <div className="flex items-start gap-3">
                         <User className="h-4 w-4 text-primary mt-0.5" />
                         <div className="flex-1">
@@ -904,142 +935,93 @@ const DocumentDetails = () => {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-muted-foreground text-sm">No hay datos de montador disponibles</p>
+                    <p className="text-muted-foreground text-sm mb-6">No hay datos de montador disponibles</p>
                   )}
-                </Card>
 
-                {/* Horas Totales */}
-                <Card className="p-4">
-                  <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    Horas totales trabajadas
-                  </h3>
-                  <dl className="space-y-2">
-                    {editedData?.montadores && editedData.montadores.length > 0 ? (
-                      <>
-                        {/* Calcular totales automáticamente */}
-                        {(() => {
-                          const totales = editedData.montadores.reduce((acc, montador) => ({
-                            activasNormales: acc.activasNormales + (montador.horasActivas?.normales ?? 0),
-                            activasExtras: acc.activasExtras + (montador.horasActivas?.extras ?? 0),
-                            viajeNormales: acc.viajeNormales + (montador.horasViaje?.normales ?? 0),
-                            viajeExtras: acc.viajeExtras + (montador.horasViaje?.extras ?? 0)
-                          }), {
-                            activasNormales: 0,
-                            activasExtras: 0,
-                            viajeNormales: 0,
-                            viajeExtras: 0
-                          });
+                  {/* Horas Totales Trabajadas */}
+                  <div className="border-t pt-6">
+                    <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Horas Totales Trabajadas
+                    </h3>
+                    <dl className="space-y-2">
+                      {editedData?.montadores && editedData.montadores.length > 0 ? (
+                        <>
+                          {/* Calcular totales automáticamente */}
+                          {(() => {
+                            const totales = editedData.montadores.reduce((acc, montador) => ({
+                              activasNormales: acc.activasNormales + (montador.horasActivas?.normales ?? 0),
+                              activasExtras: acc.activasExtras + (montador.horasActivas?.extras ?? 0),
+                              viajeNormales: acc.viajeNormales + (montador.horasViaje?.normales ?? 0),
+                              viajeExtras: acc.viajeExtras + (montador.horasViaje?.extras ?? 0)
+                            }), {
+                              activasNormales: 0,
+                              activasExtras: 0,
+                              viajeNormales: 0,
+                              viajeExtras: 0
+                            });
 
-                          return (
-                            <>
-                              {/* Horas Activas (N) */}
-                              <div className="flex justify-between items-center py-2 border-b">
-                                <dt className="text-sm text-muted-foreground">Horas Activas (N)</dt>
-                                <dd className="font-medium text-blue-600">
-                                  {totales.activasNormales}h
-                                </dd>
-                              </div>
+                            return (
+                              <>
+                                {/* Horas Activas (N) */}
+                                <div className="flex justify-between items-center py-2 border-b">
+                                  <dt className="text-sm text-muted-foreground">Horas Activas (N)</dt>
+                                  <dd className="font-medium text-blue-600">
+                                    {totales.activasNormales}h
+                                  </dd>
+                                </div>
 
-                              {/* Horas Activas (Ex) */}
-                              <div className="flex justify-between items-center py-2 border-b">
-                                <dt className="text-sm text-muted-foreground">Horas Activas (Ex)</dt>
-                                <dd className="font-medium text-orange-600">
-                                  {totales.activasExtras}h
-                                </dd>
-                              </div>
+                                {/* Horas Activas (Ex) */}
+                                <div className="flex justify-between items-center py-2 border-b">
+                                  <dt className="text-sm text-muted-foreground">Horas Activas (Ex)</dt>
+                                  <dd className="font-medium text-orange-600">
+                                    {totales.activasExtras}h
+                                  </dd>
+                                </div>
 
-                              {/* Horas de Viaje (N) */}
-                              <div className="flex justify-between items-center py-2 border-b">
-                                <dt className="text-sm text-muted-foreground">Horas de Viaje (N)</dt>
-                                <dd className="font-medium text-blue-600">
-                                  {totales.viajeNormales}h
-                                </dd>
-                              </div>
+                                {/* Horas de Viaje (N) */}
+                                <div className="flex justify-between items-center py-2 border-b">
+                                  <dt className="text-sm text-muted-foreground">Horas de Viaje (N)</dt>
+                                  <dd className="font-medium text-blue-600">
+                                    {totales.viajeNormales}h
+                                  </dd>
+                                </div>
 
-                              {/* Horas de Viaje (Ex) */}
-                              <div className="flex justify-between items-center py-2 border-b">
-                                <dt className="text-sm text-muted-foreground">Horas de Viaje (Ex)</dt>
-                                <dd className="font-medium text-orange-600">
-                                  {totales.viajeExtras}h
-                                </dd>
-                              </div>
+                                {/* Horas de Viaje (Ex) */}
+                                <div className="flex justify-between items-center py-2 border-b">
+                                  <dt className="text-sm text-muted-foreground">Horas de Viaje (Ex)</dt>
+                                  <dd className="font-medium text-orange-600">
+                                    {totales.viajeExtras}h
+                                  </dd>
+                                </div>
 
-                              {/* Total General */}
-                              <div className="flex justify-between items-center pt-3 border-t-2">
-                                <dt className="font-semibold">Total</dt>
-                                <dd className="font-bold text-lg">
-                                  {totales.activasNormales + 
-                                   totales.activasExtras + 
-                                   totales.viajeNormales + 
-                                   totales.viajeExtras}h
-                                </dd>
-                              </div>
-                            </>
-                          );
-                        })()}
-                      </>
-                    ) : (
-                      <p className="text-muted-foreground text-sm">No hay datos de montadores disponibles</p>
-                    )}
-                  </dl>
-                </Card>
-              </TabsContent>
-
-              {/* Tab: Trabajo */}
-              <TabsContent value="trabajo" className="space-y-4 m-0">
-                <Card className="p-4">
-                  <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                    <Briefcase className="h-4 w-4" />
-                    Trabajo Realizado
-                  </h3>
-                  {isEditMode ? (
-                    <Textarea
-                      value={editedData?.trabajoRealizado || ''}
-                      onChange={(e) => setEditedData({
-                        ...editedData!,
-                        trabajoRealizado: e.target.value
-                      })}
-                      className="min-h-[200px]"
-                      placeholder="Descripción del trabajo realizado"
-                    />
-                  ) : (
-                    <p className="text-sm whitespace-pre-wrap">
-                      {(document.meta as any)?.extractedData?.trabajoRealizado || editedData?.trabajoRealizado || 
-                        <span className="text-muted-foreground italic">No hay descripción del trabajo</span>}
-                    </p>
-                  )}
-                </Card>
-
-                <Card className="p-4">
-                  <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                    <PenTool className="h-4 w-4" />
-                    Firmas
-                  </h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between py-2 border-b">
-                      <span className="text-sm">Firma del Montador</span>
-                      <Badge variant={editedData?.firmas?.montador ? "default" : "secondary"}>
-                        {editedData?.firmas?.montador ? 'Firmado' : 'No firmado'}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between py-2">
-                      <span className="text-sm">Firma del Cliente</span>
-                      <Badge variant={editedData?.firmas?.cliente ? "default" : "secondary"}>
-                        {editedData?.firmas?.cliente ? 'Firmado' : 'No firmado'}
-                      </Badge>
-                    </div>
+                                {/* Total General */}
+                                <div className="flex justify-between items-center pt-3 border-t-2">
+                                  <dt className="font-semibold">Total</dt>
+                                  <dd className="font-bold text-lg">
+                                    {totales.activasNormales + 
+                                     totales.activasExtras + 
+                                     totales.viajeNormales + 
+                                     totales.viajeExtras}h
+                                  </dd>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </>
+                      ) : (
+                        <p className="text-muted-foreground text-sm">No hay datos de montadores disponibles</p>
+                      )}
+                    </dl>
                   </div>
                 </Card>
-              </TabsContent>
 
-              {/* Tab: Validación */}
-              <TabsContent value="validacion" className="space-y-4 m-0">
-                <Card className="p-4">
-                  <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                    <Shield className="h-4 w-4" />
+                {/* === SECCIÓN 4: METADATOS DE VALIDACIÓN === */}
+                <Card className="p-6">
+                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 border-b pb-3">
+                    <Shield className="h-5 w-5 text-primary" />
                     Metadatos de Validación
-                  </h3>
+                  </h2>
                   <dl className="space-y-2 text-sm">
                     <div className="flex justify-between py-2 border-b">
                       <dt className="text-muted-foreground">Estado</dt>
@@ -1082,19 +1064,20 @@ const DocumentDetails = () => {
                       </div>
                     )}
                   </dl>
+                  
+                  {/* Notas de Revisión (si existen) */}
+                  {document.review_notes && (
+                    <div className="mt-6 pt-6 border-t">
+                      <h3 className="font-semibold text-sm mb-2">Notas de Revisión</h3>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {document.review_notes}
+                      </p>
+                    </div>
+                  )}
                 </Card>
 
-                {document.review_notes && (
-                  <Card className="p-4">
-                    <h3 className="font-semibold text-sm mb-2">Notas de Revisión</h3>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                      {document.review_notes}
-                    </p>
-                  </Card>
-                )}
-              </TabsContent>
               </div>
-            </Tabs>
+            </ScrollArea>
           </div>
         </div>
       </main>
