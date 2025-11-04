@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, Download, FileText, User, Briefcase, Calendar, Building, PenTool, ZoomIn, ZoomOut, Loader2, Pencil, Save, XCircle, Shield, Clock, MapPin, Eye } from 'lucide-react';
 import { toast } from 'sonner';
@@ -513,48 +514,70 @@ const DocumentDetails = () => {
             </div>
           </div>
           
-          {/* Right Column: Unified Data Card with Scroll */}
+          {/* Right Column: Unified Single Card */}
           <div className="col-span-3 h-full flex flex-col">
-            <ScrollArea className="h-full">
-              <div className="p-6 space-y-6">
-                
-                {/* === SECCIÓN 1: DATOS DEL PARTE === */}
-                <Card className="p-6">
-                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 border-b pb-3">
-                    <FileText className="h-5 w-5 text-primary" />
-                    Datos del Parte
-                  </h2>
-                  <dl className="space-y-4">
-                    {/* Nº de Parte */}
-                    <div className="flex items-start gap-3">
-                      <FileText className="h-4 w-4 text-primary mt-0.5" />
-                      <div className="flex-1">
-                        <dt className="text-xs text-muted-foreground mb-0.5">Nº de Parte</dt>
+            <Card className="h-full flex flex-col">
+              {/* Header Fijo */}
+              <div className="border-b p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-semibold">Datos Extraídos del Parte</h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Revisa y corrige los datos extraídos del parte de trabajo
+                    </p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      const dataStr = JSON.stringify(editedData, null, 2);
+                      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                      const exportFileDefaultName = `parte_${editedData?.parteNumero || document.id}.json`;
+                      const linkElement = window.document.createElement('a');
+                      linkElement.setAttribute('href', dataUri);
+                      linkElement.setAttribute('download', exportFileDefaultName);
+                      linkElement.click();
+                      toast.success('Datos exportados correctamente');
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Exportar Individual
+                  </Button>
+                </div>
+              </div>
+
+              {/* Contenido Scrolleable */}
+              <ScrollArea className="flex-1">
+                <div className="p-6">
+                  
+                  {/* === SECCIÓN 1: DATOS DEL PARTE === */}
+                  <div className="mb-6">
+                    <h3 className="font-semibold text-base mb-4 flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-primary" />
+                      Datos del Parte
+                    </h3>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                      {/* Nº de Parte */}
+                      <div>
+                        <label className="text-sm text-muted-foreground mb-1.5 block">Nº de Parte</label>
                         {isEditMode ? (
                           <Input
-                            type="text"
                             value={editedData?.parteNumero || ''}
                             onChange={(e) => setEditedData({
                               ...editedData!,
                               parteNumero: e.target.value
                             })}
-                            className="font-semibold"
-                            placeholder="Ingrese número de parte"
                           />
                         ) : (
-                          <dd className="font-semibold text-lg">
-                            {(document.meta as any)?.extractedData?.parteNumero || editedData?.parteNumero || 
-                              <span className="text-muted-foreground text-base">N/A</span>}
-                          </dd>
+                          <p className="text-sm font-medium">
+                            {editedData?.parteNumero || 'N/A'}
+                          </p>
                         )}
                       </div>
-                    </div>
 
-                    {/* Fecha del Parte */}
-                    <div className="flex items-start gap-3">
-                      <Calendar className="h-4 w-4 text-primary mt-0.5" />
-                      <div className="flex-1">
-                        <dt className="text-xs text-muted-foreground mb-0.5">Fecha del Parte</dt>
+                      {/* Fecha */}
+                      <div>
+                        <label className="text-sm text-muted-foreground mb-1.5 block">Fecha del Parte</label>
                         {isEditMode ? (
                           <Input
                             type="date"
@@ -563,521 +586,478 @@ const DocumentDetails = () => {
                               ...editedData!,
                               fecha: e.target.value
                             })}
-                            className="font-medium"
                           />
                         ) : (
-                          <dd className="font-medium">
-                            {((document.meta as any)?.extractedData?.fecha || editedData?.fecha) ? 
-                              new Date((document.meta as any)?.extractedData?.fecha || editedData?.fecha).toLocaleDateString('es-ES', {
-                                weekday: 'long',
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              }) : 'N/A'}
-                          </dd>
+                          <p className="text-sm font-medium">
+                            {editedData?.fecha
+                              ? new Date(editedData.fecha).toLocaleDateString('es-ES', {
+                                  weekday: 'long',
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })
+                              : 'N/A'}
+                          </p>
                         )}
                       </div>
-                    </div>
 
-                    {/* Cliente */}
-                    <div className="flex items-start gap-3">
-                      <Building className="h-4 w-4 text-blue-600 mt-0.5" />
-                      <div className="flex-1">
-                        <dt className="text-xs text-muted-foreground mb-0.5">Cliente</dt>
+                      {/* Cliente */}
+                      <div>
+                        <label className="text-sm text-muted-foreground mb-1.5 block">Cliente</label>
                         {isEditMode ? (
                           <Input
-                            type="text"
                             value={editedData?.cliente || ''}
                             onChange={(e) => setEditedData({
                               ...editedData!,
                               cliente: e.target.value
                             })}
-                            className="font-medium text-blue-600"
-                            placeholder="Ingrese nombre del cliente"
                           />
                         ) : (
-                          <dd className="font-medium text-blue-600">
-                            {(document.meta as any)?.extractedData?.cliente || editedData?.cliente || 'N/A'}
-                          </dd>
+                          <p className="text-sm font-medium">
+                            {editedData?.cliente || 'N/A'}
+                          </p>
                         )}
                       </div>
-                    </div>
 
-                    {/* Emplazamiento */}
-                    <div className="flex items-start gap-3">
-                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <div className="flex-1">
-                        <dt className="text-xs text-muted-foreground mb-0.5">Emplazamiento</dt>
+                      {/* Emplazamiento */}
+                      <div>
+                        <label className="text-sm text-muted-foreground mb-1.5 block">Emplazamiento</label>
                         {isEditMode ? (
                           <Input
-                            type="text"
                             value={editedData?.emplazamiento || ''}
                             onChange={(e) => setEditedData({
                               ...editedData!,
                               emplazamiento: e.target.value
                             })}
-                            className="font-medium"
-                            placeholder="Ingrese emplazamiento"
                           />
                         ) : (
-                          <dd className="font-medium">
-                            {(document.meta as any)?.extractedData?.emplazamiento || editedData?.emplazamiento || 'N/A'}
-                          </dd>
+                          <p className="text-sm font-medium">
+                            {editedData?.emplazamiento || 'N/A'}
+                          </p>
                         )}
                       </div>
-                    </div>
 
-                    {/* Obra */}
-                    <div className="flex items-start gap-3">
-                      <Briefcase className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <div className="flex-1">
-                        <dt className="text-xs text-muted-foreground mb-0.5">Obra</dt>
+                      {/* Obra */}
+                      <div className="col-span-2">
+                        <label className="text-sm text-muted-foreground mb-1.5 block">Obra</label>
                         {isEditMode ? (
                           <Input
-                            type="text"
                             value={editedData?.obra || ''}
                             onChange={(e) => setEditedData({
                               ...editedData!,
                               obra: e.target.value
                             })}
-                            className="font-medium"
-                            placeholder="Ingrese obra"
                           />
                         ) : (
-                          <dd className="font-medium">
-                            {(document.meta as any)?.extractedData?.obra || editedData?.obra || 'N/A'}
-                          </dd>
+                          <p className="text-sm font-medium">
+                            {editedData?.obra || 'N/A'}
+                          </p>
                         )}
                       </div>
                     </div>
-                  </dl>
-                </Card>
-
-                {/* === SECCIÓN 2: TRABAJO REALIZADO === */}
-                <Card className="p-6">
-                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 border-b pb-3">
-                    <Briefcase className="h-5 w-5 text-primary" />
-                    Trabajo Realizado
-                  </h2>
-                  
-                  {/* Descripción del trabajo */}
-                  <div className="mb-6">
-                    {isEditMode ? (
-                      <Textarea
-                        value={editedData?.trabajoRealizado || ''}
-                        onChange={(e) => setEditedData({
-                          ...editedData!,
-                          trabajoRealizado: e.target.value
-                        })}
-                        className="min-h-[200px]"
-                        placeholder="Descripción del trabajo realizado"
-                      />
-                    ) : (
-                      <p className="text-sm whitespace-pre-wrap">
-                        {(document.meta as any)?.extractedData?.trabajoRealizado || editedData?.trabajoRealizado || 
-                          <span className="text-muted-foreground italic">No hay descripción del trabajo</span>}
-                      </p>
-                    )}
                   </div>
 
-                  {/* Estado de Firmas */}
-                  <div>
-                    <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                      <PenTool className="h-4 w-4" />
-                      Estado de Firmas
+                  <Separator className="my-6" />
+
+                  {/* === SECCIÓN 2: TRABAJO REALIZADO === */}
+                  <div className="mb-6">
+                    <h3 className="font-semibold text-base mb-4 flex items-center gap-2">
+                      <Briefcase className="h-5 w-5 text-primary" />
+                      Trabajo Realizado
                     </h3>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between py-2 border-b">
-                        <span className="text-sm">Firma del Montador</span>
-                        <Badge variant={editedData?.firmas?.montador ? "default" : "secondary"}>
-                          {editedData?.firmas?.montador ? 'Firmado' : 'No firmado'}
-                        </Badge>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm text-muted-foreground mb-1.5 block">
+                          Descripción del Trabajo Realizado
+                        </label>
+                        {isEditMode ? (
+                          <Textarea
+                            value={editedData?.trabajoRealizado || ''}
+                            onChange={(e) => setEditedData({
+                              ...editedData!,
+                              trabajoRealizado: e.target.value
+                            })}
+                            className="min-h-[100px]"
+                          />
+                        ) : (
+                          <p className="text-sm whitespace-pre-wrap bg-muted/20 p-3 rounded-md">
+                            {editedData?.trabajoRealizado || 'N/A'}
+                          </p>
+                        )}
                       </div>
-                      <div className="flex items-center justify-between py-2">
-                        <span className="text-sm">Firma del Cliente</span>
-                        <Badge variant={editedData?.firmas?.cliente ? "default" : "secondary"}>
-                          {editedData?.firmas?.cliente ? 'Firmado' : 'No firmado'}
-                        </Badge>
+
+                      {/* Estado de Firmas */}
+                      <div>
+                        <label className="text-sm text-muted-foreground mb-2 block">Estado de Firmas</label>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="flex justify-between items-center p-3 bg-muted/20 rounded-md">
+                            <span className="text-sm font-medium">Firma del Montador</span>
+                            <Badge variant={editedData?.firmas?.montador ? "default" : "secondary"}>
+                              {editedData?.firmas?.montador ? '✓ Firmado' : '✗ No firmado'}
+                            </Badge>
+                          </div>
+                          <div className="flex justify-between items-center p-3 bg-muted/20 rounded-md">
+                            <span className="text-sm font-medium">Firma del Cliente</span>
+                            <Badge variant={editedData?.firmas?.cliente ? "default" : "secondary"}>
+                              {editedData?.firmas?.cliente ? '✓ Firmado' : '✗ No firmado'}
+                            </Badge>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </Card>
 
-                {/* === SECCIÓN 3: DATOS DE MONTADORES === */}
-                <Card className="p-6">
-                  <div className="flex items-center justify-between mb-4 border-b pb-3">
-                    <h2 className="text-lg font-semibold flex items-center gap-2">
-                      <User className="h-5 w-5 text-primary" />
-                      Datos de Montadores
-                    </h2>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={reExtractMontadores}
-                      disabled={isReextracting}
-                    >
-                      {isReextracting ? (
-                        <>
-                          <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                          Reextrayendo...
-                        </>
-                      ) : (
-                        'Reextraer desde imagen'
-                      )}
-                    </Button>
-                  </div>
+                  <Separator className="my-6" />
 
-                  {/* Listado de montadores individuales */}
-                  {editedData?.montadores && editedData.montadores.length > 0 ? (
-                    <div className="space-y-3 mb-6">
-                      {editedData.montadores.map((montador, index) => (
-                        <div key={index} className="border rounded-lg p-4 bg-muted/20 hover:bg-muted/30 transition-colors">
-                          <div className="flex items-center justify-between gap-6">
-                            {/* IZQUIERDA: Nombre del montador */}
-                            <div className="flex items-start gap-3 flex-1 min-w-0">
-                              <User className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <dt className="text-xs text-muted-foreground mb-0.5">
-                                  Montador {editedData.montadores!.length > 1 ? `#${index + 1}` : ''}
-                                </dt>
-                                {isEditMode ? (
-                                  <Input
-                                    type="text"
-                                    value={montador.nombreCompleto || ''}
-                                    onChange={(e) => {
-                                      const newMontadores = [...editedData.montadores!];
-                                      newMontadores[index] = {
-                                        ...newMontadores[index],
-                                        nombreCompleto: e.target.value
-                                      };
-                                      setEditedData({
-                                        ...editedData,
-                                        montadores: newMontadores
-                                      });
-                                    }}
-                                    className="font-medium"
-                                    placeholder="Nombre completo del montador"
-                                  />
-                                ) : (
-                                  <dd className="font-medium truncate">
-                                    {montador.nombreCompleto || 'N/A'}
-                                  </dd>
-                                )}
-                              </div>
-                            </div>
+                  {/* === SECCIÓN 3: MONTADORES === */}
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold text-base flex items-center gap-2">
+                        <User className="h-5 w-5 text-primary" />
+                        Montadores
+                      </h3>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={reExtractMontadores}
+                        disabled={isReextracting}
+                      >
+                        {isReextracting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Reextrayendo...
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="h-4 w-4 mr-2" />
+                            Reextraer desde imagen
+                          </>
+                        )}
+                      </Button>
+                    </div>
 
-                            {/* DERECHA: Desglose de horas */}
-                            <div className="flex items-center gap-4 flex-shrink-0">
-                              {/* Horas Activas */}
-                              <div className="text-center">
-                                <div className="text-xs text-muted-foreground mb-1 font-medium">H. Activas</div>
-                                <div className="flex items-center gap-2">
-                                  <div className="flex flex-col items-center">
-                                    <span className="text-[10px] text-muted-foreground uppercase">N</span>
-                                    {isEditMode ? (
-                                      <Input
-                                        type="number"
-                                        value={montador.horasActivas?.normales ?? 0}
-                                        onChange={(e) => {
-                                          const newMontadores = [...editedData.montadores!];
-                                          newMontadores[index] = {
-                                            ...newMontadores[index],
-                                            horasActivas: {
-                                              ...newMontadores[index].horasActivas,
-                                              normales: parseFloat(e.target.value) || 0,
-                                              extras: newMontadores[index].horasActivas?.extras ?? 0
-                                            }
-                                          };
-                                          setEditedData({
-                                            ...editedData,
-                                            montadores: newMontadores
-                                          });
-                                        }}
-                                        className="w-14 h-8 text-center text-sm font-semibold"
-                                        min="0"
-                                        step="0.5"
-                                      />
-                                    ) : (
-                                      <span className="text-sm font-semibold text-blue-600">
-                                        {montador.horasActivas?.normales ?? 0}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <span className="text-muted-foreground">/</span>
-                                  <div className="flex flex-col items-center">
-                                    <span className="text-[10px] text-muted-foreground uppercase">Ex</span>
-                                    {isEditMode ? (
-                                      <Input
-                                        type="number"
-                                        value={montador.horasActivas?.extras ?? 0}
-                                        onChange={(e) => {
-                                          const newMontadores = [...editedData.montadores!];
-                                          newMontadores[index] = {
-                                            ...newMontadores[index],
-                                            horasActivas: {
-                                              normales: newMontadores[index].horasActivas?.normales ?? 0,
-                                              extras: parseFloat(e.target.value) || 0
-                                            }
-                                          };
-                                          setEditedData({
-                                            ...editedData,
-                                            montadores: newMontadores
-                                          });
-                                        }}
-                                        className="w-14 h-8 text-center text-sm font-semibold"
-                                        min="0"
-                                        step="0.5"
-                                      />
-                                    ) : (
-                                      <span className="text-sm font-semibold text-orange-600">
-                                        {montador.horasActivas?.extras ?? 0}
-                                      </span>
-                                    )}
-                                  </div>
+                    {/* Listado de Montadores */}
+                    {editedData?.montadores && editedData.montadores.length > 0 ? (
+                      <div className="space-y-3 mb-6">
+                        {editedData.montadores.map((montador, index) => (
+                          <div key={index} className="border rounded-lg p-4 bg-muted/20">
+                            <div className="flex items-center justify-between gap-6">
+                              {/* Nombre del montador */}
+                              <div className="flex items-start gap-3 flex-1 min-w-0">
+                                <User className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <label className="text-xs text-muted-foreground mb-0.5 block">
+                                    Montador {editedData.montadores!.length > 1 ? `#${index + 1}` : ''}
+                                  </label>
+                                  {isEditMode ? (
+                                    <Input
+                                      value={montador.nombreCompleto || ''}
+                                      onChange={(e) => {
+                                        const newMontadores = [...editedData.montadores!];
+                                        newMontadores[index] = {
+                                          ...newMontadores[index],
+                                          nombreCompleto: e.target.value
+                                        };
+                                        setEditedData({
+                                          ...editedData,
+                                          montadores: newMontadores
+                                        });
+                                      }}
+                                      className="h-8"
+                                    />
+                                  ) : (
+                                    <p className="text-sm font-medium truncate">
+                                      {montador.nombreCompleto || 'N/A'}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
 
-                              {/* Separador vertical */}
-                              <div className="h-12 w-px bg-border" />
-
-                              {/* Horas de Viaje */}
-                              <div className="text-center">
-                                <div className="text-xs text-muted-foreground mb-1 font-medium">H. Viaje</div>
-                                <div className="flex items-center gap-2">
-                                  <div className="flex flex-col items-center">
-                                    <span className="text-[10px] text-muted-foreground uppercase">N</span>
-                                    {isEditMode ? (
-                                      <Input
-                                        type="number"
-                                        value={montador.horasViaje?.normales ?? 0}
-                                        onChange={(e) => {
-                                          const newMontadores = [...editedData.montadores!];
-                                          newMontadores[index] = {
-                                            ...newMontadores[index],
-                                            horasViaje: {
-                                              ...newMontadores[index].horasViaje,
-                                              normales: parseFloat(e.target.value) || 0,
-                                              extras: newMontadores[index].horasViaje?.extras ?? 0
-                                            }
-                                          };
-                                          setEditedData({
-                                            ...editedData,
-                                            montadores: newMontadores
-                                          });
-                                        }}
-                                        className="w-14 h-8 text-center text-sm font-semibold"
-                                        min="0"
-                                        step="0.5"
-                                      />
-                                    ) : (
-                                      <span className="text-sm font-semibold text-blue-600">
-                                        {montador.horasViaje?.normales ?? 0}
-                                      </span>
-                                    )}
+                              {/* Desglose de horas */}
+                              <div className="flex items-center gap-4 flex-shrink-0">
+                                {/* Horas Activas */}
+                                <div className="text-center">
+                                  <div className="text-xs text-muted-foreground mb-1 font-medium">H. Activas</div>
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex flex-col items-center">
+                                      <span className="text-[10px] text-muted-foreground uppercase">N</span>
+                                      {isEditMode ? (
+                                        <Input
+                                          type="number"
+                                          value={montador.horasActivas?.normales ?? 0}
+                                          onChange={(e) => {
+                                            const newMontadores = [...editedData.montadores!];
+                                            newMontadores[index] = {
+                                              ...newMontadores[index],
+                                              horasActivas: {
+                                                ...newMontadores[index].horasActivas,
+                                                normales: parseFloat(e.target.value) || 0,
+                                                extras: newMontadores[index].horasActivas?.extras ?? 0
+                                              }
+                                            };
+                                            setEditedData({
+                                              ...editedData,
+                                              montadores: newMontadores
+                                            });
+                                          }}
+                                          className="w-14 h-8 text-center text-sm"
+                                          min="0"
+                                          step="0.5"
+                                        />
+                                      ) : (
+                                        <span className="text-sm font-semibold text-blue-600">
+                                          {montador.horasActivas?.normales ?? 0}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-muted-foreground">/</span>
+                                    <div className="flex flex-col items-center">
+                                      <span className="text-[10px] text-muted-foreground uppercase">Ex</span>
+                                      {isEditMode ? (
+                                        <Input
+                                          type="number"
+                                          value={montador.horasActivas?.extras ?? 0}
+                                          onChange={(e) => {
+                                            const newMontadores = [...editedData.montadores!];
+                                            newMontadores[index] = {
+                                              ...newMontadores[index],
+                                              horasActivas: {
+                                                normales: newMontadores[index].horasActivas?.normales ?? 0,
+                                                extras: parseFloat(e.target.value) || 0
+                                              }
+                                            };
+                                            setEditedData({
+                                              ...editedData,
+                                              montadores: newMontadores
+                                            });
+                                          }}
+                                          className="w-14 h-8 text-center text-sm"
+                                          min="0"
+                                          step="0.5"
+                                        />
+                                      ) : (
+                                        <span className="text-sm font-semibold text-orange-600">
+                                          {montador.horasActivas?.extras ?? 0}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
-                                  <span className="text-muted-foreground">/</span>
-                                  <div className="flex flex-col items-center">
-                                    <span className="text-[10px] text-muted-foreground uppercase">Ex</span>
-                                    {isEditMode ? (
-                                      <Input
-                                        type="number"
-                                        value={montador.horasViaje?.extras ?? 0}
-                                        onChange={(e) => {
-                                          const newMontadores = [...editedData.montadores!];
-                                          newMontadores[index] = {
-                                            ...newMontadores[index],
-                                            horasViaje: {
-                                              normales: newMontadores[index].horasViaje?.normales ?? 0,
-                                              extras: parseFloat(e.target.value) || 0
-                                            }
-                                          };
-                                          setEditedData({
-                                            ...editedData,
-                                            montadores: newMontadores
-                                          });
-                                        }}
-                                        className="w-14 h-8 text-center text-sm font-semibold"
-                                        min="0"
-                                        step="0.5"
-                                      />
-                                    ) : (
-                                      <span className="text-sm font-semibold text-orange-600">
-                                        {montador.horasViaje?.extras ?? 0}
-                                      </span>
-                                    )}
+                                </div>
+
+                                <div className="h-12 w-px bg-border" />
+
+                                {/* Horas de Viaje */}
+                                <div className="text-center">
+                                  <div className="text-xs text-muted-foreground mb-1 font-medium">H. Viaje</div>
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex flex-col items-center">
+                                      <span className="text-[10px] text-muted-foreground uppercase">N</span>
+                                      {isEditMode ? (
+                                        <Input
+                                          type="number"
+                                          value={montador.horasViaje?.normales ?? 0}
+                                          onChange={(e) => {
+                                            const newMontadores = [...editedData.montadores!];
+                                            newMontadores[index] = {
+                                              ...newMontadores[index],
+                                              horasViaje: {
+                                                ...newMontadores[index].horasViaje,
+                                                normales: parseFloat(e.target.value) || 0,
+                                                extras: newMontadores[index].horasViaje?.extras ?? 0
+                                              }
+                                            };
+                                            setEditedData({
+                                              ...editedData,
+                                              montadores: newMontadores
+                                            });
+                                          }}
+                                          className="w-14 h-8 text-center text-sm"
+                                          min="0"
+                                          step="0.5"
+                                        />
+                                      ) : (
+                                        <span className="text-sm font-semibold text-blue-600">
+                                          {montador.horasViaje?.normales ?? 0}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-muted-foreground">/</span>
+                                    <div className="flex flex-col items-center">
+                                      <span className="text-[10px] text-muted-foreground uppercase">Ex</span>
+                                      {isEditMode ? (
+                                        <Input
+                                          type="number"
+                                          value={montador.horasViaje?.extras ?? 0}
+                                          onChange={(e) => {
+                                            const newMontadores = [...editedData.montadores!];
+                                            newMontadores[index] = {
+                                              ...newMontadores[index],
+                                              horasViaje: {
+                                                normales: newMontadores[index].horasViaje?.normales ?? 0,
+                                                extras: parseFloat(e.target.value) || 0
+                                              }
+                                            };
+                                            setEditedData({
+                                              ...editedData,
+                                              montadores: newMontadores
+                                            });
+                                          }}
+                                          className="w-14 h-8 text-center text-sm"
+                                          min="0"
+                                          step="0.5"
+                                        />
+                                      ) : (
+                                        <span className="text-sm font-semibold text-orange-600">
+                                          {montador.horasViaje?.extras ?? 0}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : editedData?.montador ? (
-                    <div className="space-y-3 mb-6">
-                      <div className="flex items-start gap-3">
-                        <User className="h-4 w-4 text-primary mt-0.5" />
-                        <div className="flex-1">
-                          <dt className="text-xs text-muted-foreground mb-0.5">Nombre</dt>
-                          <dd className="font-medium">
-                            {renderField(editedData.montador.nombre, 'Nombre')}
-                          </dd>
-                        </div>
+                        ))}
                       </div>
-                      <div className="flex items-start gap-3">
-                        <User className="h-4 w-4 text-primary mt-0.5" />
-                        <div className="flex-1">
-                          <dt className="text-xs text-muted-foreground mb-0.5">Apellidos</dt>
-                          <dd className="font-medium">
-                            {renderField(editedData.montador.apellidos, 'Apellidos')}
-                          </dd>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-sm mb-6">No hay datos de montador disponibles</p>
-                  )}
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4 mb-6">
+                        No hay montadores registrados
+                      </p>
+                    )}
 
-                  {/* Horas Totales Trabajadas */}
-                  <div className="border-t pt-6">
-                    <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      Horas Totales Trabajadas
-                    </h3>
-                    <dl className="space-y-2">
+                    {/* Horas Totales Trabajadas */}
+                    <div className="border-t pt-6">
+                      <h4 className="font-semibold text-sm mb-4 flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        Horas Totales Trabajadas
+                      </h4>
                       {editedData?.montadores && editedData.montadores.length > 0 ? (
-                        <>
-                          {/* Calcular totales automáticamente */}
-                          {(() => {
-                            const totales = editedData.montadores.reduce((acc, montador) => ({
-                              activasNormales: acc.activasNormales + (montador.horasActivas?.normales ?? 0),
-                              activasExtras: acc.activasExtras + (montador.horasActivas?.extras ?? 0),
-                              viajeNormales: acc.viajeNormales + (montador.horasViaje?.normales ?? 0),
-                              viajeExtras: acc.viajeExtras + (montador.horasViaje?.extras ?? 0)
-                            }), {
-                              activasNormales: 0,
-                              activasExtras: 0,
-                              viajeNormales: 0,
-                              viajeExtras: 0
-                            });
-
-                            return (
-                              <>
-                                {/* Horas Activas (N) */}
-                                <div className="flex justify-between items-center py-2 border-b">
-                                  <dt className="text-sm text-muted-foreground">Horas Activas (N)</dt>
-                                  <dd className="font-medium text-blue-600">
-                                    {totales.activasNormales}h
-                                  </dd>
-                                </div>
-
-                                {/* Horas Activas (Ex) */}
-                                <div className="flex justify-between items-center py-2 border-b">
-                                  <dt className="text-sm text-muted-foreground">Horas Activas (Ex)</dt>
-                                  <dd className="font-medium text-orange-600">
-                                    {totales.activasExtras}h
-                                  </dd>
-                                </div>
-
-                                {/* Horas de Viaje (N) */}
-                                <div className="flex justify-between items-center py-2 border-b">
-                                  <dt className="text-sm text-muted-foreground">Horas de Viaje (N)</dt>
-                                  <dd className="font-medium text-blue-600">
-                                    {totales.viajeNormales}h
-                                  </dd>
-                                </div>
-
-                                {/* Horas de Viaje (Ex) */}
-                                <div className="flex justify-between items-center py-2 border-b">
-                                  <dt className="text-sm text-muted-foreground">Horas de Viaje (Ex)</dt>
-                                  <dd className="font-medium text-orange-600">
-                                    {totales.viajeExtras}h
-                                  </dd>
-                                </div>
-
-                                {/* Total General */}
-                                <div className="flex justify-between items-center pt-3 border-t-2">
-                                  <dt className="font-semibold">Total</dt>
-                                  <dd className="font-bold text-lg">
-                                    {totales.activasNormales + 
-                                     totales.activasExtras + 
-                                     totales.viajeNormales + 
-                                     totales.viajeExtras}h
-                                  </dd>
-                                </div>
-                              </>
-                            );
-                          })()}
-                        </>
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Horas Activas (N)</span>
+                            <span className="font-semibold text-blue-600">
+                              {editedData.montadores.reduce((sum, m) => sum + (m.horasActivas?.normales ?? 0), 0)}h
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Horas Activas (Ex)</span>
+                            <span className="font-semibold text-orange-600">
+                              {editedData.montadores.reduce((sum, m) => sum + (m.horasActivas?.extras ?? 0), 0)}h
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Horas de Viaje (N)</span>
+                            <span className="font-semibold text-blue-600">
+                              {editedData.montadores.reduce((sum, m) => sum + (m.horasViaje?.normales ?? 0), 0)}h
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Horas de Viaje (Ex)</span>
+                            <span className="font-semibold text-orange-600">
+                              {editedData.montadores.reduce((sum, m) => sum + (m.horasViaje?.extras ?? 0), 0)}h
+                            </span>
+                          </div>
+                          <div className="col-span-2 border-t pt-3 mt-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-semibold">Total General</span>
+                              <span className="text-lg font-bold text-primary">
+                                {editedData.montadores.reduce(
+                                  (sum, m) =>
+                                    sum +
+                                    (m.horasActivas?.normales ?? 0) +
+                                    (m.horasActivas?.extras ?? 0) +
+                                    (m.horasViaje?.normales ?? 0) +
+                                    (m.horasViaje?.extras ?? 0),
+                                  0
+                                )}h
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       ) : (
-                        <p className="text-muted-foreground text-sm">No hay datos de montadores disponibles</p>
+                        <p className="text-sm text-muted-foreground">No hay datos de montadores disponibles</p>
                       )}
-                    </dl>
+                    </div>
                   </div>
-                </Card>
 
-                {/* === SECCIÓN 4: METADATOS DE VALIDACIÓN === */}
-                <Card className="p-6">
-                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 border-b pb-3">
-                    <Shield className="h-5 w-5 text-primary" />
-                    Metadatos de Validación
-                  </h2>
-                  <dl className="space-y-2 text-sm">
-                    <div className="flex justify-between py-2 border-b">
-                      <dt className="text-muted-foreground">Estado</dt>
-                      <dd>
-                        <Badge variant={
-                          document.status === 'approved' ? 'default' :
-                          document.status === 'rejected' ? 'destructive' :
-                          'secondary'
-                        }>
-                          {document.status === 'approved' ? 'Aprobado' :
-                           document.status === 'rejected' ? 'Rechazado' :
-                           'Pendiente'}
-                        </Badge>
-                      </dd>
-                    </div>
-                    <div className="flex justify-between py-2 border-b">
-                      <dt className="text-muted-foreground">Legibilidad</dt>
-                      <dd className="font-medium">{document.meta?.legibilityScore || 0}%</dd>
-                    </div>
-                    <div className="flex justify-between py-2 border-b">
-                      <dt className="text-muted-foreground">Auto-recortado</dt>
-                      <dd className="font-medium">{document.meta?.hadAutoCrop ? 'Sí' : 'No'}</dd>
-                    </div>
-                    <div className="flex justify-between py-2 border-b">
-                      <dt className="text-muted-foreground">Subido por</dt>
-                      <dd className="font-medium">{document.profiles?.full_name || 'N/A'}</dd>
-                    </div>
-                    <div className="flex justify-between py-2 border-b">
-                      <dt className="text-muted-foreground">Fecha de subida</dt>
-                      <dd className="font-medium">
-                        {new Date(document.created_at).toLocaleString('es-ES')}
-                      </dd>
-                    </div>
-                    {document.validated_at && (
-                      <div className="flex justify-between py-2">
-                        <dt className="text-muted-foreground">Validado el</dt>
-                        <dd className="font-medium">
-                          {new Date(document.validated_at).toLocaleString('es-ES')}
+                  <Separator className="my-6" />
+
+                  {/* === SECCIÓN 4: METADATOS DE VALIDACIÓN === */}
+                  <div>
+                    <h3 className="font-semibold text-base mb-4 flex items-center gap-2">
+                      <Shield className="h-5 w-5 text-primary" />
+                      Metadatos de Validación
+                    </h3>
+                    <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
+                      <div>
+                        <dt className="text-sm text-muted-foreground mb-1">Estado</dt>
+                        <dd>
+                          <Badge
+                            variant={
+                              document.status === 'approved'
+                                ? 'default'
+                                : document.status === 'rejected'
+                                ? 'destructive'
+                                : 'secondary'
+                            }
+                          >
+                            {document.status === 'approved' && '✓ Aprobado'}
+                            {document.status === 'rejected' && '✗ Rechazado'}
+                            {document.status === 'pending' && '⏳ Pendiente'}
+                          </Badge>
                         </dd>
                       </div>
-                    )}
-                  </dl>
-                  
-                  {/* Notas de Revisión (si existen) */}
-                  {document.review_notes && (
-                    <div className="mt-6 pt-6 border-t">
-                      <h3 className="font-semibold text-sm mb-2">Notas de Revisión</h3>
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                        {document.review_notes}
-                      </p>
-                    </div>
-                  )}
-                </Card>
+                      <div>
+                        <dt className="text-sm text-muted-foreground mb-1">Legibilidad</dt>
+                        <dd className="text-sm font-medium">
+                          {document.meta?.legibilityScore
+                            ? `${document.meta.legibilityScore}%`
+                            : 'N/A'}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm text-muted-foreground mb-1">Auto-recortado</dt>
+                        <dd className="text-sm font-medium">
+                          {document.meta?.hadAutoCrop ? '✓ Sí' : '✗ No'}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm text-muted-foreground mb-1">Subido por</dt>
+                        <dd className="text-sm font-medium">
+                          {document.profiles?.full_name || 'Usuario desconocido'}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm text-muted-foreground mb-1">Fecha de subida</dt>
+                        <dd className="text-sm font-medium">
+                          {new Date(document.created_at).toLocaleString('es-ES')}
+                        </dd>
+                      </div>
+                      {document.validated_at && (
+                        <div>
+                          <dt className="text-sm text-muted-foreground mb-1">Fecha de validación</dt>
+                          <dd className="text-sm font-medium">
+                            {new Date(document.validated_at).toLocaleString('es-ES')}
+                          </dd>
+                        </div>
+                      )}
+                    </dl>
 
-              </div>
-            </ScrollArea>
+                    {/* Notas de Revisión */}
+                    {document.review_notes && (
+                      <div className="mt-6 pt-6 border-t">
+                        <h4 className="font-semibold text-sm mb-2">Notas de Revisión</h4>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted/20 p-3 rounded-md">
+                          {document.review_notes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+              </ScrollArea>
+            </Card>
           </div>
         </div>
       </main>
