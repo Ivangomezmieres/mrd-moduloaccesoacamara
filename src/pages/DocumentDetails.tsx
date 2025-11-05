@@ -396,14 +396,16 @@ const DocumentDetails = () => {
             </div>
             
             {/* Contenedor scrolleable con imagen zoomeable */}
-            <div className="flex-1 min-h-0 overflow-y-auto bg-muted/20 relative">
-              <div className="flex items-start justify-center p-4">
-                {imageUrl && <img src={imageUrl} alt="Documento escaneado" className="shadow-lg transition-all duration-200" style={{
-                width: `${zoom}%`,
-                maxWidth: 'none',
-                height: 'auto'
-              }} />}
-              </div>
+            <div className="flex-1 min-h-0 bg-muted/20 relative">
+              <ScrollArea className="h-full">
+                <div className="flex items-start justify-center p-4">
+                  {imageUrl && <img src={imageUrl} alt="Documento escaneado" className="shadow-lg transition-all duration-200" style={{
+                  width: `${zoom}%`,
+                  maxWidth: 'none',
+                  height: 'auto'
+                }} />}
+                </div>
+              </ScrollArea>
               
               {/* Badge de legibilidad flotante */}
               <div className="absolute top-4 right-4 bg-background/95 backdrop-blur-sm px-3 py-1.5 rounded-full border shadow-sm">
