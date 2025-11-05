@@ -556,7 +556,7 @@ const DocumentDetails = () => {
                       <FileText className="h-5 w-5 text-primary" />
                       Datos del Parte
                     </h3>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                    <div className="grid grid-cols-3 gap-x-6 gap-y-4">
                       {/* Nº de Parte */}
                       <div>
                         <label className="text-sm text-muted-foreground mb-1.5 block">Nº de Parte</label>
@@ -637,9 +637,9 @@ const DocumentDetails = () => {
                         )}
                       </div>
 
-                      {/* Obra */}
-                      <div className="col-span-2">
-                        <label className="text-sm text-muted-foreground mb-1.5 block">Obra</label>
+          {/* Obra */}
+          <div>
+            <label className="text-sm text-muted-foreground mb-1.5 block">Obra</label>
                         {isEditMode ? (
                           <Input
                             value={editedData?.obra || ''}
