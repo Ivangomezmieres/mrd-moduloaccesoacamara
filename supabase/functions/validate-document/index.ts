@@ -83,6 +83,7 @@ OTROS CAMPOS A EXTRAER DEL DOCUMENTO:
 - Emplazamiento (ubicación física del trabajo)
 - Obra (nombre del proyecto/obra)
 - Trabajo realizado (descripción detallada de las tareas)
+- Horario (horario de trabajo, ej: "7:30 a 17:30")
 - Fecha del parte (formato YYYY-MM-DD)
 - Firmas detectadas:
   * Firma del jefe de equipo/montador (true si hay firma visible, false si no)
@@ -102,6 +103,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura exacta:
   "emplazamiento": "string o null",
   "obra": "string o null",
   "trabajoRealizado": "string o null",
+  "horario": "string o null",
   "montadores": [
     {
       "nombreCompleto": "Nombre Apellido",
@@ -185,7 +187,7 @@ NO incluyas texto adicional, comentarios o explicaciones. SOLO devuelve el JSON 
       const parsed = JSON.parse(jsonText);
       
       // Normalizar campos de cabecera: convertir strings vacíos a null
-      const headerFields = ['parteNumero', 'cliente', 'emplazamiento', 'obra', 'trabajoRealizado', 'fecha'];
+      const headerFields = ['parteNumero', 'cliente', 'emplazamiento', 'obra', 'trabajoRealizado', 'horario', 'fecha'];
       headerFields.forEach(field => {
         if (parsed[field] === '') {
           parsed[field] = null;
@@ -357,6 +359,7 @@ async function extractHeaderOnly(imageBase64: string, openaiKey: string) {
 - emplazamiento: Ubicación/emplazamiento
 - obra: Nombre de la obra
 - trabajoRealizado: Descripción del trabajo
+- horario: Horario de trabajo (ej: "7:30 a 17:30")
 - fecha: Fecha en formato YYYY-MM-DD
 - firmas: { montador: boolean, cliente: boolean }
 

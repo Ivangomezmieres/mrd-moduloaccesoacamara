@@ -17,6 +17,7 @@ interface ExtractedData {
   emplazamiento: string | null;
   obra: string | null;
   trabajoRealizado: string | null;
+  horario: string | null;
   montador?: {
     nombre: string | null;
     apellidos: string | null;
@@ -143,6 +144,7 @@ const DocumentDetails = () => {
           emplazamiento: null,
           obra: null,
           trabajoRealizado: null,
+          horario: null,
           fecha: null,
           montadores: [],
           horasTotales: {
@@ -543,6 +545,26 @@ const DocumentDetails = () => {
                       })} className="min-h-[100px]" /> : <p className="text-sm whitespace-pre-wrap bg-muted/20 p-3 rounded-md">
                             {editedData?.trabajoRealizado || 'N/A'}
                           </p>}
+                      </div>
+
+                      {/* Horario */}
+                      <div>
+                        <label className="text-sm text-muted-foreground mb-1.5 block">
+                          Horario
+                        </label>
+                        {isEditMode ? (
+                          <Input 
+                            value={editedData?.horario || ''} 
+                            onChange={e => setEditedData({
+                              ...editedData!,
+                              horario: e.target.value
+                            })} 
+                          />
+                        ) : (
+                          <p className="text-sm font-medium">
+                            {editedData?.horario || 'N/A'}
+                          </p>
+                        )}
                       </div>
 
                       {/* Estado de Firmas */}
