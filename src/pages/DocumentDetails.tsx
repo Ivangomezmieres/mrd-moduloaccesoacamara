@@ -356,7 +356,7 @@ const DocumentDetails = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6 h-[calc(100vh-80px)]">
+      <main className="container mx-auto px-4 py-6 h-[calc(100vh-80px)] overflow-hidden">
         <div className="grid grid-cols-5 gap-6 h-full">
           {/* Left Column: Image (2/5) - CON SCROLL Y ZOOM FUNCIONAL */}
           <div className="col-span-2 h-full flex flex-col border rounded-lg bg-card">
