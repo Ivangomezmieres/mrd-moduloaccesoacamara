@@ -397,7 +397,7 @@ const DocumentDetails = () => {
             
             {/* Contenedor scrolleable con imagen zoomeable */}
             <div className="flex-1 overflow-y-auto bg-muted/20 relative">
-              <div className="min-h-full flex items-start justify-center p-4">
+              <div className="flex items-start justify-center p-4">
                 {imageUrl && <img src={imageUrl} alt="Documento escaneado" className="shadow-lg transition-all duration-200" style={{
                 width: `${zoom}%`,
                 maxWidth: 'none',
