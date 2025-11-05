@@ -311,9 +311,9 @@ const DocumentDetails = () => {
   if (!document) {
     return null;
   }
-  return <div className="min-h-screen bg-background">
+  return <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="border-b bg-card sticky top-0 z-10 shadow-sm">
+      <header className="border-b bg-card flex-shrink-0 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
@@ -356,7 +356,7 @@ const DocumentDetails = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6 h-[calc(100vh-80px)] overflow-hidden">
+      <main className="container mx-auto px-4 py-6 flex-1 min-h-0 overflow-hidden">
         <div className="grid grid-cols-5 gap-6 h-full">
           {/* Left Column: Image (2/5) - CON SCROLL Y ZOOM FUNCIONAL */}
           <div className="col-span-2 h-full min-h-0 flex flex-col border rounded-lg bg-card">
@@ -421,8 +421,8 @@ const DocumentDetails = () => {
           </div>
           
           {/* Right Column: Unified Single Card */}
-          <div className="col-span-3 h-full flex flex-col">
-            <Card className="h-full flex flex-col">
+          <div className="col-span-3 h-full min-h-0 flex flex-col">
+            <Card className="h-full min-h-0 flex flex-col">
               {/* Header Fijo */}
               <div className="border-b p-6">
                 <div className="flex items-center justify-between">
@@ -449,7 +449,7 @@ const DocumentDetails = () => {
               </div>
 
               {/* Contenido Scrolleable */}
-              <ScrollArea className="flex-1">
+              <ScrollArea className="flex-1 min-h-0">
                 <div className="p-6">
                   
                   {/* === SECCIÓN 1: DATOS DEL PARTE === */}
