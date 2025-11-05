@@ -11,7 +11,6 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, Download, FileText, User, Briefcase, Calendar, Building, PenTool, ZoomIn, ZoomOut, Loader2, Pencil, Save, XCircle, Shield, Clock, MapPin, Eye } from 'lucide-react';
 import { toast } from 'sonner';
-
 interface ExtractedData {
   parteNumero: string | null;
   cliente: string | null;
@@ -56,7 +55,6 @@ interface ExtractedData {
     cliente: boolean;
   };
 }
-
 interface Document {
   id: string;
   storage_path: string;
@@ -77,11 +75,13 @@ interface Document {
     full_name: string;
   };
 }
-
 const DocumentDetails = () => {
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
-  
+  const {
+    id
+  } = useParams<{
+    id: string;
+  }>();
   const [document, setDocument] = useState<Document | null>(null);
   const [imageUrl, setImageUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -90,57 +90,50 @@ const DocumentDetails = () => {
   const [isSavingChanges, setIsSavingChanges] = useState(false);
   const [isReextracting, setIsReextracting] = useState(false);
   const [zoom, setZoom] = useState(100);
-
   useEffect(() => {
     if (id) {
       loadDocument();
     }
   }, [id]);
-
   const loadDocument = async () => {
     setIsLoading(true);
-    
     try {
-      const { data, error } = await supabase
-        .from('documents')
-        .select(`
+      const {
+        data,
+        error
+      } = await supabase.from('documents').select(`
           *,
           profiles:uploader (
             full_name
           )
-        `)
-        .eq('id', id)
-        .single();
-
+        `).eq('id', id).single();
       if (error) {
         console.error('Error loading document:', error);
         toast.error('Error al cargar el documento');
         navigate('/admin/dashboard');
         return;
       }
-
       setDocument(data as any);
 
       // Cargar datos extraídos
       const existingData = (data.meta as any)?.extractedData;
-      
       if (existingData) {
         const initialData = JSON.parse(JSON.stringify(existingData));
-        
+
         // Compatibilidad: convertir estructura antigua a nueva
         if (existingData.montador && !existingData.montadores) {
-          initialData.montadores = [
-            {
-              nombreCompleto: `${existingData.montador.nombre || ''} ${existingData.montador.apellidos || ''}`.trim(),
-              horas: existingData.horas?.ordinarias || 0
-            }
-          ];
-          
+          initialData.montadores = [{
+            nombreCompleto: `${existingData.montador.nombre || ''} ${existingData.montador.apellidos || ''}`.trim(),
+            horas: existingData.horas?.ordinarias || 0
+          }];
           if (!initialData.horasTotales) {
-            initialData.horasTotales = existingData.horas || { ordinarias: 0, extras: 0, festivas: 0 };
+            initialData.horasTotales = existingData.horas || {
+              ordinarias: 0,
+              extras: 0,
+              festivas: 0
+            };
           }
         }
-        
         setEditedData(initialData);
       } else {
         // Datos vacíos si no hay extractedData
@@ -152,17 +145,23 @@ const DocumentDetails = () => {
           trabajoRealizado: null,
           fecha: null,
           montadores: [],
-          horasTotales: { ordinarias: 0, extras: 0, festivas: 0 },
+          horasTotales: {
+            ordinarias: 0,
+            extras: 0,
+            festivas: 0
+          },
           desgloseDetallado: null,
-          firmas: { montador: false, cliente: false }
+          firmas: {
+            montador: false,
+            cliente: false
+          }
         });
       }
 
       // Cargar imagen
-      const { data: signedUrlData } = await supabase.storage
-        .from('scans')
-        .createSignedUrl(data.storage_path, 3600);
-      
+      const {
+        data: signedUrlData
+      } = await supabase.storage.from('scans').createSignedUrl(data.storage_path, 3600);
       if (signedUrlData?.signedUrl) {
         setImageUrl(signedUrlData.signedUrl);
       }
@@ -174,33 +173,31 @@ const DocumentDetails = () => {
       setIsLoading(false);
     }
   };
-
   const reExtractMontadores = async () => {
     if (!imageUrl) {
       toast.error('No se pudo obtener la URL de la imagen');
       return;
     }
-
     setIsReextracting(true);
-    
     try {
-      const { data, error } = await supabase.functions.invoke('validate-document', {
-        body: { imageData: imageUrl }
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('validate-document', {
+        body: {
+          imageData: imageUrl
+        }
       });
-
       if (error) {
         console.error('Error reextrayendo montadores:', error);
         toast.error('Error al reextraer montadores desde la imagen');
         return;
       }
-
       const extractedData = data?.extractedData;
-      
       if (extractedData) {
         const updates: any = {};
         let hasUpdates = false;
         let headerUpdates = 0;
-        
         const headerFields = ['parteNumero', 'cliente', 'emplazamiento', 'obra', 'trabajoRealizado', 'fecha', 'firmas'];
         headerFields.forEach(field => {
           if (extractedData[field]) {
@@ -209,24 +206,20 @@ const DocumentDetails = () => {
             hasUpdates = true;
           }
         });
-        
         if (extractedData.montadores && extractedData.montadores.length > 1) {
           updates.montadores = extractedData.montadores;
           hasUpdates = true;
-          
           updates.horasTotales = extractedData.horasTotales || {
             ordinarias: extractedData.montadores.reduce((sum: number, m: any) => sum + (m.horas || 0), 0),
             extras: 0,
             festivas: 0
           };
         }
-
         if (hasUpdates) {
           setEditedData(prev => ({
             ...prev!,
             ...updates
           }));
-          
           if (extractedData.montadores && extractedData.montadores.length > 1) {
             toast.success(`✅ ${extractedData.montadores.length} montadores extraídos`);
           }
@@ -246,32 +239,26 @@ const DocumentDetails = () => {
       setIsReextracting(false);
     }
   };
-
   const handleSaveEditedData = async () => {
     if (!document || !editedData) {
       toast.error('No hay datos para guardar');
       return;
     }
-
     setIsSavingChanges(true);
-
     try {
-      const { error } = await supabase
-        .from('documents')
-        .update({
-          meta: {
-            ...document.meta,
-            extractedData: editedData
-          } as any
-        })
-        .eq('id', document.id);
-
+      const {
+        error
+      } = await supabase.from('documents').update({
+        meta: {
+          ...document.meta,
+          extractedData: editedData
+        } as any
+      }).eq('id', document.id);
       if (error) {
         console.error('Error saving edited data:', error);
         toast.error('Error al guardar los cambios');
         return;
       }
-
       setDocument({
         ...document,
         meta: {
@@ -279,7 +266,6 @@ const DocumentDetails = () => {
           extractedData: editedData
         }
       });
-
       toast.success('Cambios guardados correctamente');
       setIsEditMode(false);
     } catch (error) {
@@ -289,56 +275,43 @@ const DocumentDetails = () => {
       setIsSavingChanges(false);
     }
   };
-
   const handleCancelEdit = () => {
     setEditedData((document.meta as any)?.extractedData ? JSON.parse(JSON.stringify((document.meta as any).extractedData)) : null);
     setIsEditMode(false);
     toast.info('Cambios descartados');
   };
-
   const handleZoomIn = () => {
     setZoom(prev => Math.min(prev + 25, 200));
   };
-
   const handleZoomOut = () => {
     setZoom(prev => Math.max(prev - 25, 50));
   };
-
   const handleResetZoom = () => {
     setZoom(100);
   };
-
   const renderField = (value: string | null | undefined, label: string) => {
     if (!value || value === '') {
-      return (
-        <div className="flex items-center gap-2">
+      return <div className="flex items-center gap-2">
           <span className="text-muted-foreground italic">N/A</span>
           <Badge variant="outline" className="text-xs text-orange-600 border-orange-600">
             Dato no reconocido
           </Badge>
-        </div>
-      );
+        </div>;
     }
     return <span>{value}</span>;
   };
-
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+    return <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Cargando documento...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (!document) {
     return null;
   }
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-4 py-4">
@@ -359,46 +332,24 @@ const DocumentDetails = () => {
               </div>
             </div>
             <div className="flex gap-2">
-              {!isEditMode ? (
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => setIsEditMode(true)}
-                >
+              {!isEditMode ? <Button size="sm" variant="outline" onClick={() => setIsEditMode(true)}>
                   <Pencil className="mr-2 h-4 w-4" />
                   Editar
-                </Button>
-              ) : (
-                <>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={handleCancelEdit}
-                    disabled={isSavingChanges}
-                  >
+                </Button> : <>
+                  <Button size="sm" variant="outline" onClick={handleCancelEdit} disabled={isSavingChanges}>
                     <XCircle className="mr-2 h-4 w-4" />
                     Cancelar
                   </Button>
-                  <Button 
-                    size="sm" 
-                    variant="default"
-                    onClick={handleSaveEditedData}
-                    disabled={isSavingChanges}
-                  >
-                    {isSavingChanges ? (
-                      <>
+                  <Button size="sm" variant="default" onClick={handleSaveEditedData} disabled={isSavingChanges}>
+                    {isSavingChanges ? <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Guardando...
-                      </>
-                    ) : (
-                      <>
+                      </> : <>
                         <Save className="mr-2 h-4 w-4" />
                         Guardar
-                      </>
-                    )}
+                      </>}
                   </Button>
-                </>
-              )}
+                </>}
             </div>
           </div>
         </div>
@@ -414,34 +365,17 @@ const DocumentDetails = () => {
               <span className="text-sm font-medium">Vista Previa del Documento</span>
               <div className="flex items-center gap-2">
                 {/* Botón Zoom Out */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleZoomOut}
-                  disabled={zoom <= 50}
-                  className="h-8 w-8 p-0"
-                >
+                <Button variant="outline" size="sm" onClick={handleZoomOut} disabled={zoom <= 50} className="h-8 w-8 p-0">
                   <ZoomOut className="h-4 w-4" />
                 </Button>
                 
                 {/* Indicador de zoom clickeable para reset */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleResetZoom}
-                  className="h-8 px-2 text-xs font-mono"
-                >
+                <Button variant="ghost" size="sm" onClick={handleResetZoom} className="h-8 px-2 text-xs font-mono">
                   {zoom}%
                 </Button>
                 
                 {/* Botón Zoom In */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleZoomIn}
-                  disabled={zoom >= 200}
-                  className="h-8 w-8 p-0"
-                >
+                <Button variant="outline" size="sm" onClick={handleZoomIn} disabled={zoom >= 200} className="h-8 w-8 p-0">
                   <ZoomIn className="h-4 w-4" />
                 </Button>
                 
@@ -449,18 +383,13 @@ const DocumentDetails = () => {
                 <div className="h-6 w-px bg-border mx-1" />
                 
                 {/* Botón descargar compacto */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const imgElement = window.document.createElement('a');
-                    imgElement.href = imageUrl;
-                    imgElement.download = `documento_${(document.meta as any)?.extractedData?.parteNumero || 'sin-numero'}.jpg`;
-                    imgElement.click();
-                    toast.success('Descargando imagen...');
-                  }}
-                  className="h-8 w-8 p-0"
-                >
+                <Button variant="outline" size="sm" onClick={() => {
+                const imgElement = window.document.createElement('a');
+                imgElement.href = imageUrl;
+                imgElement.download = `documento_${(document.meta as any)?.extractedData?.parteNumero || 'sin-numero'}.jpg`;
+                imgElement.click();
+                toast.success('Descargando imagen...');
+              }} className="h-8 w-8 p-0">
                   <Download className="h-4 w-4" />
                 </Button>
               </div>
@@ -469,18 +398,11 @@ const DocumentDetails = () => {
             {/* Contenedor scrolleable con imagen zoomeable */}
             <div className="flex-1 overflow-auto bg-muted/20 relative">
               <div className="min-h-full flex items-start justify-center p-4">
-                {imageUrl && (
-                  <img
-                    src={imageUrl}
-                    alt="Documento escaneado"
-                    className="shadow-lg transition-all duration-200"
-                    style={{
-                      width: `${zoom}%`,
-                      maxWidth: 'none',
-                      height: 'auto'
-                    }}
-                  />
-                )}
+                {imageUrl && <img src={imageUrl} alt="Documento escaneado" className="shadow-lg transition-all duration-200" style={{
+                width: `${zoom}%`,
+                maxWidth: 'none',
+                height: 'auto'
+              }} />}
               </div>
               
               {/* Badge de legibilidad flotante */}
@@ -495,23 +417,7 @@ const DocumentDetails = () => {
             </div>
             
             {/* Footer fijo con card de calidad */}
-            <div className="flex-shrink-0 p-3 border-t bg-muted/30">
-              <div className="space-y-2">
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">Legibilidad</span>
-                    <span className="font-medium">{document.meta?.legibilityScore || 0}%</span>
-                  </div>
-                  <Progress value={document.meta?.legibilityScore || 0} className="h-2" />
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Auto-recortado:</span>
-                  <Badge variant={document.meta?.hadAutoCrop ? "default" : "secondary"} className="text-xs">
-                    {document.meta?.hadAutoCrop ? 'Sí' : 'No'}
-                  </Badge>
-                </div>
-              </div>
-            </div>
+            
           </div>
           
           {/* Right Column: Unified Single Card */}
@@ -526,20 +432,16 @@ const DocumentDetails = () => {
                       Revisa y corrige los datos extraídos del parte de trabajo
                     </p>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      const dataStr = JSON.stringify(editedData, null, 2);
-                      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-                      const exportFileDefaultName = `parte_${editedData?.parteNumero || document.id}.json`;
-                      const linkElement = window.document.createElement('a');
-                      linkElement.setAttribute('href', dataUri);
-                      linkElement.setAttribute('download', exportFileDefaultName);
-                      linkElement.click();
-                      toast.success('Datos exportados correctamente');
-                    }}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => {
+                  const dataStr = JSON.stringify(editedData, null, 2);
+                  const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+                  const exportFileDefaultName = `parte_${editedData?.parteNumero || document.id}.json`;
+                  const linkElement = window.document.createElement('a');
+                  linkElement.setAttribute('href', dataUri);
+                  linkElement.setAttribute('download', exportFileDefaultName);
+                  linkElement.click();
+                  toast.success('Datos exportados correctamente');
+                }}>
                     <Download className="h-4 w-4 mr-2" />
                     Exportar Individual
                   </Button>
@@ -560,99 +462,61 @@ const DocumentDetails = () => {
                       {/* Nº de Parte */}
                       <div>
                         <label className="text-sm text-muted-foreground mb-1.5 block">Nº de Parte</label>
-                        {isEditMode ? (
-                          <Input
-                            value={editedData?.parteNumero || ''}
-                            onChange={(e) => setEditedData({
-                              ...editedData!,
-                              parteNumero: e.target.value
-                            })}
-                          />
-                        ) : (
-                          <p className="text-sm font-medium">
+                        {isEditMode ? <Input value={editedData?.parteNumero || ''} onChange={e => setEditedData({
+                        ...editedData!,
+                        parteNumero: e.target.value
+                      })} /> : <p className="text-sm font-medium">
                             {editedData?.parteNumero || 'N/A'}
-                          </p>
-                        )}
+                          </p>}
                       </div>
 
                       {/* Fecha */}
                       <div>
                         <label className="text-sm text-muted-foreground mb-1.5 block">Fecha del Parte</label>
-                        {isEditMode ? (
-                          <Input
-                            type="date"
-                            value={editedData?.fecha ? new Date(editedData.fecha).toISOString().split('T')[0] : ''}
-                            onChange={(e) => setEditedData({
-                              ...editedData!,
-                              fecha: e.target.value
-                            })}
-                          />
-                        ) : (
-                          <p className="text-sm font-medium">
-                            {editedData?.fecha
-                              ? new Date(editedData.fecha).toLocaleDateString('es-ES', {
-                                  weekday: 'long',
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric'
-                                })
-                              : 'N/A'}
-                          </p>
-                        )}
+                        {isEditMode ? <Input type="date" value={editedData?.fecha ? new Date(editedData.fecha).toISOString().split('T')[0] : ''} onChange={e => setEditedData({
+                        ...editedData!,
+                        fecha: e.target.value
+                      })} /> : <p className="text-sm font-medium">
+                            {editedData?.fecha ? new Date(editedData.fecha).toLocaleDateString('es-ES', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        }) : 'N/A'}
+                          </p>}
                       </div>
 
                       {/* Cliente */}
                       <div>
                         <label className="text-sm text-muted-foreground mb-1.5 block">Cliente</label>
-                        {isEditMode ? (
-                          <Input
-                            value={editedData?.cliente || ''}
-                            onChange={(e) => setEditedData({
-                              ...editedData!,
-                              cliente: e.target.value
-                            })}
-                          />
-                        ) : (
-                          <p className="text-sm font-medium">
+                        {isEditMode ? <Input value={editedData?.cliente || ''} onChange={e => setEditedData({
+                        ...editedData!,
+                        cliente: e.target.value
+                      })} /> : <p className="text-sm font-medium">
                             {editedData?.cliente || 'N/A'}
-                          </p>
-                        )}
+                          </p>}
                       </div>
 
                       {/* Emplazamiento */}
                       <div>
                         <label className="text-sm text-muted-foreground mb-1.5 block">Emplazamiento</label>
-                        {isEditMode ? (
-                          <Input
-                            value={editedData?.emplazamiento || ''}
-                            onChange={(e) => setEditedData({
-                              ...editedData!,
-                              emplazamiento: e.target.value
-                            })}
-                          />
-                        ) : (
-                          <p className="text-sm font-medium">
+                        {isEditMode ? <Input value={editedData?.emplazamiento || ''} onChange={e => setEditedData({
+                        ...editedData!,
+                        emplazamiento: e.target.value
+                      })} /> : <p className="text-sm font-medium">
                             {editedData?.emplazamiento || 'N/A'}
-                          </p>
-                        )}
+                          </p>}
                       </div>
 
           {/* Obra */}
           <div>
             <label className="text-sm text-muted-foreground mb-1.5 block">Obra</label>
-                        {isEditMode ? (
-                          <Input
-                            value={editedData?.obra || ''}
-                            onChange={(e) => setEditedData({
-                              ...editedData!,
-                              obra: e.target.value
-                            })}
-                          />
-                        ) : (
-                          <p className="text-sm font-medium">
+                        {isEditMode ? <Input value={editedData?.obra || ''} onChange={e => setEditedData({
+                        ...editedData!,
+                        obra: e.target.value
+                      })} /> : <p className="text-sm font-medium">
                             {editedData?.obra || 'N/A'}
-                          </p>
-                        )}
+                          </p>}
                       </div>
                     </div>
                   </div>
@@ -671,20 +535,12 @@ const DocumentDetails = () => {
                         <label className="text-sm text-muted-foreground mb-1.5 block">
                           Descripción del Trabajo Realizado
                         </label>
-                        {isEditMode ? (
-                          <Textarea
-                            value={editedData?.trabajoRealizado || ''}
-                            onChange={(e) => setEditedData({
-                              ...editedData!,
-                              trabajoRealizado: e.target.value
-                            })}
-                            className="min-h-[100px]"
-                          />
-                        ) : (
-                          <p className="text-sm whitespace-pre-wrap bg-muted/20 p-3 rounded-md">
+                        {isEditMode ? <Textarea value={editedData?.trabajoRealizado || ''} onChange={e => setEditedData({
+                        ...editedData!,
+                        trabajoRealizado: e.target.value
+                      })} className="min-h-[100px]" /> : <p className="text-sm whitespace-pre-wrap bg-muted/20 p-3 rounded-md">
                             {editedData?.trabajoRealizado || 'N/A'}
-                          </p>
-                        )}
+                          </p>}
                       </div>
 
                       {/* Estado de Firmas */}
@@ -717,31 +573,20 @@ const DocumentDetails = () => {
                         <User className="h-5 w-5 text-primary" />
                         Montadores
                       </h3>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={reExtractMontadores}
-                        disabled={isReextracting}
-                      >
-                        {isReextracting ? (
-                          <>
+                      <Button size="sm" variant="outline" onClick={reExtractMontadores} disabled={isReextracting}>
+                        {isReextracting ? <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                             Reextrayendo...
-                          </>
-                        ) : (
-                          <>
+                          </> : <>
                             <FileText className="h-4 w-4 mr-2" />
                             Reextraer desde imagen
-                          </>
-                        )}
+                          </>}
                       </Button>
                     </div>
 
                     {/* Listado de Montadores */}
-                    {editedData?.montadores && editedData.montadores.length > 0 ? (
-                      <div className="space-y-3 mb-6">
-                        {editedData.montadores.map((montador, index) => (
-                          <div key={index} className="border rounded-lg p-4 bg-muted/20">
+                    {editedData?.montadores && editedData.montadores.length > 0 ? <div className="space-y-3 mb-6">
+                        {editedData.montadores.map((montador, index) => <div key={index} className="border rounded-lg p-4 bg-muted/20">
                             <div className="flex items-center justify-between gap-6">
                               {/* Nombre del montador */}
                               <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -750,27 +595,19 @@ const DocumentDetails = () => {
                                   <label className="text-xs text-muted-foreground mb-0.5 block">
                                     Montador {editedData.montadores!.length > 1 ? `#${index + 1}` : ''}
                                   </label>
-                                  {isEditMode ? (
-                                    <Input
-                                      value={montador.nombreCompleto || ''}
-                                      onChange={(e) => {
-                                        const newMontadores = [...editedData.montadores!];
-                                        newMontadores[index] = {
-                                          ...newMontadores[index],
-                                          nombreCompleto: e.target.value
-                                        };
-                                        setEditedData({
-                                          ...editedData,
-                                          montadores: newMontadores
-                                        });
-                                      }}
-                                      className="h-8"
-                                    />
-                                  ) : (
-                                    <p className="text-sm font-medium truncate">
+                                  {isEditMode ? <Input value={montador.nombreCompleto || ''} onChange={e => {
+                              const newMontadores = [...editedData.montadores!];
+                              newMontadores[index] = {
+                                ...newMontadores[index],
+                                nombreCompleto: e.target.value
+                              };
+                              setEditedData({
+                                ...editedData,
+                                montadores: newMontadores
+                              });
+                            }} className="h-8" /> : <p className="text-sm font-medium truncate">
                                       {montador.nombreCompleto || 'N/A'}
-                                    </p>
-                                  )}
+                                    </p>}
                                 </div>
                               </div>
 
@@ -782,65 +619,43 @@ const DocumentDetails = () => {
                                   <div className="flex items-center gap-2">
                                     <div className="flex flex-col items-center">
                                       <span className="text-[10px] text-muted-foreground uppercase">N</span>
-                                      {isEditMode ? (
-                                        <Input
-                                          type="number"
-                                          value={montador.horasActivas?.normales ?? 0}
-                                          onChange={(e) => {
-                                            const newMontadores = [...editedData.montadores!];
-                                            newMontadores[index] = {
-                                              ...newMontadores[index],
-                                              horasActivas: {
-                                                ...newMontadores[index].horasActivas,
-                                                normales: parseFloat(e.target.value) || 0,
-                                                extras: newMontadores[index].horasActivas?.extras ?? 0
-                                              }
-                                            };
-                                            setEditedData({
-                                              ...editedData,
-                                              montadores: newMontadores
-                                            });
-                                          }}
-                                          className="w-14 h-8 text-center text-sm"
-                                          min="0"
-                                          step="0.5"
-                                        />
-                                      ) : (
-                                        <span className="text-sm font-semibold text-blue-600">
+                                      {isEditMode ? <Input type="number" value={montador.horasActivas?.normales ?? 0} onChange={e => {
+                                  const newMontadores = [...editedData.montadores!];
+                                  newMontadores[index] = {
+                                    ...newMontadores[index],
+                                    horasActivas: {
+                                      ...newMontadores[index].horasActivas,
+                                      normales: parseFloat(e.target.value) || 0,
+                                      extras: newMontadores[index].horasActivas?.extras ?? 0
+                                    }
+                                  };
+                                  setEditedData({
+                                    ...editedData,
+                                    montadores: newMontadores
+                                  });
+                                }} className="w-14 h-8 text-center text-sm" min="0" step="0.5" /> : <span className="text-sm font-semibold text-blue-600">
                                           {montador.horasActivas?.normales ?? 0}
-                                        </span>
-                                      )}
+                                        </span>}
                                     </div>
                                     <span className="text-muted-foreground">/</span>
                                     <div className="flex flex-col items-center">
                                       <span className="text-[10px] text-muted-foreground uppercase">Ex</span>
-                                      {isEditMode ? (
-                                        <Input
-                                          type="number"
-                                          value={montador.horasActivas?.extras ?? 0}
-                                          onChange={(e) => {
-                                            const newMontadores = [...editedData.montadores!];
-                                            newMontadores[index] = {
-                                              ...newMontadores[index],
-                                              horasActivas: {
-                                                normales: newMontadores[index].horasActivas?.normales ?? 0,
-                                                extras: parseFloat(e.target.value) || 0
-                                              }
-                                            };
-                                            setEditedData({
-                                              ...editedData,
-                                              montadores: newMontadores
-                                            });
-                                          }}
-                                          className="w-14 h-8 text-center text-sm"
-                                          min="0"
-                                          step="0.5"
-                                        />
-                                      ) : (
-                                        <span className="text-sm font-semibold text-orange-600">
+                                      {isEditMode ? <Input type="number" value={montador.horasActivas?.extras ?? 0} onChange={e => {
+                                  const newMontadores = [...editedData.montadores!];
+                                  newMontadores[index] = {
+                                    ...newMontadores[index],
+                                    horasActivas: {
+                                      normales: newMontadores[index].horasActivas?.normales ?? 0,
+                                      extras: parseFloat(e.target.value) || 0
+                                    }
+                                  };
+                                  setEditedData({
+                                    ...editedData,
+                                    montadores: newMontadores
+                                  });
+                                }} className="w-14 h-8 text-center text-sm" min="0" step="0.5" /> : <span className="text-sm font-semibold text-orange-600">
                                           {montador.horasActivas?.extras ?? 0}
-                                        </span>
-                                      )}
+                                        </span>}
                                     </div>
                                   </div>
                                 </div>
@@ -853,78 +668,52 @@ const DocumentDetails = () => {
                                   <div className="flex items-center gap-2">
                                     <div className="flex flex-col items-center">
                                       <span className="text-[10px] text-muted-foreground uppercase">N</span>
-                                      {isEditMode ? (
-                                        <Input
-                                          type="number"
-                                          value={montador.horasViaje?.normales ?? 0}
-                                          onChange={(e) => {
-                                            const newMontadores = [...editedData.montadores!];
-                                            newMontadores[index] = {
-                                              ...newMontadores[index],
-                                              horasViaje: {
-                                                ...newMontadores[index].horasViaje,
-                                                normales: parseFloat(e.target.value) || 0,
-                                                extras: newMontadores[index].horasViaje?.extras ?? 0
-                                              }
-                                            };
-                                            setEditedData({
-                                              ...editedData,
-                                              montadores: newMontadores
-                                            });
-                                          }}
-                                          className="w-14 h-8 text-center text-sm"
-                                          min="0"
-                                          step="0.5"
-                                        />
-                                      ) : (
-                                        <span className="text-sm font-semibold text-blue-600">
+                                      {isEditMode ? <Input type="number" value={montador.horasViaje?.normales ?? 0} onChange={e => {
+                                  const newMontadores = [...editedData.montadores!];
+                                  newMontadores[index] = {
+                                    ...newMontadores[index],
+                                    horasViaje: {
+                                      ...newMontadores[index].horasViaje,
+                                      normales: parseFloat(e.target.value) || 0,
+                                      extras: newMontadores[index].horasViaje?.extras ?? 0
+                                    }
+                                  };
+                                  setEditedData({
+                                    ...editedData,
+                                    montadores: newMontadores
+                                  });
+                                }} className="w-14 h-8 text-center text-sm" min="0" step="0.5" /> : <span className="text-sm font-semibold text-blue-600">
                                           {montador.horasViaje?.normales ?? 0}
-                                        </span>
-                                      )}
+                                        </span>}
                                     </div>
                                     <span className="text-muted-foreground">/</span>
                                     <div className="flex flex-col items-center">
                                       <span className="text-[10px] text-muted-foreground uppercase">Ex</span>
-                                      {isEditMode ? (
-                                        <Input
-                                          type="number"
-                                          value={montador.horasViaje?.extras ?? 0}
-                                          onChange={(e) => {
-                                            const newMontadores = [...editedData.montadores!];
-                                            newMontadores[index] = {
-                                              ...newMontadores[index],
-                                              horasViaje: {
-                                                normales: newMontadores[index].horasViaje?.normales ?? 0,
-                                                extras: parseFloat(e.target.value) || 0
-                                              }
-                                            };
-                                            setEditedData({
-                                              ...editedData,
-                                              montadores: newMontadores
-                                            });
-                                          }}
-                                          className="w-14 h-8 text-center text-sm"
-                                          min="0"
-                                          step="0.5"
-                                        />
-                                      ) : (
-                                        <span className="text-sm font-semibold text-orange-600">
+                                      {isEditMode ? <Input type="number" value={montador.horasViaje?.extras ?? 0} onChange={e => {
+                                  const newMontadores = [...editedData.montadores!];
+                                  newMontadores[index] = {
+                                    ...newMontadores[index],
+                                    horasViaje: {
+                                      normales: newMontadores[index].horasViaje?.normales ?? 0,
+                                      extras: parseFloat(e.target.value) || 0
+                                    }
+                                  };
+                                  setEditedData({
+                                    ...editedData,
+                                    montadores: newMontadores
+                                  });
+                                }} className="w-14 h-8 text-center text-sm" min="0" step="0.5" /> : <span className="text-sm font-semibold text-orange-600">
                                           {montador.horasViaje?.extras ?? 0}
-                                        </span>
-                                      )}
+                                        </span>}
                                     </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground text-center py-4 mb-6">
+                          </div>)}
+                      </div> : <p className="text-sm text-muted-foreground text-center py-4 mb-6">
                         No hay montadores registrados
-                      </p>
-                    )}
+                      </p>}
 
                     {/* Horas Totales Trabajadas */}
                     <div className="border-t pt-6">
@@ -932,8 +721,7 @@ const DocumentDetails = () => {
                         <Clock className="h-4 w-4" />
                         Horas Totales Trabajadas
                       </h4>
-                      {editedData?.montadores && editedData.montadores.length > 0 ? (
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                      {editedData?.montadores && editedData.montadores.length > 0 ? <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">Horas Activas (N)</span>
                             <span className="font-semibold text-blue-600">
@@ -962,22 +750,11 @@ const DocumentDetails = () => {
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-semibold">Total General</span>
                               <span className="text-lg font-bold text-primary">
-                                {editedData.montadores.reduce(
-                                  (sum, m) =>
-                                    sum +
-                                    (m.horasActivas?.normales ?? 0) +
-                                    (m.horasActivas?.extras ?? 0) +
-                                    (m.horasViaje?.normales ?? 0) +
-                                    (m.horasViaje?.extras ?? 0),
-                                  0
-                                )}h
+                                {editedData.montadores.reduce((sum, m) => sum + (m.horasActivas?.normales ?? 0) + (m.horasActivas?.extras ?? 0) + (m.horasViaje?.normales ?? 0) + (m.horasViaje?.extras ?? 0), 0)}h
                               </span>
                             </div>
                           </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">No hay datos de montadores disponibles</p>
-                      )}
+                        </div> : <p className="text-sm text-muted-foreground">No hay datos de montadores disponibles</p>}
                     </div>
                   </div>
 
@@ -993,15 +770,7 @@ const DocumentDetails = () => {
                       <div>
                         <dt className="text-sm text-muted-foreground mb-1">Estado</dt>
                         <dd>
-                          <Badge
-                            variant={
-                              document.status === 'approved'
-                                ? 'default'
-                                : document.status === 'rejected'
-                                ? 'destructive'
-                                : 'secondary'
-                            }
-                          >
+                          <Badge variant={document.status === 'approved' ? 'default' : document.status === 'rejected' ? 'destructive' : 'secondary'}>
                             {document.status === 'approved' && '✓ Aprobado'}
                             {document.status === 'rejected' && '✗ Rechazado'}
                             {document.status === 'pending' && '⏳ Pendiente'}
@@ -1011,9 +780,7 @@ const DocumentDetails = () => {
                       <div>
                         <dt className="text-sm text-muted-foreground mb-1">Legibilidad</dt>
                         <dd className="text-sm font-medium">
-                          {document.meta?.legibilityScore
-                            ? `${document.meta.legibilityScore}%`
-                            : 'N/A'}
+                          {document.meta?.legibilityScore ? `${document.meta.legibilityScore}%` : 'N/A'}
                         </dd>
                       </div>
                       <div>
@@ -1034,25 +801,21 @@ const DocumentDetails = () => {
                           {new Date(document.created_at).toLocaleString('es-ES')}
                         </dd>
                       </div>
-                      {document.validated_at && (
-                        <div>
+                      {document.validated_at && <div>
                           <dt className="text-sm text-muted-foreground mb-1">Fecha de validación</dt>
                           <dd className="text-sm font-medium">
                             {new Date(document.validated_at).toLocaleString('es-ES')}
                           </dd>
-                        </div>
-                      )}
+                        </div>}
                     </dl>
 
                     {/* Notas de Revisión */}
-                    {document.review_notes && (
-                      <div className="mt-6 pt-6 border-t">
+                    {document.review_notes && <div className="mt-6 pt-6 border-t">
                         <h4 className="font-semibold text-sm mb-2">Notas de Revisión</h4>
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted/20 p-3 rounded-md">
                           {document.review_notes}
                         </p>
-                      </div>
-                    )}
+                      </div>}
                   </div>
 
                 </div>
@@ -1061,8 +824,6 @@ const DocumentDetails = () => {
           </div>
         </div>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default DocumentDetails;
