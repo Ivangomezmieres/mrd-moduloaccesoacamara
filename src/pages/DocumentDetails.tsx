@@ -359,7 +359,7 @@ const DocumentDetails = () => {
       <main className="container mx-auto px-4 py-6 h-[calc(100vh-80px)] overflow-hidden">
         <div className="grid grid-cols-5 gap-6 h-full">
           {/* Left Column: Image (2/5) - CON SCROLL Y ZOOM FUNCIONAL */}
-          <div className="col-span-2 h-full flex flex-col border rounded-lg bg-card">
+          <div className="col-span-2 h-full min-h-0 flex flex-col border rounded-lg bg-card">
             {/* Header fijo con controles de zoom */}
             <div className="flex-shrink-0 p-3 border-b bg-muted/50 flex items-center justify-between">
               <span className="text-sm font-medium">Vista Previa del Documento</span>
@@ -396,7 +396,7 @@ const DocumentDetails = () => {
             </div>
             
             {/* Contenedor scrolleable con imagen zoomeable */}
-            <div className="flex-1 overflow-y-auto bg-muted/20 relative">
+            <div className="flex-1 min-h-0 overflow-y-auto bg-muted/20 relative">
               <div className="flex items-start justify-center p-4">
                 {imageUrl && <img src={imageUrl} alt="Documento escaneado" className="shadow-lg transition-all duration-200" style={{
                 width: `${zoom}%`,
