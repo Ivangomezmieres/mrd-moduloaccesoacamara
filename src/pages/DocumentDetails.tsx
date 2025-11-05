@@ -535,36 +535,40 @@ const DocumentDetails = () => {
                     </h3>
                     
                     <div className="space-y-4">
-                      <div>
-                        <label className="text-sm text-muted-foreground mb-1.5 block">
-                          Descripción del Trabajo Realizado
-                        </label>
-                        {isEditMode ? <Textarea value={editedData?.trabajoRealizado || ''} onChange={e => setEditedData({
-                        ...editedData!,
-                        trabajoRealizado: e.target.value
-                      })} className="min-h-[100px]" /> : <p className="text-sm whitespace-pre-wrap bg-muted/20 p-3 rounded-md">
-                            {editedData?.trabajoRealizado || 'N/A'}
-                          </p>}
-                      </div>
+                      {/* Fila con Descripción y Horario lado a lado */}
+                      <div className="grid grid-cols-3 gap-4">
+                        {/* Descripción del Trabajo Realizado - 2/3 del ancho */}
+                        <div className="col-span-2">
+                          <label className="text-sm text-muted-foreground mb-1.5 block">
+                            Descripción del Trabajo Realizado
+                          </label>
+                          {isEditMode ? <Textarea value={editedData?.trabajoRealizado || ''} onChange={e => setEditedData({
+                          ...editedData!,
+                          trabajoRealizado: e.target.value
+                        })} className="min-h-[100px]" /> : <p className="text-sm whitespace-pre-wrap bg-muted/20 p-3 rounded-md">
+                              {editedData?.trabajoRealizado || 'N/A'}
+                            </p>}
+                        </div>
 
-                      {/* Horario */}
-                      <div>
-                        <label className="text-sm text-muted-foreground mb-1.5 block">
-                          Horario
-                        </label>
-                        {isEditMode ? (
-                          <Input 
-                            value={editedData?.horario || ''} 
-                            onChange={e => setEditedData({
-                              ...editedData!,
-                              horario: e.target.value
-                            })} 
-                          />
-                        ) : (
-                          <p className="text-sm font-medium">
-                            {editedData?.horario || 'N/A'}
-                          </p>
-                        )}
+                        {/* Horario - 1/3 del ancho */}
+                        <div>
+                          <label className="text-sm text-muted-foreground mb-1.5 block">
+                            Horario
+                          </label>
+                          {isEditMode ? (
+                            <Input 
+                              value={editedData?.horario || ''} 
+                              onChange={e => setEditedData({
+                                ...editedData!,
+                                horario: e.target.value
+                              })} 
+                            />
+                          ) : (
+                            <p className="text-sm font-medium">
+                              {editedData?.horario || 'N/A'}
+                            </p>
+                          )}
+                        </div>
                       </div>
 
                       {/* Estado de Firmas */}
