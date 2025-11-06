@@ -8,6 +8,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Badge } from '@/components/ui/badge';
 import { LogOut, Download, Eye, FileText, Users, Clock, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
 interface ExtractedData {
   parteNumero: string | null;
   cliente: string | null;
@@ -199,8 +200,8 @@ const SuperAdminDashboard = () => {
       navigate('/auth');
     }
   };
-  const exportToCSV = () => {
-    const csvData = filteredDocuments.map(doc => {
+  const exportToExcel = () => {
+    const excelData = filteredDocuments.map(doc => {
       const extracted = doc.meta?.extractedData;
       const horasData = extracted?.horasTotales || extracted?.horas;
       const totalHoras = horasData ? horasData.ordinarias + horasData.extras + horasData.festivas : 0;
@@ -226,25 +227,50 @@ const SuperAdminDashboard = () => {
         'Validado': doc.validated_at ? new Date(doc.validated_at).toLocaleString('es-ES') : 'No'
       };
     });
-    if (csvData.length === 0) {
+    
+    if (excelData.length === 0) {
       toast.error('No hay documentos para exportar');
       return;
     }
-    const headers = Object.keys(csvData[0]).join(',');
-    const rows = csvData.map(row => Object.values(row).map(val => typeof val === 'string' && val.includes(',') ? `"${val}"` : val).join(',')).join('\n');
-    const csvContent = `${headers}\n${rows}`;
-    const blob = new Blob(['\ufeff' + csvContent], {
-      type: 'text/csv;charset=utf-8;'
-    });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `documentos_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success('Archivo CSV descargado correctamente');
+
+    // Crear el libro de trabajo
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Documentos');
+
+    // Aplicar formato a los encabezados
+    const headerRange = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+    
+    for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+      
+      if (!ws[cellAddress]) continue;
+      
+      ws[cellAddress].s = {
+        font: { bold: true },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        fill: { fgColor: { rgb: 'E8E8E8' } }
+      };
+    }
+
+    // Ajustar ancho de columnas
+    const colWidths = Object.keys(excelData[0]).map(key => ({
+      wch: Math.max(
+        key.length,
+        ...excelData.map(row => String(row[key as keyof typeof row]).length)
+      ) + 2
+    }));
+    ws['!cols'] = colWidths;
+
+    // Generar nombre del archivo con fecha
+    const today = new Date();
+    const dateString = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
+    const fileName = `Exportacion_Datos_${dateString}.xlsx`;
+
+    // Descargar el archivo
+    XLSX.writeFile(wb, fileName);
+    
+    toast.success('Archivo Excel descargado correctamente');
   };
   const stats = {
     total: documents.length,
@@ -283,9 +309,9 @@ const SuperAdminDashboard = () => {
                 <Users className="mr-2 h-4 w-4" />
                 Usuarios
               </Button>
-              <Button variant="outline" onClick={exportToCSV}>
+              <Button variant="outline" onClick={exportToExcel}>
                 <Download className="mr-2 h-4 w-4" />
-                Exportar CSV
+                Exportar Excel
               </Button>
               <Button variant="outline" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
