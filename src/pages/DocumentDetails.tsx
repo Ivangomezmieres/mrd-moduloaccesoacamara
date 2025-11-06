@@ -9,7 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Download, FileText, User, Briefcase, Calendar, Building, PenTool, ZoomIn, ZoomOut, Loader2, Pencil, Save, XCircle, Shield, Clock, MapPin, Eye } from 'lucide-react';
+import { ArrowLeft, Download, FileText, User, Briefcase, Calendar, Building, PenTool, ZoomIn, ZoomOut, Loader2, Pencil, Save, XCircle, Shield, Clock, MapPin, Eye, Lock } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 interface ExtractedData {
   parteNumero: string | null;
@@ -71,6 +72,7 @@ interface Document {
     extractedData?: ExtractedData;
     legibilityScore: number;
     hadAutoCrop: boolean;
+    manuallyValidated?: boolean;
   };
   profiles?: {
     full_name: string;
@@ -91,6 +93,7 @@ const DocumentDetails = () => {
   const [isSavingChanges, setIsSavingChanges] = useState(false);
   const [isReextracting, setIsReextracting] = useState(false);
   const [zoom, setZoom] = useState(100);
+  const [isManuallyValidated, setIsManuallyValidated] = useState(false);
   useEffect(() => {
     if (id) {
       loadDocument();
@@ -115,6 +118,9 @@ const DocumentDetails = () => {
         return;
       }
       setDocument(data as any);
+      
+      // Cargar estado de validación manual
+      setIsManuallyValidated((data.meta as any)?.manuallyValidated || false);
 
       // Cargar datos extraídos
       const existingData = (data.meta as any)?.extractedData;
@@ -282,6 +288,92 @@ const DocumentDetails = () => {
     setIsEditMode(false);
     toast.info('Cambios descartados');
   };
+
+  const handleToggleValidation = async (checked: boolean) => {
+    if (!document) {
+      toast.error('No hay documento cargado');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({
+          meta: {
+            ...document.meta,
+            manuallyValidated: checked
+          } as any,
+          status: checked ? 'approved' : 'pending'
+        })
+        .eq('id', document.id);
+
+      if (error) {
+        console.error('Error updating validation status:', error);
+        toast.error('Error al actualizar el estado de validación');
+        return;
+      }
+
+      setIsManuallyValidated(checked);
+      setDocument({
+        ...document,
+        meta: {
+          ...document.meta,
+          manuallyValidated: checked
+        },
+        status: checked ? 'approved' : 'pending'
+      });
+
+      toast.success(
+        checked 
+          ? '✓ Parte validado y bloqueado correctamente' 
+          : 'Parte desbloqueado y editable'
+      );
+    } catch (error) {
+      console.error('Unexpected error toggling validation:', error);
+      toast.error('Error inesperado al cambiar el estado de validación');
+    }
+  };
+
+  const handleSaveData = async () => {
+    if (!document || !editedData) {
+      toast.error('No hay datos para guardar');
+      return;
+    }
+
+    setIsSavingChanges(true);
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({
+          meta: {
+            ...document.meta,
+            extractedData: editedData
+          } as any
+        })
+        .eq('id', document.id);
+
+      if (error) {
+        console.error('Error saving data:', error);
+        toast.error('Error al guardar los datos');
+        return;
+      }
+
+      setDocument({
+        ...document,
+        meta: {
+          ...document.meta,
+          extractedData: editedData
+        }
+      });
+
+      toast.success('✓ Datos guardados correctamente');
+    } catch (error) {
+      console.error('Unexpected error saving data:', error);
+      toast.error('Error inesperado al guardar');
+    } finally {
+      setIsSavingChanges(false);
+    }
+  };
   const handleZoomIn = () => {
     setZoom(prev => Math.min(prev + 25, 200));
   };
@@ -334,24 +426,37 @@ const DocumentDetails = () => {
               </div>
             </div>
             <div className="flex gap-2">
-              {!isEditMode ? <Button size="sm" variant="outline" onClick={() => setIsEditMode(true)}>
+              {!isEditMode && !isManuallyValidated ? (
+                <Button size="sm" variant="outline" onClick={() => setIsEditMode(true)}>
                   <Pencil className="mr-2 h-4 w-4" />
                   Editar
-                </Button> : <>
+                </Button>
+              ) : isManuallyValidated ? (
+                <Badge variant="secondary" className="text-xs">
+                  <Lock className="mr-1 h-3 w-3" />
+                  Parte bloqueado
+                </Badge>
+              ) : (
+                <>
                   <Button size="sm" variant="outline" onClick={handleCancelEdit} disabled={isSavingChanges}>
                     <XCircle className="mr-2 h-4 w-4" />
                     Cancelar
                   </Button>
                   <Button size="sm" variant="default" onClick={handleSaveEditedData} disabled={isSavingChanges}>
-                    {isSavingChanges ? <>
+                    {isSavingChanges ? (
+                      <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Guardando...
-                      </> : <>
+                      </>
+                    ) : (
+                      <>
                         <Save className="mr-2 h-4 w-4" />
                         Guardar
-                      </>}
+                      </>
+                    )}
                   </Button>
-                </>}
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -426,7 +531,21 @@ const DocumentDetails = () => {
           
           {/* Right Column: Unified Single Card */}
           <div className="col-span-3 h-full min-h-0 flex flex-col">
-            <Card className="h-full min-h-0 flex flex-col">
+            <Card className="h-full min-h-0 flex flex-col relative">
+              {/* Cartela diagonal VALIDADO */}
+              {isManuallyValidated && (
+                <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
+                  <div 
+                    className="bg-red-600/90 text-white font-bold text-5xl px-20 py-8 shadow-2xl"
+                    style={{
+                      transform: 'rotate(-30deg)',
+                      letterSpacing: '0.3em'
+                    }}
+                  >
+                    VALIDADO
+                  </div>
+                </div>
+              )}
               {/* Header Fijo */}
               <div className="border-b p-6">
                 <div className="flex items-center justify-between">
@@ -844,6 +963,51 @@ const DocumentDetails = () => {
                           {document.review_notes}
                         </p>
                       </div>}
+                  </div>
+
+                  <Separator className="my-6" />
+
+                  {/* CONTROLES DE VALIDACIÓN Y GUARDADO */}
+                  <div className="flex items-center justify-between gap-4">
+                    {/* Toggle de Validación Completada */}
+                    <div className="flex items-center gap-3 px-4 py-3 bg-green-50 border-2 border-green-500 rounded-lg flex-1">
+                      <Lock className="h-5 w-5 text-green-600" />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-semibold text-green-900">
+                            Validación Completada
+                          </span>
+                          <Switch
+                            checked={isManuallyValidated}
+                            onCheckedChange={handleToggleValidation}
+                            disabled={isEditMode}
+                          />
+                        </div>
+                        <p className="text-xs text-green-700 mt-0.5">
+                          {isManuallyValidated ? 'El parte está bloqueado' : 'El parte está editable'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Botón Guardar Datos */}
+                    <Button
+                      size="lg"
+                      className="bg-green-600 hover:bg-green-700 text-white px-8"
+                      onClick={handleSaveData}
+                      disabled={isSavingChanges || !isEditMode}
+                    >
+                      {isSavingChanges ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Guardando...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-5 w-5" />
+                          Guardar Datos
+                        </>
+                      )}
+                    </Button>
                   </div>
 
                 </div>
