@@ -496,10 +496,10 @@ const DocumentDetails = () => {
               {isManuallyValidated && (
                 <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
                   <div 
-                    className="bg-red-600/90 text-white font-bold text-5xl px-20 py-8 shadow-2xl"
+                    className="bg-white/85 text-[#D32F2F] font-bold text-4xl px-16 py-6 rounded-xl border-4 border-[#D32F2F] shadow-lg"
                     style={{
                       transform: 'rotate(-30deg)',
-                      letterSpacing: '0.3em'
+                      letterSpacing: '0.25em'
                     }}
                   >
                     VALIDADO
