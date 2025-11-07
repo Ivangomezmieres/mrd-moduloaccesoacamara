@@ -334,46 +334,6 @@ const DocumentDetails = () => {
     }
   };
 
-  const handleSaveData = async () => {
-    if (!document || !editedData) {
-      toast.error('No hay datos para guardar');
-      return;
-    }
-
-    setIsSavingChanges(true);
-    try {
-      const { error } = await supabase
-        .from('documents')
-        .update({
-          meta: {
-            ...document.meta,
-            extractedData: editedData
-          } as any
-        })
-        .eq('id', document.id);
-
-      if (error) {
-        console.error('Error saving data:', error);
-        toast.error('Error al guardar los datos');
-        return;
-      }
-
-      setDocument({
-        ...document,
-        meta: {
-          ...document.meta,
-          extractedData: editedData
-        }
-      });
-
-      toast.success('✓ Datos guardados correctamente');
-    } catch (error) {
-      console.error('Unexpected error saving data:', error);
-      toast.error('Error inesperado al guardar');
-    } finally {
-      setIsSavingChanges(false);
-    }
-  };
   const handleZoomIn = () => {
     setZoom(prev => Math.min(prev + 25, 200));
   };
@@ -988,28 +948,6 @@ const DocumentDetails = () => {
                         </p>
                       </div>
                     </div>
-
-                    {/* Botón Guardar Datos - Solo visible si NO está validado */}
-                    {!isManuallyValidated && (
-                      <Button
-                        size="lg"
-                        className="bg-green-600 hover:bg-green-700 text-white px-8"
-                        onClick={handleSaveData}
-                        disabled={isSavingChanges || !isEditMode}
-                      >
-                        {isSavingChanges ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Guardando...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="mr-2 h-5 w-5" />
-                            Guardar Datos
-                          </>
-                        )}
-                      </Button>
-                    )}
                   </div>
 
                 </div>
