@@ -989,25 +989,27 @@ const DocumentDetails = () => {
                       </div>
                     </div>
 
-                    {/* Botón Guardar Datos */}
-                    <Button
-                      size="lg"
-                      className="bg-green-600 hover:bg-green-700 text-white px-8"
-                      onClick={handleSaveData}
-                      disabled={isSavingChanges || !isEditMode}
-                    >
-                      {isSavingChanges ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Guardando...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-5 w-5" />
-                          Guardar Datos
-                        </>
-                      )}
-                    </Button>
+                    {/* Botón Guardar Datos - Solo visible si NO está validado */}
+                    {!isManuallyValidated && (
+                      <Button
+                        size="lg"
+                        className="bg-green-600 hover:bg-green-700 text-white px-8"
+                        onClick={handleSaveData}
+                        disabled={isSavingChanges || !isEditMode}
+                      >
+                        {isSavingChanges ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Guardando...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="mr-2 h-5 w-5" />
+                            Guardar Datos
+                          </>
+                        )}
+                      </Button>
+                    )}
                   </div>
 
                 </div>
