@@ -656,21 +656,21 @@ const DocumentDetails = () => {
                       <div>
                         <label className="text-sm text-muted-foreground mb-2 block">Estado de Firmas</label>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                          <div className="flex justify-between items-center p-3 bg-muted/20 rounded-md">
-                            <span className="text-sm font-medium">Firma del Inspector</span>
-                            <Badge variant={editedData?.firmas?.inspector ? "default" : "secondary"}>
+                          <div className="flex flex-col items-center justify-center p-4 bg-muted/20 rounded-md min-h-[100px] gap-2">
+                            <span className="text-sm font-medium text-center">Firma del Inspector</span>
+                            <Badge variant={editedData?.firmas?.inspector ? "default" : "secondary"} className="w-auto">
                               {editedData?.firmas?.inspector ? '✓ Firmado' : '✗ No firmado'}
                             </Badge>
                           </div>
-                          <div className="flex justify-between items-center p-3 bg-muted/20 rounded-md">
-                            <span className="text-sm font-medium">Firma del Montador</span>
-                            <Badge variant={editedData?.firmas?.montador ? "default" : "secondary"}>
+                          <div className="flex flex-col items-center justify-center p-4 bg-muted/20 rounded-md min-h-[100px] gap-2">
+                            <span className="text-sm font-medium text-center">Firma del Montador</span>
+                            <Badge variant={editedData?.firmas?.montador ? "default" : "secondary"} className="w-auto">
                               {editedData?.firmas?.montador ? '✓ Firmado' : '✗ No firmado'}
                             </Badge>
                           </div>
-                          <div className="flex justify-between items-center p-3 bg-muted/20 rounded-md">
-                            <span className="text-sm font-medium">Firma del Cliente</span>
-                            <Badge variant={editedData?.firmas?.cliente ? "default" : "secondary"}>
+                          <div className="flex flex-col items-center justify-center p-4 bg-muted/20 rounded-md min-h-[100px] gap-2">
+                            <span className="text-sm font-medium text-center">Firma del Cliente</span>
+                            <Badge variant={editedData?.firmas?.cliente ? "default" : "secondary"} className="w-auto">
                               {editedData?.firmas?.cliente ? '✓ Firmado' : '✗ No firmado'}
                             </Badge>
                           </div>
