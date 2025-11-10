@@ -53,6 +53,7 @@ interface ExtractedData {
   };
   fecha: string | null;
   firmas: {
+    inspector: boolean;
     montador: boolean;
     cliente: boolean;
   };
@@ -160,6 +161,7 @@ const DocumentDetails = () => {
           },
           desgloseDetallado: null,
           firmas: {
+            inspector: false,
             montador: false,
             cliente: false
           }
@@ -653,7 +655,13 @@ const DocumentDetails = () => {
                       {/* Estado de Firmas */}
                       <div>
                         <label className="text-sm text-muted-foreground mb-2 block">Estado de Firmas</label>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div className="flex justify-between items-center p-3 bg-muted/20 rounded-md">
+                            <span className="text-sm font-medium">Firma del Inspector</span>
+                            <Badge variant={editedData?.firmas?.inspector ? "default" : "secondary"}>
+                              {editedData?.firmas?.inspector ? '✓ Firmado' : '✗ No firmado'}
+                            </Badge>
+                          </div>
                           <div className="flex justify-between items-center p-3 bg-muted/20 rounded-md">
                             <span className="text-sm font-medium">Firma del Montador</span>
                             <Badge variant={editedData?.firmas?.montador ? "default" : "secondary"}>
