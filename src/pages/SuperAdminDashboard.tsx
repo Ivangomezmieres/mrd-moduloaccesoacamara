@@ -221,7 +221,6 @@ const SuperAdminDashboard = () => {
         'Firma Cliente': extracted?.firmas?.cliente ? 'Sí' : 'No',
         'Estado': doc.status,
         'Legibilidad %': doc.meta?.legibilityScore || 0,
-        'Auto-recortado': doc.meta?.hadAutoCrop ? 'Sí' : 'No',
         'Subido por': doc.profiles?.full_name || 'N/A',
         'Fecha Subida': new Date(doc.created_at).toLocaleString('es-ES'),
         'Validado': doc.validated_at ? new Date(doc.validated_at).toLocaleString('es-ES') : 'No'

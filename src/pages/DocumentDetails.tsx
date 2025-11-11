@@ -957,7 +957,7 @@ const DocumentDetails = () => {
                       <Shield className="h-5 w-5 text-primary" />
                       Metadatos de Validación
                     </h3>
-                    <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
+                    <dl className="grid grid-cols-3 gap-x-6 gap-y-4">
                       <div>
                         <dt className="text-sm text-muted-foreground mb-1">Legibilidad</dt>
                         <dd className="text-sm font-medium">
@@ -968,12 +968,6 @@ const DocumentDetails = () => {
                         <dt className="text-sm text-muted-foreground mb-1">Subido por</dt>
                         <dd className="text-sm font-medium">
                           {document.profiles?.full_name || 'Usuario desconocido'}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-sm text-muted-foreground mb-1">Auto-recortado</dt>
-                        <dd className="text-sm font-medium">
-                          {document.meta?.hadAutoCrop ? '✓ Sí' : '✗ No'}
                         </dd>
                       </div>
                       <div>
