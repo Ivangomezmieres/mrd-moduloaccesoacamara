@@ -959,31 +959,21 @@ const DocumentDetails = () => {
                     </h3>
                     <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
                       <div>
-                        <dt className="text-sm text-muted-foreground mb-1">Estado</dt>
-                        <dd>
-                          <Badge variant={document.status === 'approved' ? 'default' : document.status === 'rejected' ? 'destructive' : 'secondary'}>
-                            {document.status === 'approved' && '✓ Aprobado'}
-                            {document.status === 'rejected' && '✗ Rechazado'}
-                            {document.status === 'pending' && '⏳ Pendiente'}
-                          </Badge>
-                        </dd>
-                      </div>
-                      <div>
                         <dt className="text-sm text-muted-foreground mb-1">Legibilidad</dt>
                         <dd className="text-sm font-medium">
                           {document.meta?.legibilityScore ? `${document.meta.legibilityScore}%` : 'N/A'}
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-sm text-muted-foreground mb-1">Auto-recortado</dt>
-                        <dd className="text-sm font-medium">
-                          {document.meta?.hadAutoCrop ? '✓ Sí' : '✗ No'}
-                        </dd>
-                      </div>
-                      <div>
                         <dt className="text-sm text-muted-foreground mb-1">Subido por</dt>
                         <dd className="text-sm font-medium">
                           {document.profiles?.full_name || 'Usuario desconocido'}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm text-muted-foreground mb-1">Auto-recortado</dt>
+                        <dd className="text-sm font-medium">
+                          {document.meta?.hadAutoCrop ? '✓ Sí' : '✗ No'}
                         </dd>
                       </div>
                       <div>
