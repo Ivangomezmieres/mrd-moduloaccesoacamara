@@ -298,7 +298,7 @@ const SuperAdminDashboard = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold">Panel Superadministrador</h1>
+              <h1 className="text-2xl font-bold">Panel de Control</h1>
               <p className="text-sm text-muted-foreground">
                 Vista completa de documentos y datos extraídos
               </p>
