@@ -51,6 +51,7 @@ interface ExtractedData {
   };
   fecha: string | null;
   firmas: {
+    inspector: boolean;
     montador: boolean;
     cliente: boolean;
   };
@@ -396,9 +397,12 @@ const SuperAdminDashboard = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
+                            {extracted?.firmas?.inspector && <Badge variant="outline" className="text-xs">I</Badge>}
                             {extracted?.firmas?.montador && <Badge variant="outline" className="text-xs">M</Badge>}
                             {extracted?.firmas?.cliente && <Badge variant="outline" className="text-xs">C</Badge>}
-                            {!extracted?.firmas?.montador && !extracted?.firmas?.cliente && <span className="text-muted-foreground text-xs">Sin firmas</span>}
+                            {!extracted?.firmas?.inspector && !extracted?.firmas?.montador && !extracted?.firmas?.cliente && (
+                              <span className="text-muted-foreground text-xs">Sin firmas</span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
