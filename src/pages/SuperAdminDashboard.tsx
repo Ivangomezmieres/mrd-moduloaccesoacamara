@@ -227,7 +227,6 @@ const SuperAdminDashboard = () => {
         'Validado': doc.validated_at ? new Date(doc.validated_at).toLocaleString('es-ES') : 'No'
       };
     });
-    
     if (excelData.length === 0) {
       toast.error('No hay documentos para exportar');
       return;
@@ -240,25 +239,31 @@ const SuperAdminDashboard = () => {
 
     // Aplicar formato a los encabezados
     const headerRange = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-    
     for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
-      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
-      
+      const cellAddress = XLSX.utils.encode_cell({
+        r: 0,
+        c: col
+      });
       if (!ws[cellAddress]) continue;
-      
       ws[cellAddress].s = {
-        font: { bold: true },
-        alignment: { horizontal: 'center', vertical: 'center' },
-        fill: { fgColor: { rgb: 'E8E8E8' } }
+        font: {
+          bold: true
+        },
+        alignment: {
+          horizontal: 'center',
+          vertical: 'center'
+        },
+        fill: {
+          fgColor: {
+            rgb: 'E8E8E8'
+          }
+        }
       };
     }
 
     // Ajustar ancho de columnas
     const colWidths = Object.keys(excelData[0]).map(key => ({
-      wch: Math.max(
-        key.length,
-        ...excelData.map(row => String(row[key as keyof typeof row]).length)
-      ) + 2
+      wch: Math.max(key.length, ...excelData.map(row => String(row[key as keyof typeof row]).length)) + 2
     }));
     ws['!cols'] = colWidths;
 
@@ -269,7 +274,6 @@ const SuperAdminDashboard = () => {
 
     // Descargar el archivo
     XLSX.writeFile(wb, fileName);
-    
     toast.success('Archivo Excel descargado correctamente');
   };
   const stats = {
@@ -364,9 +368,9 @@ const SuperAdminDashboard = () => {
               <TableHead>Cliente</TableHead>
               <TableHead>Fecha</TableHead>
               <TableHead>Horas</TableHead>
-              <TableHead>Firmas</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead>Acciones</TableHead>
+              <TableHead>FIRMAS</TableHead>
+              <TableHead>ESTADO</TableHead>
+              <TableHead>ACCIONES</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -401,21 +405,15 @@ const SuperAdminDashboard = () => {
                             {extracted?.firmas?.inspector && <Badge variant="outline" className="text-xs">I</Badge>}
                             {extracted?.firmas?.montador && <Badge variant="outline" className="text-xs">M</Badge>}
                             {extracted?.firmas?.cliente && <Badge variant="outline" className="text-xs">C</Badge>}
-                            {!extracted?.firmas?.inspector && !extracted?.firmas?.montador && !extracted?.firmas?.cliente && (
-                              <span className="text-muted-foreground text-xs">Sin firmas</span>
-                            )}
+                            {!extracted?.firmas?.inspector && !extracted?.firmas?.montador && !extracted?.firmas?.cliente && <span className="text-muted-foreground text-xs">Sin firmas</span>}
                           </div>
                         </TableCell>
                         <TableCell>
-                          {doc.validated_at ? (
-                            <Badge className="rounded-md bg-green-600 hover:bg-green-600 text-white border-green-600 h-9 px-3 text-sm">
+                          {doc.validated_at ? <Badge className="rounded-md bg-green-600 hover:bg-green-600 text-white border-green-600 h-9 px-3 text-sm">
                               Validado
-                            </Badge>
-                          ) : (
-                            <Badge className="rounded-md bg-orange-500 hover:bg-orange-500 text-white border-orange-500 h-9 px-3 text-sm">
+                            </Badge> : <Badge className="rounded-md bg-orange-500 hover:bg-orange-500 text-white border-orange-500 h-9 px-3 text-sm">
                               Pendiente
-                            </Badge>
-                          )}
+                            </Badge>}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
