@@ -409,9 +409,9 @@ const SuperAdminDashboard = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {doc.validated_at ? <Badge className="rounded-md bg-green-600 hover:bg-green-600 text-white border-green-600 h-9 px-3 text-sm">
+                          {doc.validated_at ? <Badge className="rounded-md bg-green-500 hover:bg-green-500 text-white border-green-500 h-9 px-3 text-sm">
                               Validado
-                            </Badge> : <Badge className="rounded-md bg-orange-500 hover:bg-orange-500 text-white border-orange-500 h-9 px-3 text-sm">
+                            </Badge> : <Badge className="rounded-md bg-orange-400 hover:bg-orange-400 text-white border-orange-400 h-9 px-3 text-sm">
                               Pendiente
                             </Badge>}
                         </TableCell>
@@ -421,7 +421,7 @@ const SuperAdminDashboard = () => {
                               <Eye className="h-4 w-4 mr-1" />
                               Ver
                             </Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleDeleteDocument(doc.id, doc.storage_path)} className="rounded-md bg-red-600 hover:bg-red-500">
+                            <Button size="sm" variant="destructive" onClick={() => handleDeleteDocument(doc.id, doc.storage_path)} className="rounded-md bg-red-500 hover:bg-red-400">
                               <Trash2 className="h-4 w-4 mr-1" />
                               Eliminar
                             </Button>
