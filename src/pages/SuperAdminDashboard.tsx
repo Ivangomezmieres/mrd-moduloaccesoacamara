@@ -360,17 +360,18 @@ const SuperAdminDashboard = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nº Parte</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Horas</TableHead>
-                  <TableHead>Firmas</TableHead>
-                  <TableHead>Acciones</TableHead>
+              <TableHead>Nº Parte</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Fecha</TableHead>
+              <TableHead>Horas</TableHead>
+              <TableHead>Firmas</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredDocuments.length === 0 ? <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       No se encontraron documentos
                     </TableCell>
                   </TableRow> : filteredDocuments.map(doc => {
@@ -404,6 +405,17 @@ const SuperAdminDashboard = () => {
                               <span className="text-muted-foreground text-xs">Sin firmas</span>
                             )}
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          {doc.validated_at ? (
+                            <Badge className="bg-green-600 hover:bg-green-600 text-white border-green-600">
+                              Validado
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-orange-500 hover:bg-orange-500 text-white border-orange-500">
+                              Pendiente
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
