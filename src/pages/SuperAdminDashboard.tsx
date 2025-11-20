@@ -409,9 +409,9 @@ const SuperAdminDashboard = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {doc.validated_at ? <Badge className="rounded-md bg-green-400 hover:bg-green-400 text-white border-green-400 h-9 px-3 text-sm">
+                          {doc.validated_at ? <Badge className="rounded-md bg-green-400 hover:bg-green-400 text-white border-green-400 h-9 px-3 text-sm min-w-[110px] justify-center">
                               Validado
-                            </Badge> : <Badge className="rounded-md bg-orange-400 hover:bg-orange-400 text-white border-orange-400 h-9 px-3 text-sm">
+                            </Badge> : <Badge className="rounded-md bg-orange-400 hover:bg-orange-400 text-white border-orange-400 h-9 px-3 text-sm min-w-[110px] justify-center">
                               Pendiente
                             </Badge>}
                         </TableCell>
