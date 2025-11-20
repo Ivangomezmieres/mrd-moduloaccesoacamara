@@ -364,10 +364,10 @@ const SuperAdminDashboard = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-              <TableHead>Nº Parte</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Fecha</TableHead>
-              <TableHead>Horas</TableHead>
+              <TableHead>Nº PARTE</TableHead>
+              <TableHead>CLIENTE</TableHead>
+              <TableHead>FECHA</TableHead>
+              <TableHead>HORAS</TableHead>
               <TableHead>FIRMAS</TableHead>
               <TableHead>ESTADO</TableHead>
               <TableHead>ACCIONES</TableHead>
