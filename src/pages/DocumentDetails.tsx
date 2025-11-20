@@ -312,7 +312,8 @@ const DocumentDetails = () => {
             ...document.meta,
             manuallyValidated: checked
           } as any,
-          status: checked ? 'approved' : 'pending'
+          status: checked ? 'approved' : 'pending',
+          validated_at: checked ? new Date().toISOString() : null
         })
         .eq('id', document.id);
 
@@ -329,7 +330,8 @@ const DocumentDetails = () => {
           ...document.meta,
           manuallyValidated: checked
         },
-        status: checked ? 'approved' : 'pending'
+        status: checked ? 'approved' : 'pending',
+        validated_at: checked ? new Date().toISOString() : null
       });
 
       toast.success(
