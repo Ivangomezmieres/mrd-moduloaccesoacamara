@@ -408,11 +408,11 @@ const SuperAdminDashboard = () => {
                         </TableCell>
                         <TableCell>
                           {doc.validated_at ? (
-                            <Badge className="bg-green-600 hover:bg-green-600 text-white border-green-600">
+                            <Badge className="rounded-md bg-green-600 hover:bg-green-600 text-white border-green-600">
                               Validado
                             </Badge>
                           ) : (
-                            <Badge className="bg-orange-500 hover:bg-orange-500 text-white border-orange-500">
+                            <Badge className="rounded-md bg-orange-500 hover:bg-orange-500 text-white border-orange-500">
                               Pendiente
                             </Badge>
                           )}
