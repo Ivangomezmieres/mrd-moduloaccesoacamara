@@ -24,6 +24,7 @@ interface ExtractedData {
   cliente: string | null;
   emplazamiento: string | null;
   obra: string | null;
+  carpetaDrive: string | null;
   trabajoRealizado: string | null;
   horario: string | null;
   montador?: {
@@ -149,6 +150,12 @@ const DocumentDetails = () => {
             };
           }
         }
+        
+        // Sincronizar carpetaDrive con obra si está vacío
+        if (!initialData.carpetaDrive && initialData.obra) {
+          initialData.carpetaDrive = initialData.obra;
+        }
+        
         setEditedData(initialData);
       } else {
         // Datos vacíos si no hay extractedData
@@ -157,6 +164,7 @@ const DocumentDetails = () => {
           cliente: null,
           emplazamiento: null,
           obra: null,
+          carpetaDrive: null,
           trabajoRealizado: null,
           horario: null,
           fecha: null,
@@ -605,12 +613,43 @@ const DocumentDetails = () => {
           {/* Obra */}
           <div>
             <label className="text-sm text-muted-foreground mb-1.5 block">Obra</label>
-                        {isEditMode ? <Input value={editedData?.obra || ''} onChange={e => setEditedData({
-                        ...editedData!,
-                        obra: e.target.value
-                      })} /> : <p className="text-sm font-medium">
+                        {isEditMode ? <Input value={editedData?.obra || ''} onChange={e => {
+                        const newObra = e.target.value;
+                        setEditedData(prev => {
+                          // Si carpetaDrive está vacío o es igual al valor anterior de obra,
+                          // sincronizamos automáticamente
+                          const shouldSync = !prev?.carpetaDrive || 
+                                           prev.carpetaDrive === prev.obra;
+                          return {
+                            ...prev!,
+                            obra: newObra,
+                            carpetaDrive: shouldSync ? newObra : prev.carpetaDrive
+                          };
+                        });
+                      }} /> : <p className="text-sm font-medium">
                             {editedData?.obra || 'N/A'}
                           </p>}
+                      </div>
+
+                      {/* Carpeta Drive */}
+                      <div>
+                        <label className="text-sm text-muted-foreground mb-1.5 block">Carpeta Drive</label>
+                        {isEditMode ? (
+                          <Input 
+                            value={editedData?.carpetaDrive || ''} 
+                            onChange={(e) => {
+                              setEditedData({
+                                ...editedData!,
+                                carpetaDrive: e.target.value.trim()
+                              });
+                            }}
+                            placeholder="Automático desde Obra"
+                          />
+                        ) : (
+                          <p className="text-sm font-medium">
+                            {editedData?.carpetaDrive || 'N/A'}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
