@@ -364,13 +364,13 @@ const SuperAdminDashboard = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+              <TableHead>ACCIONES</TableHead>
               <TableHead>Nº PARTE</TableHead>
               <TableHead>CLIENTE</TableHead>
               <TableHead>FECHA</TableHead>
               <TableHead>HORAS</TableHead>
               <TableHead>FIRMAS</TableHead>
               <TableHead>ESTADO</TableHead>
-              <TableHead>ACCIONES</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -383,6 +383,18 @@ const SuperAdminDashboard = () => {
                 const horasData = extracted?.horasTotales || extracted?.horas;
                 const totalHoras = horasData ? horasData.ordinarias + horasData.extras + horasData.festivas : 0;
                 return <TableRow key={doc.id}>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="info" onClick={() => handleViewDetails(doc)}>
+                              <Eye className="h-4 w-4 mr-1" />
+                              Ver
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleDeleteDocument(doc.id, doc.storage_path)} className="rounded-md bg-red-400 hover:bg-red-300 text-white">
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Eliminar
+                            </Button>
+                          </div>
+                        </TableCell>
                         <TableCell className="font-medium">
                           {extracted?.parteNumero || <span className="text-muted-foreground">N/A</span>}
                         </TableCell>
@@ -414,18 +426,6 @@ const SuperAdminDashboard = () => {
                             </Badge> : <Badge className="rounded-md bg-orange-400 hover:bg-orange-400 text-white border-orange-400 h-9 px-3 text-sm min-w-[110px] justify-center">
                               Pendiente
                             </Badge>}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="info" onClick={() => handleViewDetails(doc)}>
-                              <Eye className="h-4 w-4 mr-1" />
-                              Ver
-                            </Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleDeleteDocument(doc.id, doc.storage_path)} className="rounded-md bg-red-400 hover:bg-red-300 text-white">
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Eliminar
-                            </Button>
-                          </div>
                         </TableCell>
                       </TableRow>;
               })}
