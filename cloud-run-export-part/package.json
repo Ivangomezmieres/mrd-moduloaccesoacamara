@@ -1,0 +1,20 @@
+{
+  "name": "mrd-export-part-to-drive",
+  "version": "1.0.0",
+  "description": "Servicio HTTP para exportar partes de trabajo a Google Drive",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "keywords": ["cloud-run", "google-drive", "express"],
+  "author": "MRD Partes",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  }
+}
