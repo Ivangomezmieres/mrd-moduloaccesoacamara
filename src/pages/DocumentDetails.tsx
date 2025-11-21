@@ -353,6 +353,81 @@ const DocumentDetails = () => {
     }
   };
 
+  // TODO: Conectar con Cloud Run
+  // Esta función hace un POST a la URL configurada en VITE_EXPORT_PART_TO_DRIVE_URL
+  // El backend de Cloud Run debe:
+  // 1. Recibir el payload con la información del parte
+  // 2. Descargar la imagen desde imageUrl o storage_path
+  // 3. Crear/buscar la carpeta en Google Drive según carpetaDrive
+  // 4. Subir el archivo a esa carpeta
+  // 5. Devolver respuesta con { success: true, driveFileUrl: '...' }
+  const handleExportToDrive = async () => {
+    // 1. Validaciones previas
+    if (!isManuallyValidated) {
+      toast.error('Solo se pueden exportar partes validados. Marca el parte como validado antes de exportar a Drive.');
+      return;
+    }
+
+    if (!editedData?.carpetaDrive || editedData.carpetaDrive.trim() === '') {
+      toast.error('Rellena el campo "Carpeta Drive" en los Datos del Parte antes de exportar a Drive.');
+      return;
+    }
+
+    // 2. Verificar que la URL del endpoint esté configurada
+    const exportUrl = import.meta.env.VITE_EXPORT_PART_TO_DRIVE_URL;
+    if (!exportUrl) {
+      toast.error('No está configurada la URL de exportación a Drive. Revisa la variable VITE_EXPORT_PART_TO_DRIVE_URL.');
+      return;
+    }
+
+    // 3. Preparar payload
+    const payload = {
+      documentId: document.id,
+      storagePath: document.storage_path,
+      imageUrl: imageUrl,
+      carpetaDrive: editedData.carpetaDrive.trim(),
+      obra: editedData.obra || null,
+      parteNumero: editedData.parteNumero || null,
+      cliente: editedData.cliente || null,
+      fecha: editedData.fecha || null
+    };
+
+    // 4. Mostrar toast de progreso
+    const loadingToast = toast.loading('Exportando parte a Google Drive...');
+
+    try {
+      // 5. Hacer fetch al endpoint de Cloud Run
+      const response = await fetch(exportUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      // 6. Gestionar respuesta
+      toast.dismiss(loadingToast);
+      
+      if (response.ok) {
+        const result = await response.json().catch(() => ({}));
+        toast.success('Parte exportado correctamente a Google Drive.');
+        
+        // Opcional: Si el backend devuelve el enlace de Drive, mostrarlo en consola
+        if (result.driveFileUrl) {
+          console.log('Archivo en Drive:', result.driveFileUrl);
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error del servidor:', errorData);
+        toast.error('Ha ocurrido un error al exportar el parte a Drive. Inténtalo de nuevo o consulta con el administrador.');
+      }
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      console.error('Error en el fetch a Cloud Run:', error);
+      toast.error('Ha ocurrido un error al exportar el parte a Drive. Inténtalo de nuevo o consulta con el administrador.');
+    }
+  };
+
   const handleZoomIn = () => {
     setZoom(prev => Math.min(prev + 25, 200));
   };
@@ -477,6 +552,25 @@ const DocumentDetails = () => {
                 toast.success('Descargando imagen...');
               }} className="h-8 w-8 p-0">
                   <Download className="h-4 w-4" />
+                </Button>
+                
+                {/* Botón Exportar a Drive */}
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  onClick={handleExportToDrive}
+                  disabled={!isManuallyValidated || !editedData?.carpetaDrive}
+                  className="h-8 px-3 bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={
+                    !isManuallyValidated 
+                      ? "El parte debe estar validado para exportar" 
+                      : !editedData?.carpetaDrive 
+                      ? "Rellena el campo Carpeta Drive primero" 
+                      : "Exportar a Google Drive"
+                  }
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Exportar a Drive
                 </Button>
               </div>
             </div>
