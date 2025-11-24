@@ -6,13 +6,8 @@ const { Readable } = require('stream');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Variables de entorno para Google Drive (preparadas para fase 2)
-const ROOT_DRIVE_FOLDER_ID = process.env.ROOT_DRIVE_FOLDER_ID;
-
-// Advertencia si falta la configuración de Drive
-if (!ROOT_DRIVE_FOLDER_ID) {
-  console.warn('⚠️  WARNING: ROOT_DRIVE_FOLDER_ID no está configurado. La subida a Drive no funcionará.');
-}
+// No se requieren variables de entorno para Drive
+// La unidad compartida "Partes Obra" se busca dinámicamente por nombre
 
 // Middleware
 app.use(cors()); // Permitir llamadas desde cualquier origen (ajustar en producción)
@@ -25,6 +20,24 @@ async function getDriveClient() {
   });
   const authClient = await auth.getClient();
   return google.drive({ version: 'v3', auth: authClient });
+}
+
+// Función para buscar unidad compartida por nombre
+async function findSharedDrive(drive, driveName) {
+  console.log(`🔍 Buscando unidad compartida: "${driveName}"`);
+  
+  const response = await drive.drives.list({
+    q: `name='${driveName}'`,
+    fields: 'drives(id, name)'
+  });
+  
+  if (!response.data.drives || response.data.drives.length === 0) {
+    throw new Error(`❌ No se encontró la unidad compartida "${driveName}". Verifica que la cuenta de servicio tenga acceso.`);
+  }
+  
+  const sharedDrive = response.data.drives[0];
+  console.log(`✅ Unidad compartida encontrada: "${sharedDrive.name}" (ID: ${sharedDrive.id})`);
+  return sharedDrive.id;
 }
 
 // Función para descargar imagen desde URL
@@ -41,11 +54,12 @@ async function downloadImage(imageUrl) {
 }
 
 // Función para buscar o crear carpeta en Drive
-async function findOrCreateFolder(drive, folderName, parentId) {
-  console.log(`📁 Buscando/creando carpeta: "${folderName}" en parent: ${parentId}`);
+async function findOrCreateFolder(drive, folderName, sharedDriveId, parentId = null) {
+  console.log(`📁 Buscando/creando carpeta: "${folderName}" en ${parentId ? `parent: ${parentId}` : 'raíz de la unidad compartida'}`);
   
   // Buscar carpeta existente
-  const query = `name='${folderName}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  const actualParentId = parentId || sharedDriveId;
+  const query = `name='${folderName}' and '${actualParentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
   const searchResponse = await drive.files.list({
     q: query,
     fields: 'files(id, name)',
@@ -53,7 +67,7 @@ async function findOrCreateFolder(drive, folderName, parentId) {
     supportsAllDrives: true,
     includeItemsFromAllDrives: true,
     corpora: 'drive',
-    driveId: ROOT_DRIVE_FOLDER_ID
+    driveId: sharedDriveId
   });
 
   if (searchResponse.data.files && searchResponse.data.files.length > 0) {
@@ -67,7 +81,7 @@ async function findOrCreateFolder(drive, folderName, parentId) {
   const folderMetadata = {
     name: folderName,
     mimeType: 'application/vnd.google-apps.folder',
-    parents: [parentId]
+    parents: [parentId || sharedDriveId]
   };
 
   const folder = await drive.files.create({
@@ -125,17 +139,20 @@ app.post('/export-part-to-drive', async (req, res) => {
     console.log('🔑 Inicializando Google Drive API...');
     const drive = await getDriveClient();
 
-    // 5. Buscar o crear carpeta según carpetaDrive
-    const folderId = await findOrCreateFolder(drive, carpetaDrive, ROOT_DRIVE_FOLDER_ID);
+    // 5. Buscar la unidad compartida "Partes Obra"
+    const sharedDriveId = await findSharedDrive(drive, 'Partes Obra');
 
-    // 6. Descargar imagen desde imageUrl
+    // 6. Buscar o crear carpeta de obra en la raíz de "Partes Obra"
+    const folderId = await findOrCreateFolder(drive, carpetaDrive, sharedDriveId);
+
+    // 7. Descargar imagen desde imageUrl
     const imageBuffer = await downloadImage(imageUrl);
 
-    // 7. Generar nombre de archivo
+    // 8. Generar nombre de archivo
     const fileName = `Parte_${parteNumero}_${fecha}.jpg`;
     console.log(`📝 Nombre de archivo: ${fileName}`);
 
-    // 8. Subir archivo a Google Drive
+    // 9. Subir archivo a Google Drive
     console.log('☁️  Subiendo archivo a Google Drive...');
     const fileMetadata = {
       name: fileName,
@@ -157,7 +174,7 @@ app.post('/export-part-to-drive', async (req, res) => {
     console.log('✅ Archivo subido exitosamente a Drive');
     console.log(`📄 ID: ${driveFile.data.id}, Nombre: ${fileName}`);
 
-    // 9. Respuesta de éxito
+    // 10. Respuesta de éxito
     res.status(200).json({
       success: true,
       message: 'Parte exportado correctamente a Google Drive.'
@@ -187,5 +204,5 @@ app.use((req, res) => {
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log(`🚀 Servidor escuchando en puerto ${PORT}`);
-  console.log(`📁 ROOT_DRIVE_FOLDER_ID: ${ROOT_DRIVE_FOLDER_ID || 'NO CONFIGURADO'}`);
+  console.log(`🔍 Se buscará automáticamente la unidad compartida "Partes Obra"`);
 });
