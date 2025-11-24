@@ -49,7 +49,11 @@ async function findOrCreateFolder(drive, folderName, parentId) {
   const searchResponse = await drive.files.list({
     q: query,
     fields: 'files(id, name)',
-    spaces: 'drive'
+    spaces: 'drive',
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
+    corpora: 'drive',
+    driveId: ROOT_DRIVE_FOLDER_ID
   });
 
   if (searchResponse.data.files && searchResponse.data.files.length > 0) {
@@ -68,7 +72,8 @@ async function findOrCreateFolder(drive, folderName, parentId) {
 
   const folder = await drive.files.create({
     requestBody: folderMetadata,
-    fields: 'id'
+    fields: 'id',
+    supportsAllDrives: true
   });
 
   console.log(`✅ Carpeta creada: ${folder.data.id}`);
@@ -145,7 +150,8 @@ app.post('/export-part-to-drive', async (req, res) => {
     const driveFile = await drive.files.create({
       requestBody: fileMetadata,
       media: media,
-      fields: 'id, name'
+      fields: 'id, name',
+      supportsAllDrives: true
     });
 
     console.log('✅ Archivo subido exitosamente a Drive');
@@ -159,6 +165,9 @@ app.post('/export-part-to-drive', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error en /export-part-to-drive:', error);
+    if (error.response?.data) {
+      console.error('📋 Detalles del error de Google API:', JSON.stringify(error.response.data, null, 2));
+    }
     res.status(500).json({
       success: false,
       error: 'Error interno del servidor',
