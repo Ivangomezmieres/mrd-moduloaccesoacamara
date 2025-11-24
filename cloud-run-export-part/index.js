@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { google } = require('googleapis');
-const fetch = require('node-fetch');
+const { Readable } = require('stream');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -34,7 +34,8 @@ async function downloadImage(imageUrl) {
   if (!response.ok) {
     throw new Error(`Error al descargar imagen: ${response.status} ${response.statusText}`);
   }
-  const buffer = await response.buffer();
+  const arrayBuffer = await response.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
   console.log(`✅ Imagen descargada: ${buffer.length} bytes`);
   return buffer;
 }
@@ -138,31 +139,22 @@ app.post('/export-part-to-drive', async (req, res) => {
 
     const media = {
       mimeType: 'image/jpeg',
-      body: require('stream').Readable.from(imageBuffer)
+      body: Readable.from(imageBuffer)
     };
 
     const driveFile = await drive.files.create({
       requestBody: fileMetadata,
       media: media,
-      fields: 'id, name, webViewLink'
+      fields: 'id, name'
     });
 
-    const driveFileUrl = driveFile.data.webViewLink || `https://drive.google.com/file/d/${driveFile.data.id}/view`;
-    
     console.log('✅ Archivo subido exitosamente a Drive');
-    console.log(`🔗 URL: ${driveFileUrl}`);
+    console.log(`📄 ID: ${driveFile.data.id}, Nombre: ${fileName}`);
 
     // 9. Respuesta de éxito
     res.status(200).json({
       success: true,
-      message: 'Parte exportado a Google Drive exitosamente',
-      data: {
-        driveFileId: driveFile.data.id,
-        driveFileUrl: driveFileUrl,
-        fileName: fileName,
-        carpeta: carpetaDrive,
-        documentId: documentId
-      }
+      message: 'Parte exportado correctamente a Google Drive.'
     });
 
   } catch (error) {
