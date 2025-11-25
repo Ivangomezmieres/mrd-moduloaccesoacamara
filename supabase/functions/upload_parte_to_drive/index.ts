@@ -63,7 +63,7 @@ async function createSignedJwt(
   const now = Math.floor(Date.now() / 1000);
   const claims = {
     iss: clientEmail,
-    scope: 'https://www.googleapis.com/auth/drive.file',
+    scope: 'https://www.googleapis.com/auth/drive',
     aud: 'https://oauth2.googleapis.com/token',
     exp: now + 3600, // Expira en 1 hora
     iat: now,
@@ -234,6 +234,14 @@ serve(async (req) => {
       parents: [folderId],
     };
     
+    // Log explícito para confirmar configuración de Shared Drive
+    console.log('[Drive] Configuración de subida a Shared Drive:', {
+      folderId: folderId,
+      parents: metadata.parents,
+      supportsAllDrives: true,
+      nombre_archivo: nombre_archivo,
+    });
+    
     // Crear FormData para multipart upload
     const form = new FormData();
     form.append(
@@ -243,7 +251,7 @@ serve(async (req) => {
     form.append('file', fileData, nombre_archivo);
     
     const uploadResponse = await fetch(
-      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink,name',
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,webViewLink,name',
       {
         method: 'POST',
         headers: {
