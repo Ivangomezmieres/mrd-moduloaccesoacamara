@@ -24,7 +24,6 @@ interface ExtractedData {
   cliente: string | null;
   emplazamiento: string | null;
   obra: string | null;
-  carpetaDrive: string | null;
   trabajoRealizado: string | null;
   horario: string | null;
   montador?: {
@@ -150,12 +149,6 @@ const DocumentDetails = () => {
             };
           }
         }
-        
-        // Sincronizar carpetaDrive con obra si está vacío
-        if (!initialData.carpetaDrive && initialData.obra) {
-          initialData.carpetaDrive = initialData.obra;
-        }
-        
         setEditedData(initialData);
       } else {
         // Datos vacíos si no hay extractedData
@@ -164,7 +157,6 @@ const DocumentDetails = () => {
           cliente: null,
           emplazamiento: null,
           obra: null,
-          carpetaDrive: null,
           trabajoRealizado: null,
           horario: null,
           fecha: null,
@@ -353,81 +345,6 @@ const DocumentDetails = () => {
     }
   };
 
-  // TODO: Conectar con Cloud Run
-  // Esta función hace un POST a la URL configurada en VITE_EXPORT_PART_TO_DRIVE_URL
-  // El backend de Cloud Run debe:
-  // 1. Recibir el payload con la información del parte
-  // 2. Descargar la imagen desde imageUrl o storage_path
-  // 3. Crear/buscar la carpeta en Google Drive según carpetaDrive
-  // 4. Subir el archivo a esa carpeta
-  // 5. Devolver respuesta con { success: true, driveFileUrl: '...' }
-  const handleExportToDrive = async () => {
-    // 1. Validaciones previas
-    if (!isManuallyValidated) {
-      toast.error('Solo se pueden exportar partes validados. Marca el parte como validado antes de exportar a Drive.');
-      return;
-    }
-
-    if (!editedData?.carpetaDrive || editedData.carpetaDrive.trim() === '') {
-      toast.error('Rellena el campo "Carpeta Drive" en los Datos del Parte antes de exportar a Drive.');
-      return;
-    }
-
-    // 2. Verificar que la URL del endpoint esté configurada
-    const exportUrl = import.meta.env.VITE_EXPORT_PART_TO_DRIVE_URL;
-    if (!exportUrl) {
-      toast.error('No está configurada la URL de exportación a Drive. Revisa la variable VITE_EXPORT_PART_TO_DRIVE_URL.');
-      return;
-    }
-
-    // 3. Preparar payload
-    const payload = {
-      documentId: document.id,
-      storagePath: document.storage_path,
-      imageUrl: imageUrl,
-      carpetaDrive: editedData.carpetaDrive.trim(),
-      obra: editedData.obra || null,
-      parteNumero: editedData.parteNumero || null,
-      cliente: editedData.cliente || null,
-      fecha: editedData.fecha || null
-    };
-
-    // 4. Mostrar toast de progreso
-    const loadingToast = toast.loading('Exportando parte a Google Drive...');
-
-    try {
-      // 5. Hacer fetch al endpoint de Cloud Run
-      const response = await fetch(exportUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      // 6. Gestionar respuesta
-      toast.dismiss(loadingToast);
-      
-      if (response.ok) {
-        const result = await response.json().catch(() => ({}));
-        toast.success('Parte exportado correctamente a Google Drive.');
-        
-        // Opcional: Si el backend devuelve el enlace de Drive, mostrarlo en consola
-        if (result.driveFileUrl) {
-          console.log('Archivo en Drive:', result.driveFileUrl);
-        }
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Error del servidor:', errorData);
-        toast.error('Ha ocurrido un error al exportar el parte a Drive. Inténtalo de nuevo o consulta con el administrador.');
-      }
-    } catch (error) {
-      toast.dismiss(loadingToast);
-      console.error('Error en el fetch a Cloud Run:', error);
-      toast.error('Ha ocurrido un error al exportar el parte a Drive. Inténtalo de nuevo o consulta con el administrador.');
-    }
-  };
-
   const handleZoomIn = () => {
     setZoom(prev => Math.min(prev + 25, 200));
   };
@@ -552,25 +469,6 @@ const DocumentDetails = () => {
                 toast.success('Descargando imagen...');
               }} className="h-8 w-8 p-0">
                   <Download className="h-4 w-4" />
-                </Button>
-                
-                {/* Botón Exportar a Drive */}
-                <Button 
-                  variant="default" 
-                  size="sm" 
-                  onClick={handleExportToDrive}
-                  disabled={!isManuallyValidated || !editedData?.carpetaDrive}
-                  className="h-8 px-3 bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={
-                    !isManuallyValidated 
-                      ? "El parte debe estar validado para exportar" 
-                      : !editedData?.carpetaDrive 
-                      ? "Rellena el campo Carpeta Drive primero" 
-                      : "Exportar a Google Drive"
-                  }
-                >
-                  <Download className="h-4 w-4 mr-1" />
-                  Exportar a Drive
                 </Button>
               </div>
             </div>
@@ -707,43 +605,12 @@ const DocumentDetails = () => {
           {/* Obra */}
           <div>
             <label className="text-sm text-muted-foreground mb-1.5 block">Obra</label>
-                        {isEditMode ? <Input value={editedData?.obra || ''} onChange={e => {
-                        const newObra = e.target.value;
-                        setEditedData(prev => {
-                          // Si carpetaDrive está vacío o es igual al valor anterior de obra,
-                          // sincronizamos automáticamente
-                          const shouldSync = !prev?.carpetaDrive || 
-                                           prev.carpetaDrive === prev.obra;
-                          return {
-                            ...prev!,
-                            obra: newObra,
-                            carpetaDrive: shouldSync ? newObra : prev.carpetaDrive
-                          };
-                        });
-                      }} /> : <p className="text-sm font-medium">
+                        {isEditMode ? <Input value={editedData?.obra || ''} onChange={e => setEditedData({
+                        ...editedData!,
+                        obra: e.target.value
+                      })} /> : <p className="text-sm font-medium">
                             {editedData?.obra || 'N/A'}
                           </p>}
-                      </div>
-
-                      {/* Carpeta Drive */}
-                      <div>
-                        <label className="text-sm text-muted-foreground mb-1.5 block">Carpeta Drive</label>
-                        {isEditMode ? (
-                          <Input 
-                            value={editedData?.carpetaDrive || ''} 
-                            onChange={(e) => {
-                              setEditedData({
-                                ...editedData!,
-                                carpetaDrive: e.target.value.trim()
-                              });
-                            }}
-                            placeholder="Automático desde Obra"
-                          />
-                        ) : (
-                          <p className="text-sm font-medium">
-                            {editedData?.carpetaDrive || 'N/A'}
-                          </p>
-                        )}
                       </div>
                     </div>
                   </div>

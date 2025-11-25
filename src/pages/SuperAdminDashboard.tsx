@@ -14,7 +14,6 @@ interface ExtractedData {
   cliente: string | null;
   emplazamiento: string | null;
   obra: string | null;
-  carpetaDrive: string | null;
   trabajoRealizado: string | null;
   // Estructura antigua (compatibilidad)
   montador?: {
@@ -213,7 +212,6 @@ const SuperAdminDashboard = () => {
         'Cliente': extracted?.cliente || 'N/A',
         'Emplazamiento': extracted?.emplazamiento || 'N/A',
         'Obra': extracted?.obra || 'N/A',
-        'Carpeta Drive': extracted?.carpetaDrive || 'N/A',
         'Trabajo': extracted?.trabajoRealizado || 'N/A',
         'Fecha Parte': extracted?.fecha || 'N/A',
         'Horas Ordinarias': horasData?.ordinarias || 0,
