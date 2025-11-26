@@ -422,6 +422,19 @@ const DocumentDetails = () => {
     const aspectRatio = imageDimensions.width / imageDimensions.height;
     return aspectRatio;
   };
+
+  // Calcular margen superior para evitar corte de imagen al rotar
+  const getRotationMargin = () => {
+    if (!isLateralRotation || !imageDimensions) return 0;
+    
+    const scale = getRotationScale();
+    // Si la escala es mayor que 1, necesitamos margen para el crecimiento hacia arriba
+    // El margen necesario es aproximadamente (scale - 1) / 2 del tamaño de la imagen
+    if (scale > 1) {
+      return `${((scale - 1) / 2) * 100}%`;
+    }
+    return 0;
+  };
   const renderField = (value: string | null | undefined, label: string) => {
     if (!value || value === '') {
       return <div className="flex items-center gap-2">
@@ -563,7 +576,8 @@ const DocumentDetails = () => {
                       maxWidth: 'none',
                       height: 'auto',
                       transform: `rotate(${rotation}deg) scale(${getRotationScale()})`,
-                      transformOrigin: 'center center'
+                      transformOrigin: 'center center',
+                      marginTop: getRotationMargin()
                     }} 
                   />}
                 </div>
