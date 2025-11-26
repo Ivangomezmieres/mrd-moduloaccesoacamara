@@ -349,7 +349,7 @@ const SuperAdminDashboard = () => {
           </Card>
 
           <Button 
-            className="bg-green-600 hover:bg-green-700 text-white h-auto py-6"
+            className="bg-green-800 hover:bg-green-900 text-white"
             onClick={() => navigate('/admin/processor')}
           >
             <Plus className="h-5 w-5 mr-2" />
