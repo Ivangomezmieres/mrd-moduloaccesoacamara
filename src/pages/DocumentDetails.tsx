@@ -420,7 +420,7 @@ const DocumentDetails = () => {
   const getRotationScale = () => {
     if (!isLateralRotation || !imageDimensions) return 1;
     const aspectRatio = imageDimensions.width / imageDimensions.height;
-    return 1 / aspectRatio;
+    return aspectRatio;
   };
   const renderField = (value: string | null | undefined, label: string) => {
     if (!value || value === '') {
