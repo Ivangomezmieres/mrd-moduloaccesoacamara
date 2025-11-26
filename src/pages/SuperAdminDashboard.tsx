@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Download, Eye, FileText, Users, Clock, Trash2 } from 'lucide-react';
+import { LogOut, Download, Eye, FileText, Users, Clock, Trash2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 interface ExtractedData {
@@ -327,7 +327,7 @@ const SuperAdminDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           <Card className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -348,9 +348,15 @@ const SuperAdminDashboard = () => {
             </div>
           </Card>
 
-          
-
-          
+          <Card 
+            className="p-6 flex items-center justify-center border-dashed border-2 border-primary/30 hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer"
+            onClick={() => navigate('/admin/processor')}
+          >
+            <div className="flex items-center gap-3 text-primary">
+              <Plus className="h-8 w-8" />
+              <span className="text-xl font-semibold">Nuevo Parte</span>
+            </div>
+          </Card>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
