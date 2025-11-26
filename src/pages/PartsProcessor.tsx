@@ -170,7 +170,7 @@ const PartsProcessor = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
             <Button 
-              className="bg-green-800 hover:bg-green-900 text-white"
+              className="bg-green-400 hover:bg-green-500 text-white"
               onClick={() => navigate('/admin/dashboard')}
             >
               <ArrowLeft className="h-5 w-5 mr-2" />
