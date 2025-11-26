@@ -169,7 +169,10 @@ const PartsProcessor = () => {
       <header className="border-b bg-card sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate('/admin/dashboard')}>
+            <Button 
+              className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={() => navigate('/admin/dashboard')}
+            >
               <ArrowLeft className="h-5 w-5 mr-2" />
               Volver
             </Button>
