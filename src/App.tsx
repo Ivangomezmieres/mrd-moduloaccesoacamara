@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
 import DocumentDetails from "./pages/DocumentDetails";
+import PartsProcessor from "./pages/PartsProcessor";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/scan" element={<Scan />} />
           <Route path="/admin/dashboard" element={<SuperAdminDashboard />} />
+          <Route path="/admin/processor" element={<PartsProcessor />} />
           <Route path="/admin/document/:id" element={<DocumentDetails />} />
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/install" element={<Install />} />
