@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Download, FileText, User, Briefcase, Calendar, Building, PenTool, ZoomIn, ZoomOut, Loader2, Pencil, Save, XCircle, Shield, Clock, MapPin, Eye, Lock } from 'lucide-react';
+import { ArrowLeft, Download, FileText, User, Briefcase, Calendar, Building, PenTool, ZoomIn, ZoomOut, Loader2, Pencil, Save, XCircle, Shield, Clock, MapPin, Eye, Lock, Cloud } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import {
   Select,
@@ -102,6 +102,7 @@ const DocumentDetails = () => {
   const [isReextracting, setIsReextracting] = useState(false);
   const [zoom, setZoom] = useState(100);
   const [isManuallyValidated, setIsManuallyValidated] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   useEffect(() => {
     if (id) {
       loadDocument();
@@ -345,6 +346,74 @@ const DocumentDetails = () => {
     }
   };
 
+  const handleExportToDrive = async () => {
+    if (!document) {
+      toast.error('No hay documento cargado');
+      return;
+    }
+    
+    // Validación: solo exportar si está validado
+    if (!isManuallyValidated) {
+      toast.error('Debes validar el parte antes de exportarlo a Drive');
+      return;
+    }
+    
+    setIsExporting(true);
+    
+    try {
+      // Construir nombre de archivo legible
+      const parteNumero = editedData?.parteNumero || document.id;
+      const fecha = editedData?.fecha 
+        ? new Date(editedData.fecha).toISOString().split('T')[0] 
+        : new Date().toISOString().split('T')[0];
+      const nombreArchivo = `Parte_${parteNumero}_${fecha}.jpg`;
+      
+      // Llamar a la edge function
+      const { data, error } = await supabase.functions.invoke('upload_parte_to_drive', {
+        body: {
+          obra_id: editedData?.obra || 'sin-obra',
+          parte_id: document.id,
+          storage_path: document.storage_path,
+          nombre_archivo: nombreArchivo,
+          target_drive_folder_id: null, // Usa carpeta por defecto
+        },
+      });
+      
+      if (error) {
+        console.error('Error calling upload function:', error);
+        toast.error('Error al conectar con el servicio de exportación');
+        return;
+      }
+      
+      if (data.status === 'error') {
+        toast.error(`Error: ${data.message}`);
+        return;
+      }
+      
+      // Éxito
+      toast.success(
+        <div className="flex flex-col gap-1">
+          <span>✓ Parte exportado correctamente a Google Drive</span>
+          <a 
+            href={data.drive_url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-primary underline text-sm"
+          >
+            Abrir en Drive →
+          </a>
+        </div>,
+        { duration: 8000 }
+      );
+      
+    } catch (error) {
+      console.error('Unexpected error exporting to Drive:', error);
+      toast.error('Error inesperado al exportar a Drive');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleZoomIn = () => {
     setZoom(prev => Math.min(prev + 25, 200));
   };
@@ -460,15 +529,26 @@ const DocumentDetails = () => {
                 {/* Separador */}
                 <div className="h-6 w-px bg-border mx-1" />
                 
-                {/* Botón descargar compacto */}
-                <Button variant="outline" size="sm" onClick={() => {
-                const imgElement = window.document.createElement('a');
-                imgElement.href = imageUrl;
-                imgElement.download = `documento_${(document.meta as any)?.extractedData?.parteNumero || 'sin-numero'}.jpg`;
-                imgElement.click();
-                toast.success('Descargando imagen...');
-              }} className="h-8 w-8 p-0">
-                  <Download className="h-4 w-4" />
+                {/* Botón Exportar a Drive */}
+                <Button 
+                  variant={isManuallyValidated ? "default" : "outline"} 
+                  size="sm" 
+                  onClick={handleExportToDrive}
+                  disabled={isExporting || !isManuallyValidated}
+                  className="h-8 px-3 flex items-center gap-2"
+                  title={!isManuallyValidated ? "Debes validar el parte antes de exportarlo" : "Exportar a Google Drive"}
+                >
+                  {isExporting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-xs">Exportando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Cloud className="h-4 w-4" />
+                      <span className="text-xs">Exportar a Drive</span>
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
