@@ -96,6 +96,7 @@ const DocumentDetails = () => {
   const [isReextracting, setIsReextracting] = useState(false);
   const [zoom, setZoom] = useState(100);
   const [rotation, setRotation] = useState(0);
+  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const [isManuallyValidated, setIsManuallyValidated] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   useEffect(() => {
@@ -405,6 +406,22 @@ const DocumentDetails = () => {
   const handleResetRotation = () => {
     setRotation(0);
   };
+
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    setImageDimensions({
+      width: img.naturalWidth,
+      height: img.naturalHeight
+    });
+  };
+
+  // Calcular escala para ajustar imagen al rotar 90° o 270°
+  const isLateralRotation = Math.abs(rotation % 180) === 90;
+  const getRotationScale = () => {
+    if (!isLateralRotation || !imageDimensions) return 1;
+    const aspectRatio = imageDimensions.width / imageDimensions.height;
+    return 1 / aspectRatio;
+  };
   const renderField = (value: string | null | undefined, label: string) => {
     if (!value || value === '') {
       return <div className="flex items-center gap-2">
@@ -536,13 +553,19 @@ const DocumentDetails = () => {
             <div className="flex-1 min-h-0 bg-muted/20 relative">
               <ScrollArea className="h-full">
                 <div className="flex items-start justify-center p-4">
-                  {imageUrl && <img src={imageUrl} alt="Documento escaneado" className="shadow-lg transition-all duration-200" style={{
-                  width: `${zoom}%`,
-                  maxWidth: 'none',
-                  height: 'auto',
-                  transform: `rotate(${rotation}deg)`,
-                  transformOrigin: 'center center'
-                }} />}
+                  {imageUrl && <img 
+                    src={imageUrl} 
+                    alt="Documento escaneado" 
+                    className="shadow-lg transition-all duration-200"
+                    onLoad={handleImageLoad}
+                    style={{
+                      width: `${zoom}%`,
+                      maxWidth: 'none',
+                      height: 'auto',
+                      transform: `rotate(${rotation}deg) scale(${getRotationScale()})`,
+                      transformOrigin: 'center center'
+                    }} 
+                  />}
                 </div>
               </ScrollArea>
               
