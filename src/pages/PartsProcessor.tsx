@@ -10,6 +10,7 @@ import { useDocumentProcessor, ProcessingResult } from '@/hooks/useDocumentProce
 const PartsProcessor = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const [processingQueue, setProcessingQueue] = useState<ProcessingResult[]>([]);
   const [isProcessingActive, setIsProcessingActive] = useState(false);
@@ -20,27 +21,31 @@ const PartsProcessor = () => {
   }, []);
 
   const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      navigate('/auth');
-      return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        navigate('/auth');
+        return;
+      }
+
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', session.user.id);
+
+      const hasSuperAdmin = roles?.some(r => r.role === 'superadmin');
+      
+      if (!hasSuperAdmin) {
+        toast.error('No tienes permisos para acceder a esta página');
+        navigate('/scan');
+        return;
+      }
+
+      setUserId(session.user.id);
+    } finally {
+      setIsAuthChecking(false);
     }
-
-    const { data: roles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', session.user.id);
-
-    const hasSuperAdmin = roles?.some(r => r.role === 'superadmin');
-    
-    if (!hasSuperAdmin) {
-      toast.error('No tienes permisos para acceder a esta página');
-      navigate('/scan');
-      return;
-    }
-
-    setUserId(session.user.id);
   };
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -163,6 +168,17 @@ const PartsProcessor = () => {
         return `Error: ${item.error}`;
     }
   };
+
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Verificando autenticación...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
