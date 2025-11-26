@@ -48,6 +48,25 @@ const PartsProcessor = () => {
     }
   };
 
+  const handleFiles = useCallback((files: File[]) => {
+    if (!userId) {
+      toast.error('Error: Usuario no autenticado');
+      return;
+    }
+
+    const newItems: ProcessingResult[] = files.map(file => ({
+      fileName: file.name,
+      status: 'pending',
+    }));
+
+    setProcessingQueue(prev => [...prev, ...newItems]);
+    
+    // Iniciar procesamiento si no está activo
+    if (!isProcessingActive) {
+      processQueue([...processingQueue, ...newItems], files);
+    }
+  }, [userId, processingQueue, isProcessingActive]);
+
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -73,7 +92,7 @@ const PartsProcessor = () => {
     } else {
       toast.error('Por favor, sube solo archivos JPG, PNG o WEBP');
     }
-  }, []);
+  }, [handleFiles]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []).filter(file =>
@@ -88,26 +107,7 @@ const PartsProcessor = () => {
     
     // Reset input
     e.target.value = '';
-  }, []);
-
-  const handleFiles = useCallback((files: File[]) => {
-    if (!userId) {
-      toast.error('Error: Usuario no autenticado');
-      return;
-    }
-
-    const newItems: ProcessingResult[] = files.map(file => ({
-      fileName: file.name,
-      status: 'pending',
-    }));
-
-    setProcessingQueue(prev => [...prev, ...newItems]);
-    
-    // Iniciar procesamiento si no está activo
-    if (!isProcessingActive) {
-      processQueue([...processingQueue, ...newItems], files);
-    }
-  }, [userId, processingQueue, isProcessingActive]);
+  }, [handleFiles]);
 
   const processQueue = async (queue: ProcessingResult[], files: File[]) => {
     if (!userId) return;
