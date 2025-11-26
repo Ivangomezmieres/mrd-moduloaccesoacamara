@@ -348,15 +348,13 @@ const SuperAdminDashboard = () => {
             </div>
           </Card>
 
-          <Card 
-            className="p-6 flex items-center justify-center border-dashed border-2 border-primary/30 hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer"
+          <Button 
+            className="bg-green-600 hover:bg-green-700 text-white h-auto py-6"
             onClick={() => navigate('/admin/processor')}
           >
-            <div className="flex items-center gap-3 text-primary">
-              <Plus className="h-8 w-8" />
-              <span className="text-xl font-semibold">Nuevo Parte</span>
-            </div>
-          </Card>
+            <Plus className="h-5 w-5 mr-2" />
+            Nuevo Parte
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
