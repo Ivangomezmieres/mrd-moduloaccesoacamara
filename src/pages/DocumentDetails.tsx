@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Download, FileText, User, Briefcase, Calendar, Building, PenTool, ZoomIn, ZoomOut, Loader2, Pencil, Save, XCircle, Shield, Clock, MapPin, Eye, Lock, Cloud } from 'lucide-react';
+import { ArrowLeft, Download, FileText, User, Briefcase, Calendar, Building, PenTool, ZoomIn, ZoomOut, Loader2, Pencil, Save, XCircle, Shield, Clock, MapPin, Eye, Lock, Cloud, RotateCcw, RotateCw } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import {
   Select,
@@ -101,6 +101,7 @@ const DocumentDetails = () => {
   const [isSavingChanges, setIsSavingChanges] = useState(false);
   const [isReextracting, setIsReextracting] = useState(false);
   const [zoom, setZoom] = useState(100);
+  const [rotation, setRotation] = useState(0);
   const [isManuallyValidated, setIsManuallyValidated] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   useEffect(() => {
@@ -423,6 +424,15 @@ const DocumentDetails = () => {
   const handleResetZoom = () => {
     setZoom(100);
   };
+  const handleRotateLeft = () => {
+    setRotation(prev => (prev - 90) % 360);
+  };
+  const handleRotateRight = () => {
+    setRotation(prev => (prev + 90) % 360);
+  };
+  const handleResetRotation = () => {
+    setRotation(0);
+  };
   const renderField = (value: string | null | undefined, label: string) => {
     if (!value || value === '') {
       return <div className="flex items-center gap-2">
@@ -526,7 +536,25 @@ const DocumentDetails = () => {
                   <ZoomIn className="h-4 w-4" />
                 </Button>
                 
-                {/* Separador */}
+                {/* Separador entre zoom y rotación */}
+                <div className="h-6 w-px bg-border mx-1" />
+                
+                {/* Botón Rotar Izquierda */}
+                <Button variant="outline" size="sm" onClick={handleRotateLeft} className="h-8 w-8 p-0" title="Girar 90° izquierda">
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+                
+                {/* Indicador de rotación clickeable para reset */}
+                <Button variant="ghost" size="sm" onClick={handleResetRotation} className="h-8 px-2 text-xs font-mono" title="Restablecer orientación">
+                  {rotation}°
+                </Button>
+                
+                {/* Botón Rotar Derecha */}
+                <Button variant="outline" size="sm" onClick={handleRotateRight} className="h-8 w-8 p-0" title="Girar 90° derecha">
+                  <RotateCw className="h-4 w-4" />
+                </Button>
+                
+                {/* Separador entre rotación y exportar */}
                 <div className="h-6 w-px bg-border mx-1" />
                 
                 {/* Botón Exportar a Drive */}
@@ -560,7 +588,9 @@ const DocumentDetails = () => {
                   {imageUrl && <img src={imageUrl} alt="Documento escaneado" className="shadow-lg transition-all duration-200" style={{
                   width: `${zoom}%`,
                   maxWidth: 'none',
-                  height: 'auto'
+                  height: 'auto',
+                  transform: `rotate(${rotation}deg)`,
+                  transformOrigin: 'center center'
                 }} />}
                 </div>
               </ScrollArea>
