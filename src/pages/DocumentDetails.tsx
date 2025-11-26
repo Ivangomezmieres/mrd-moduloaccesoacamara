@@ -11,13 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, Download, FileText, User, Briefcase, Calendar, Building, PenTool, ZoomIn, ZoomOut, Loader2, Pencil, Save, XCircle, Shield, Clock, MapPin, Eye, Lock, Cloud, RotateCcw, RotateCw } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 interface ExtractedData {
   parteNumero: string | null;
@@ -128,7 +122,7 @@ const DocumentDetails = () => {
         return;
       }
       setDocument(data as any);
-      
+
       // Cargar estado de validación manual
       setIsManuallyValidated((data.meta as any)?.manuallyValidated || false);
 
@@ -299,32 +293,27 @@ const DocumentDetails = () => {
     setIsEditMode(false);
     toast.info('Cambios descartados');
   };
-
   const handleToggleValidation = async (checked: boolean) => {
     if (!document) {
       toast.error('No hay documento cargado');
       return;
     }
-
     try {
-      const { error } = await supabase
-        .from('documents')
-        .update({
-          meta: {
-            ...document.meta,
-            manuallyValidated: checked
-          } as any,
-          status: checked ? 'approved' : 'pending',
-          validated_at: checked ? new Date().toISOString() : null
-        })
-        .eq('id', document.id);
-
+      const {
+        error
+      } = await supabase.from('documents').update({
+        meta: {
+          ...document.meta,
+          manuallyValidated: checked
+        } as any,
+        status: checked ? 'approved' : 'pending',
+        validated_at: checked ? new Date().toISOString() : null
+      }).eq('id', document.id);
       if (error) {
         console.error('Error updating validation status:', error);
         toast.error('Error al actualizar el estado de validación');
         return;
       }
-
       setIsManuallyValidated(checked);
       setDocument({
         ...document,
@@ -335,78 +324,62 @@ const DocumentDetails = () => {
         status: checked ? 'approved' : 'pending',
         validated_at: checked ? new Date().toISOString() : null
       });
-
-      toast.success(
-        checked 
-          ? '✓ Parte validado y bloqueado correctamente' 
-          : 'Parte desbloqueado y editable'
-      );
+      toast.success(checked ? '✓ Parte validado y bloqueado correctamente' : 'Parte desbloqueado y editable');
     } catch (error) {
       console.error('Unexpected error toggling validation:', error);
       toast.error('Error inesperado al cambiar el estado de validación');
     }
   };
-
   const handleExportToDrive = async () => {
     if (!document) {
       toast.error('No hay documento cargado');
       return;
     }
-    
+
     // Validación: solo exportar si está validado
     if (!isManuallyValidated) {
       toast.error('Debes validar el parte antes de exportarlo a Drive');
       return;
     }
-    
     setIsExporting(true);
-    
     try {
       // Construir nombre de archivo legible
       const parteNumero = editedData?.parteNumero || document.id;
-      const fecha = editedData?.fecha 
-        ? new Date(editedData.fecha).toISOString().split('T')[0] 
-        : new Date().toISOString().split('T')[0];
+      const fecha = editedData?.fecha ? new Date(editedData.fecha).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
       const nombreArchivo = `Parte_${parteNumero}_${fecha}.jpg`;
-      
+
       // Llamar a la edge function
-      const { data, error } = await supabase.functions.invoke('upload_parte_to_drive', {
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('upload_parte_to_drive', {
         body: {
           obra_id: editedData?.obra || 'sin-obra',
           parte_id: document.id,
           storage_path: document.storage_path,
           nombre_archivo: nombreArchivo,
-          target_drive_folder_id: null, // Usa carpeta por defecto
-        },
+          target_drive_folder_id: null // Usa carpeta por defecto
+        }
       });
-      
       if (error) {
         console.error('Error calling upload function:', error);
         toast.error('Error al conectar con el servicio de exportación');
         return;
       }
-      
       if (data.status === 'error') {
         toast.error(`Error: ${data.message}`);
         return;
       }
-      
+
       // Éxito
-      toast.success(
-        <div className="flex flex-col gap-1">
+      toast.success(<div className="flex flex-col gap-1">
           <span>✓ Parte exportado correctamente a Google Drive</span>
-          <a 
-            href={data.drive_url} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-primary underline text-sm"
-          >
+          <a href={data.drive_url} target="_blank" rel="noopener noreferrer" className="text-primary underline text-sm">
             Abrir en Drive →
           </a>
-        </div>,
-        { duration: 8000 }
-      );
-      
+        </div>, {
+        duration: 8000
+      });
     } catch (error) {
       console.error('Unexpected error exporting to Drive:', error);
       toast.error('Error inesperado al exportar a Drive');
@@ -414,7 +387,6 @@ const DocumentDetails = () => {
       setIsExporting(false);
     }
   };
-
   const handleZoomIn = () => {
     setZoom(prev => Math.min(prev + 25, 200));
   };
@@ -476,37 +448,27 @@ const DocumentDetails = () => {
               </div>
             </div>
             <div className="flex gap-2">
-              {!isEditMode && !isManuallyValidated ? (
-                <Button size="sm" variant="outline" onClick={() => setIsEditMode(true)}>
+              {!isEditMode && !isManuallyValidated ? <Button size="sm" variant="outline" onClick={() => setIsEditMode(true)}>
                   <Pencil className="mr-2 h-4 w-4" />
                   Editar
-                </Button>
-              ) : isManuallyValidated ? (
-                <Badge variant="secondary" className="text-xs">
+                </Button> : isManuallyValidated ? <Badge variant="secondary" className="text-xs">
                   <Lock className="mr-1 h-3 w-3" />
                   Parte bloqueado
-                </Badge>
-              ) : (
-                <>
+                </Badge> : <>
                   <Button size="sm" variant="outline" onClick={handleCancelEdit} disabled={isSavingChanges}>
                     <XCircle className="mr-2 h-4 w-4" />
                     Cancelar
                   </Button>
                   <Button size="sm" variant="default" onClick={handleSaveEditedData} disabled={isSavingChanges}>
-                    {isSavingChanges ? (
-                      <>
+                    {isSavingChanges ? <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Guardando...
-                      </>
-                    ) : (
-                      <>
+                      </> : <>
                         <Save className="mr-2 h-4 w-4" />
                         Guardar
-                      </>
-                    )}
+                      </>}
                   </Button>
-                </>
-              )}
+                </>}
             </div>
           </div>
         </div>
@@ -519,7 +481,7 @@ const DocumentDetails = () => {
           <div className="col-span-2 h-full min-h-0 flex flex-col border rounded-lg bg-card">
             {/* Header fijo con controles de zoom */}
             <div className="flex-shrink-0 p-3 border-b bg-muted/50 flex items-center justify-between">
-              <span className="text-sm font-medium">Vista Previa del Documento</span>
+              <span className="text-sm font-medium">Vista Previa</span>
               <div className="flex items-center gap-2">
                 {/* Botón Zoom Out */}
                 <Button variant="outline" size="sm" onClick={handleZoomOut} disabled={zoom <= 50} className="h-8 w-8 p-0">
@@ -558,25 +520,14 @@ const DocumentDetails = () => {
                 <div className="h-6 w-px bg-border mx-1" />
                 
                 {/* Botón Exportar a Drive */}
-                <Button 
-                  variant={isManuallyValidated ? "default" : "outline"} 
-                  size="sm" 
-                  onClick={handleExportToDrive}
-                  disabled={isExporting || !isManuallyValidated}
-                  className="h-8 px-3 flex items-center gap-2"
-                  title={!isManuallyValidated ? "Debes validar el parte antes de exportarlo" : "Exportar a Google Drive"}
-                >
-                  {isExporting ? (
-                    <>
+                <Button variant={isManuallyValidated ? "default" : "outline"} size="sm" onClick={handleExportToDrive} disabled={isExporting || !isManuallyValidated} className="h-8 px-3 flex items-center gap-2" title={!isManuallyValidated ? "Debes validar el parte antes de exportarlo" : "Exportar a Google Drive"}>
+                  {isExporting ? <>
                       <Loader2 className="h-4 w-4 animate-spin" />
                       <span className="text-xs">Exportando...</span>
-                    </>
-                  ) : (
-                    <>
+                    </> : <>
                       <Cloud className="h-4 w-4" />
                       <span className="text-xs">Exportar a Drive</span>
-                    </>
-                  )}
+                    </>}
                 </Button>
               </div>
             </div>
@@ -614,19 +565,14 @@ const DocumentDetails = () => {
           <div className="col-span-3 h-full min-h-0 flex flex-col">
             <Card className="h-full min-h-0 flex flex-col relative">
               {/* Cartela diagonal VALIDADO */}
-              {isManuallyValidated && (
-                <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
-                  <div 
-                    className="bg-white/85 text-[#D32F2F] font-bold text-4xl px-16 py-6 rounded-xl border-4 border-[#D32F2F] shadow-lg"
-                    style={{
-                      transform: 'rotate(-30deg)',
-                      letterSpacing: '0.25em'
-                    }}
-                  >
+              {isManuallyValidated && <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
+                  <div className="bg-white/85 text-[#D32F2F] font-bold text-4xl px-16 py-6 rounded-xl border-4 border-[#D32F2F] shadow-lg" style={{
+                transform: 'rotate(-30deg)',
+                letterSpacing: '0.25em'
+              }}>
                     VALIDADO
                   </div>
-                </div>
-              )}
+                </div>}
               {/* Header Fijo */}
               <div className="border-b p-6">
                 <div className="flex items-center justify-between">
@@ -755,19 +701,12 @@ const DocumentDetails = () => {
                           <label className="text-sm text-muted-foreground mb-1.5 block">
                             Horario
                           </label>
-                          {isEditMode ? (
-                            <Input 
-                              value={editedData?.horario || ''} 
-                              onChange={e => setEditedData({
-                                ...editedData!,
-                                horario: e.target.value
-                              })} 
-                            />
-                          ) : (
-                            <p className="text-sm font-medium">
+                          {isEditMode ? <Input value={editedData?.horario || ''} onChange={e => setEditedData({
+                          ...editedData!,
+                          horario: e.target.value
+                        })} /> : <p className="text-sm font-medium">
                               {editedData?.horario || 'N/A'}
-                            </p>
-                          )}
+                            </p>}
                         </div>
                       </div>
 
@@ -777,19 +716,15 @@ const DocumentDetails = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           <div className="flex flex-col items-center justify-center p-4 bg-muted/20 rounded-md min-h-[100px] gap-2">
                             <span className="text-sm font-medium text-center">Firma del Inspector</span>
-                            {isEditMode ? (
-                              <Select
-                                value={editedData?.firmas?.inspector ? "true" : "false"}
-                                onValueChange={(value) => {
-                                  setEditedData(prev => prev ? {
-                                    ...prev,
-                                    firmas: {
-                                      ...prev.firmas,
-                                      inspector: value === "true"
-                                    }
-                                  } : prev);
-                                }}
-                              >
+                            {isEditMode ? <Select value={editedData?.firmas?.inspector ? "true" : "false"} onValueChange={value => {
+                            setEditedData(prev => prev ? {
+                              ...prev,
+                              firmas: {
+                                ...prev.firmas,
+                                inspector: value === "true"
+                              }
+                            } : prev);
+                          }}>
                                 <SelectTrigger className="w-[160px] h-9">
                                   <SelectValue />
                                 </SelectTrigger>
@@ -797,28 +732,21 @@ const DocumentDetails = () => {
                                   <SelectItem value="true">✓ Firmado</SelectItem>
                                   <SelectItem value="false">✗ No firmado</SelectItem>
                                 </SelectContent>
-                              </Select>
-                            ) : (
-                              <Badge variant={editedData?.firmas?.inspector ? "default" : "secondary"} className="w-auto">
+                              </Select> : <Badge variant={editedData?.firmas?.inspector ? "default" : "secondary"} className="w-auto">
                                 {editedData?.firmas?.inspector ? '✓ Firmado' : '✗ No firmado'}
-                              </Badge>
-                            )}
+                              </Badge>}
                           </div>
                           <div className="flex flex-col items-center justify-center p-4 bg-muted/20 rounded-md min-h-[100px] gap-2">
                             <span className="text-sm font-medium text-center">Firma del Montador</span>
-                            {isEditMode ? (
-                              <Select
-                                value={editedData?.firmas?.montador ? "true" : "false"}
-                                onValueChange={(value) => {
-                                  setEditedData(prev => prev ? {
-                                    ...prev,
-                                    firmas: {
-                                      ...prev.firmas,
-                                      montador: value === "true"
-                                    }
-                                  } : prev);
-                                }}
-                              >
+                            {isEditMode ? <Select value={editedData?.firmas?.montador ? "true" : "false"} onValueChange={value => {
+                            setEditedData(prev => prev ? {
+                              ...prev,
+                              firmas: {
+                                ...prev.firmas,
+                                montador: value === "true"
+                              }
+                            } : prev);
+                          }}>
                                 <SelectTrigger className="w-[160px] h-9">
                                   <SelectValue />
                                 </SelectTrigger>
@@ -826,28 +754,21 @@ const DocumentDetails = () => {
                                   <SelectItem value="true">✓ Firmado</SelectItem>
                                   <SelectItem value="false">✗ No firmado</SelectItem>
                                 </SelectContent>
-                              </Select>
-                            ) : (
-                              <Badge variant={editedData?.firmas?.montador ? "default" : "secondary"} className="w-auto">
+                              </Select> : <Badge variant={editedData?.firmas?.montador ? "default" : "secondary"} className="w-auto">
                                 {editedData?.firmas?.montador ? '✓ Firmado' : '✗ No firmado'}
-                              </Badge>
-                            )}
+                              </Badge>}
                           </div>
                           <div className="flex flex-col items-center justify-center p-4 bg-muted/20 rounded-md min-h-[100px] gap-2">
                             <span className="text-sm font-medium text-center">Firma del Cliente</span>
-                            {isEditMode ? (
-                              <Select
-                                value={editedData?.firmas?.cliente ? "true" : "false"}
-                                onValueChange={(value) => {
-                                  setEditedData(prev => prev ? {
-                                    ...prev,
-                                    firmas: {
-                                      ...prev.firmas,
-                                      cliente: value === "true"
-                                    }
-                                  } : prev);
-                                }}
-                              >
+                            {isEditMode ? <Select value={editedData?.firmas?.cliente ? "true" : "false"} onValueChange={value => {
+                            setEditedData(prev => prev ? {
+                              ...prev,
+                              firmas: {
+                                ...prev.firmas,
+                                cliente: value === "true"
+                              }
+                            } : prev);
+                          }}>
                                 <SelectTrigger className="w-[160px] h-9">
                                   <SelectValue />
                                 </SelectTrigger>
@@ -855,12 +776,9 @@ const DocumentDetails = () => {
                                   <SelectItem value="true">✓ Firmado</SelectItem>
                                   <SelectItem value="false">✗ No firmado</SelectItem>
                                 </SelectContent>
-                              </Select>
-                            ) : (
-                              <Badge variant={editedData?.firmas?.cliente ? "default" : "secondary"} className="w-auto">
+                              </Select> : <Badge variant={editedData?.firmas?.cliente ? "default" : "secondary"} className="w-auto">
                                 {editedData?.firmas?.cliente ? '✓ Firmado' : '✗ No firmado'}
-                              </Badge>
-                            )}
+                              </Badge>}
                           </div>
                         </div>
                       </div>
@@ -1117,11 +1035,7 @@ const DocumentDetails = () => {
                           <span className="text-sm font-semibold text-green-900">
                             Validación Completada
                           </span>
-                          <Switch
-                            checked={isManuallyValidated}
-                            onCheckedChange={handleToggleValidation}
-                            disabled={isEditMode}
-                          />
+                          <Switch checked={isManuallyValidated} onCheckedChange={handleToggleValidation} disabled={isEditMode} />
                         </div>
                         <p className="text-xs text-green-700 mt-0.5">
                           {isManuallyValidated ? 'El parte está bloqueado' : 'El parte está editable'}
