@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, Download, FileText, User, Briefcase, Calendar, Building, PenTool, ZoomIn, ZoomOut, Loader2, Pencil, Save, XCircle, Shield, Clock, MapPin, Eye, Lock, Cloud, RotateCcw, RotateCw } from 'lucide-react';
@@ -565,7 +565,7 @@ const DocumentDetails = () => {
             {/* Contenedor scrolleable con imagen zoomeable */}
             <div className="flex-1 min-h-0 bg-muted/20 relative">
               <ScrollArea className="h-full">
-                <div className="flex items-start justify-center p-4">
+                <div className="flex items-start justify-center p-4" style={{ minWidth: 'fit-content' }}>
                   {imageUrl && <img 
                     src={imageUrl} 
                     alt="Documento escaneado" 
@@ -581,6 +581,8 @@ const DocumentDetails = () => {
                     }} 
                   />}
                 </div>
+                <ScrollBar orientation="vertical" />
+                <ScrollBar orientation="horizontal" />
               </ScrollArea>
               
               {/* Badge de legibilidad flotante */}
