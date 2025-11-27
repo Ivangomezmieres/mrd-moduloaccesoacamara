@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Download, Eye, FileText, Users, Clock, Trash2, Plus, Search } from 'lucide-react';
+import { LogOut, Download, Eye, FileText, Users, Clock, Trash2, Plus, Search, AlertTriangle } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import logoMrd from '@/assets/logo-mrd.jpg';
@@ -297,6 +298,31 @@ const SuperAdminDashboard = () => {
     }, 0),
     uniqueClients: new Set(documents.map(d => d.meta?.extractedData?.cliente).filter(Boolean)).size
   };
+
+  // Función para detectar partes duplicados
+  const getDuplicateParteNumeros = (): Set<string> => {
+    const parteNumeroCounts: Record<string, number> = {};
+    
+    // Contar ocurrencias de cada Nº de Parte
+    documents.forEach(doc => {
+      const parteNumero = doc.meta?.extractedData?.parteNumero;
+      if (parteNumero) {
+        parteNumeroCounts[parteNumero] = (parteNumeroCounts[parteNumero] || 0) + 1;
+      }
+    });
+    
+    // Devolver solo los que aparecen más de una vez
+    const duplicates = new Set<string>();
+    Object.entries(parteNumeroCounts).forEach(([parteNumero, count]) => {
+      if (count > 1) {
+        duplicates.add(parteNumero);
+      }
+    });
+    
+    return duplicates;
+  };
+
+  const duplicateParteNumeros = getDuplicateParteNumeros();
   if (isLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -408,7 +434,13 @@ const SuperAdminDashboard = () => {
                 const extracted = doc.meta?.extractedData;
                 const horasData = extracted?.horasTotales || extracted?.horas;
                 const totalHoras = horasData ? horasData.ordinarias + horasData.extras + horasData.festivas : 0;
-                return <TableRow key={doc.id}>
+                const parteNumero = extracted?.parteNumero;
+                const isDuplicate = parteNumero ? duplicateParteNumeros.has(parteNumero) : false;
+                
+                return <TableRow 
+                  key={doc.id}
+                  className={isDuplicate ? 'bg-orange-50 hover:bg-orange-100' : ''}
+                >
                         <TableCell>
                           <div className="flex gap-2">
                             <Button size="sm" variant="info" onClick={() => handleViewDetails(doc)}>
@@ -422,7 +454,21 @@ const SuperAdminDashboard = () => {
                           </div>
                         </TableCell>
                         <TableCell className="font-medium">
-                          {extracted?.parteNumero || <span className="text-muted-foreground">N/A</span>}
+                          <div className="flex items-center gap-2">
+                            {isDuplicate && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <AlertTriangle className="h-5 w-5 text-orange-500 flex-shrink-0" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Este parte está duplicado. Existe otro registro con el mismo Nº de Parte.</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            {extracted?.parteNumero || <span className="text-muted-foreground">N/A</span>}
+                          </div>
                         </TableCell>
                         <TableCell>
                           {extracted?.cliente || <span className="text-muted-foreground">N/A</span>}
