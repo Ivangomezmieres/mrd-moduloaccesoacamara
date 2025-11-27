@@ -328,23 +328,23 @@ const SuperAdminDashboard = () => {
           <div className="flex flex-wrap items-center gap-4">
             <h2 className="text-xl font-bold">Panel de Control</h2>
             
-            <Card className="p-6 flex-shrink-0">
-              <div className="flex items-center justify-between gap-4">
+            <Card className="px-4 py-3 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Total Documentos</p>
-                  <p className="text-3xl font-bold">{stats.total}</p>
+                  <p className="text-xl font-bold">{stats.total}</p>
+                  <p className="text-xs text-muted-foreground">Total Documentos</p>
                 </div>
-                <FileText className="h-8 w-8 text-muted-foreground" />
               </div>
             </Card>
 
-            <Card className="p-6 flex-shrink-0">
-              <div className="flex items-center justify-between gap-4">
+            <Card className="px-4 py-3 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-yellow-600" />
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Pendientes</p>
-                  <p className="text-3xl font-bold text-yellow-600">{stats.pending}</p>
+                  <p className="text-xl font-bold text-yellow-600">{stats.pending}</p>
+                  <p className="text-xs text-muted-foreground">Pendientes</p>
                 </div>
-                <Clock className="h-8 w-8 text-yellow-600" />
               </div>
             </Card>
           </div>
