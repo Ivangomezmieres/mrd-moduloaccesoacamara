@@ -326,39 +326,43 @@ const SuperAdminDashboard = () => {
       <main className="container mx-auto px-4 py-6">
         <h2 className="text-xl font-bold mb-4">Panel de Control</h2>
         
-        <div className="flex flex-wrap items-center gap-4 mb-6">
-          <Card className="p-6 flex-shrink-0">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Total Documentos</p>
-                <p className="text-3xl font-bold">{stats.total}</p>
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div className="flex flex-wrap items-center gap-4">
+            <Card className="p-6 flex-shrink-0">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Total Documentos</p>
+                  <p className="text-3xl font-bold">{stats.total}</p>
+                </div>
+                <FileText className="h-8 w-8 text-muted-foreground" />
               </div>
-              <FileText className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </Card>
+            </Card>
 
-          <Card className="p-6 flex-shrink-0">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Pendientes</p>
-                <p className="text-3xl font-bold text-yellow-600">{stats.pending}</p>
+            <Card className="p-6 flex-shrink-0">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Pendientes</p>
+                  <p className="text-3xl font-bold text-yellow-600">{stats.pending}</p>
+                </div>
+                <Clock className="h-8 w-8 text-yellow-600" />
               </div>
-              <Clock className="h-8 w-8 text-yellow-600" />
-            </div>
-          </Card>
+            </Card>
+          </div>
 
-          <Button variant="outline" onClick={exportToExcel}>
-            <Download className="mr-2 h-4 w-4" />
-            Exportar Excel
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={exportToExcel}>
+              <Download className="mr-2 h-4 w-4" />
+              Exportar Excel
+            </Button>
 
-          <Button 
-            className="bg-green-400 hover:bg-green-500 text-white"
-            onClick={() => navigate('/admin/processor')}
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Nuevo Parte
-          </Button>
+            <Button 
+              className="bg-green-400 hover:bg-green-500 text-white"
+              onClick={() => navigate('/admin/processor')}
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Nuevo Parte
+            </Button>
+          </div>
         </div>
 
         <Card className="overflow-hidden">
