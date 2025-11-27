@@ -308,20 +308,11 @@ const SuperAdminDashboard = () => {
       <header className="border-b bg-card sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold">Panel de Control</h1>
-              <p className="text-sm text-muted-foreground">
-                Vista completa de documentos y datos extraídos
-              </p>
-            </div>
+            <h1 className="text-2xl font-bold">Gestor para extracción de datos de partes de trabajo</h1>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => navigate('/admin/users')}>
                 <Users className="mr-2 h-4 w-4" />
                 Usuarios
-              </Button>
-              <Button variant="outline" onClick={exportToExcel}>
-                <Download className="mr-2 h-4 w-4" />
-                Exportar Excel
               </Button>
               <Button variant="outline" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
@@ -333,9 +324,11 @@ const SuperAdminDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold mb-4">Panel de Control</h2>
+        
+        <div className="flex flex-wrap items-center gap-4 mb-6">
+          <Card className="p-6 flex-shrink-0">
+            <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Total Documentos</p>
                 <p className="text-3xl font-bold">{stats.total}</p>
@@ -344,8 +337,8 @@ const SuperAdminDashboard = () => {
             </div>
           </Card>
 
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
+          <Card className="p-6 flex-shrink-0">
+            <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Pendientes</p>
                 <p className="text-3xl font-bold text-yellow-600">{stats.pending}</p>
@@ -354,19 +347,18 @@ const SuperAdminDashboard = () => {
             </div>
           </Card>
 
+          <Button variant="outline" onClick={exportToExcel}>
+            <Download className="mr-2 h-4 w-4" />
+            Exportar Excel
+          </Button>
+
           <Button 
-            className="bg-green-400 hover:bg-green-500 text-white w-fit self-center"
+            className="bg-green-400 hover:bg-green-500 text-white"
             onClick={() => navigate('/admin/processor')}
           >
             <Plus className="h-5 w-5 mr-2" />
             Nuevo Parte
           </Button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          
-          
-          
         </div>
 
         <Card className="overflow-hidden">
