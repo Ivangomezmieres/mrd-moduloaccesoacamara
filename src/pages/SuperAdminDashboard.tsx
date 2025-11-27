@@ -356,7 +356,7 @@ const SuperAdminDashboard = () => {
             </Button>
 
             <Button 
-              className="bg-green-400 hover:bg-green-500 text-white"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
               onClick={() => navigate('/admin/processor')}
             >
               <Plus className="h-5 w-5 mr-2" />
@@ -439,7 +439,7 @@ const SuperAdminDashboard = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {doc.validated_at ? <Badge className="rounded-md bg-green-400 hover:bg-green-400 text-white border-green-400 h-9 px-3 text-sm min-w-[110px] justify-center">
+                          {doc.validated_at ? <Badge className="rounded-md bg-primary hover:bg-primary/90 text-primary-foreground border-primary h-9 px-3 text-sm min-w-[110px] justify-center">
                               Validado
                             </Badge> : <Badge className="rounded-md bg-orange-400 hover:bg-orange-400 text-white border-orange-400 h-9 px-3 text-sm min-w-[110px] justify-center">
                               Pendiente
