@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { LogOut, Download, Eye, FileText, Users, Clock, Trash2, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
+import logoMrd from '@/assets/logo-mrd.jpg';
 interface ExtractedData {
   parteNumero: string | null;
   cliente: string | null;
@@ -308,7 +309,14 @@ const SuperAdminDashboard = () => {
       <header className="border-b bg-card sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Gestor para extracción de datos de partes de trabajo</h1>
+            <div className="flex items-center gap-4">
+              <img 
+                src={logoMrd} 
+                alt="MRD Estructuras Tubulares" 
+                className="h-12 w-auto object-contain"
+              />
+              <h1 className="text-2xl font-bold">Gestor para extracción de datos de partes de trabajo</h1>
+            </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => navigate('/admin/users')}>
                 <Users className="mr-2 h-4 w-4" />
