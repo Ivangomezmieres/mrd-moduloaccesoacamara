@@ -565,7 +565,7 @@ const DocumentDetails = () => {
             {/* Contenedor scrolleable con imagen zoomeable */}
             <div className="flex-1 min-h-0 bg-muted/20 relative">
               <ScrollArea className="h-full">
-                <div className="flex items-start justify-center p-4" style={{ minWidth: 'fit-content' }}>
+                <div className="inline-flex items-start justify-center p-4 min-w-full">
                   {imageUrl && <img 
                     src={imageUrl} 
                     alt="Documento escaneado" 
