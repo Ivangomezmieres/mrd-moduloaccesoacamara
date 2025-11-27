@@ -564,22 +564,24 @@ const DocumentDetails = () => {
             
             {/* Contenedor scrolleable con imagen zoomeable */}
             <div className="flex-1 min-h-0 bg-muted/20 relative">
-              <ScrollArea className="h-full">
-                <div className="inline-flex items-start justify-center p-4 min-w-full">
-                  {imageUrl && <img 
-                    src={imageUrl} 
-                    alt="Documento escaneado" 
-                    className="shadow-lg transition-all duration-200"
-                    onLoad={handleImageLoad}
-                    style={{
-                      width: `${zoom}%`,
-                      maxWidth: 'none',
-                      height: 'auto',
-                      transform: `rotate(${rotation}deg) scale(${getRotationScale()})`,
-                      transformOrigin: 'center center',
-                      marginTop: getRotationMargin()
-                    }} 
-                  />}
+              <ScrollArea className="h-full w-full">
+                <div className="p-4" style={{ width: 'fit-content', minWidth: '100%' }}>
+                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    {imageUrl && <img 
+                      src={imageUrl} 
+                      alt="Documento escaneado" 
+                      className="shadow-lg transition-all duration-200"
+                      onLoad={handleImageLoad}
+                      style={{
+                        width: `${zoom}%`,
+                        maxWidth: 'none',
+                        height: 'auto',
+                        transform: `rotate(${rotation}deg) scale(${getRotationScale()})`,
+                        transformOrigin: 'center center',
+                        marginTop: getRotationMargin()
+                      }} 
+                    />}
+                  </div>
                 </div>
                 <ScrollBar orientation="vertical" />
                 <ScrollBar orientation="horizontal" />
