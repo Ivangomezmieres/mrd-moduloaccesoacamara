@@ -324,10 +324,10 @@ const SuperAdminDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <h2 className="text-xl font-bold mb-4">Panel de Control</h2>
-        
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div className="flex flex-wrap items-center gap-4">
+            <h2 className="text-xl font-bold">Panel de Control</h2>
+            
             <Card className="p-6 flex-shrink-0">
               <div className="flex items-center justify-between gap-4">
                 <div>
