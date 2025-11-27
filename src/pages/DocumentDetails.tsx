@@ -571,34 +571,30 @@ const DocumentDetails = () => {
             {/* Contenedor scrolleable con imagen zoomeable */}
             <div className="flex-1 min-h-0 bg-muted/20 relative overflow-auto">
               <div 
-                className="p-4"
                 style={{ 
-                  display: 'inline-block',
-                  minWidth: '100%',
-                  minHeight: '100%'
+                  width: `${zoom}%`,
+                  minWidth: zoom < 100 ? '100%' : undefined,
+                  padding: '16px',
+                  boxSizing: 'border-box'
                 }}
               >
-                <div 
-                  style={{ 
-                    display: 'flex', 
-                    justifyContent: 'center',
-                    minWidth: 'fit-content'
-                  }}
-                >
-                  {imageUrl && <img 
-                    src={imageUrl} 
-                    alt="Documento escaneado" 
-                    className="shadow-lg transition-all duration-200"
-                    onLoad={handleImageLoad}
-                    style={{
-                      width: `${zoom}%`,
-                      maxWidth: 'none',
-                      height: 'auto',
-                      transform: `rotate(${rotation}deg) scale(${getRotationScale()})`,
-                      transformOrigin: 'center center',
-                      marginTop: getRotationMargin()
-                    }} 
-                  />}
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  {imageUrl && (
+                    <img 
+                      src={imageUrl} 
+                      alt="Documento escaneado" 
+                      className="shadow-lg transition-all duration-200"
+                      onLoad={handleImageLoad}
+                      style={{
+                        width: '100%',
+                        maxWidth: 'none',
+                        height: 'auto',
+                        transform: `rotate(${rotation}deg) scale(${getRotationScale()})`,
+                        transformOrigin: 'center center',
+                        marginTop: getRotationMargin()
+                      }} 
+                    />
+                  )}
                 </div>
               </div>
               
