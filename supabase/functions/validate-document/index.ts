@@ -5,9 +5,42 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Función de retry con exponential backoff para manejar rate limiting (429)
+async function fetchWithRetry(
+  url: string, 
+  options: RequestInit, 
+  maxRetries = 3
+): Promise<Response> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      
+      // Si es 429 (rate limit), hacer retry con backoff exponencial
+      if (response.status === 429 && attempt < maxRetries) {
+        const waitTime = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+        console.warn(`⚠️ Rate limit (429) detectado. Reintentando en ${waitTime}ms... (intento ${attempt + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+      
+      return response;
+    } catch (error) {
+      if (attempt === maxRetries) {
+        throw error;
+      }
+      const waitTime = Math.pow(2, attempt) * 1000;
+      console.warn(`⚠️ Error en petición. Reintentando en ${waitTime}ms... (intento ${attempt + 1}/${maxRetries})`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+  }
+  
+  throw new Error('Max retries alcanzado');
+}
+
 const extractDocumentData = async (imageBase64: string, openaiKey: string): Promise<any> => {
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    console.log('🚀 Iniciando extracción de datos del documento...');
+    const response = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openaiKey}`,
@@ -158,8 +191,18 @@ NO incluyas texto adicional, comentarios o explicaciones. SOLO devuelve el JSON 
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI extraction error:', response.status, errorText);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      console.error('❌ OpenAI extraction error:', response.status, errorText);
+      
+      // Proporcionar mensaje de error más descriptivo
+      if (response.status === 429) {
+        throw new Error('OpenAI rate limit alcanzado. Por favor, espera unos minutos e intenta de nuevo.');
+      } else if (response.status === 401) {
+        throw new Error('API key de OpenAI inválida o expirada.');
+      } else if (response.status === 500 || response.status === 503) {
+        throw new Error('Servicio de OpenAI temporalmente no disponible. Intenta de nuevo en unos momentos.');
+      }
+      
+      throw new Error(`Error de OpenAI API (${response.status}): ${errorText.substring(0, 200)}`);
     }
 
     const data = await response.json();
@@ -333,7 +376,8 @@ NO incluyas texto adicional, comentarios o explicaciones. SOLO devuelve el JSON 
 // Función para extraer solo datos de cabecera (segundo intento)
 async function extractHeaderOnly(imageBase64: string, openaiKey: string) {
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    console.log('🔄 Iniciando extracción de cabecera (segundo intento)...');
+    const response = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openaiKey}`,
@@ -378,7 +422,12 @@ Responde SOLO con JSON válido, sin explicaciones.`
     });
 
     if (!response.ok) {
-      console.error('Error en extracción de cabecera:', response.status);
+      const errorText = await response.text();
+      console.error('❌ Error en extracción de cabecera:', response.status, errorText);
+      
+      if (response.status === 429) {
+        console.error('⚠️ Rate limit alcanzado en extracción de cabecera');
+      }
       return null;
     }
 
@@ -435,7 +484,8 @@ Responde en formato JSON con:
   "observations": string
 }`;
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  console.log('🔍 Iniciando validación de legibilidad...');
+  const response = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${openaiKey}`,
@@ -468,8 +518,12 @@ Responde en formato JSON con:
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('OpenAI API error:', response.status, errorText);
-    throw new Error(`OpenAI API error: ${response.status}`);
+    console.error('❌ OpenAI legibility validation error:', response.status, errorText);
+    
+    if (response.status === 429) {
+      throw new Error('OpenAI rate limit alcanzado durante validación de legibilidad.');
+    }
+    throw new Error(`Error de validación de legibilidad (${response.status}): ${errorText.substring(0, 200)}`);
   }
 
   const data = await response.json();
@@ -562,8 +616,11 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in validate-document function:', error);
+    console.error('❌ Error in validate-document function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Determinar si es un error de rate limit
+    const isRateLimit = errorMessage.includes('rate limit') || errorMessage.includes('429');
     
     return new Response(
       JSON.stringify({ 
@@ -572,11 +629,13 @@ serve(async (req) => {
         legibilityPercentage: 80,
         illegibleFields: [],
         confidence: 0,
-        observations: 'Error en validación automática',
+        observations: isRateLimit 
+          ? 'Límite de solicitudes alcanzado. Por favor, espera unos minutos e intenta de nuevo.'
+          : 'Error en validación automática',
         extractedData: null
       }),
       {
-        status: 500,
+        status: isRateLimit ? 429 : 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
