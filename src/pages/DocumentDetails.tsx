@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
@@ -98,26 +98,13 @@ const DocumentDetails = () => {
   const [rotation, setRotation] = useState(0);
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const [isManuallyValidated, setIsManuallyValidated] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState<number>(0);
   const [isExporting, setIsExporting] = useState(false);
+
   useEffect(() => {
     if (id) {
       loadDocument();
     }
   }, [id]);
-  
-  useEffect(() => {
-    const updateContainerWidth = () => {
-      if (containerRef.current) {
-        setContainerWidth(containerRef.current.clientWidth);
-      }
-    };
-    
-    updateContainerWidth();
-    window.addEventListener('resize', updateContainerWidth);
-    return () => window.removeEventListener('resize', updateContainerWidth);
-  }, []);
   const loadDocument = async () => {
     setIsLoading(true);
     try {
@@ -451,27 +438,32 @@ const DocumentDetails = () => {
   };
   const renderField = (value: string | null | undefined, label: string) => {
     if (!value || value === '') {
-      return <div className="flex items-center gap-2">
+      return (
+        <div className="flex items-center gap-2">
           <span className="text-muted-foreground italic">N/A</span>
           <Badge variant="outline" className="text-xs text-orange-600 border-orange-600">
             Dato no reconocido
           </Badge>
-        </div>;
+        </div>
+      );
     }
     return <span>{value}</span>;
   };
   if (isLoading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center">
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Cargando documento...</p>
         </div>
-      </div>;
+      </div>
+    );
   }
   if (!document) {
     return null;
   }
-  return <div className="h-screen bg-background flex flex-col overflow-hidden">
+  return (
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Header */}
       <header className="border-b bg-card flex-shrink-0 shadow-sm">
         <div className="container mx-auto px-4 py-4">
@@ -577,34 +569,36 @@ const DocumentDetails = () => {
             </div>
             
             {/* Contenedor scrolleable con imagen zoomeable */}
-            <div className="flex-1 min-h-0 bg-muted/20 relative" ref={containerRef}>
+            <div className="flex-1 min-h-0 bg-muted/20 relative overflow-auto">
               <div 
-                className="h-full w-full overflow-auto"
-                style={{ scrollbarWidth: 'thin' }}
+                className="p-4"
+                style={{ 
+                  display: 'inline-block',
+                  minWidth: '100%',
+                  minHeight: '100%'
+                }}
               >
                 <div 
-                  className="p-4"
                   style={{ 
-                    width: containerWidth > 0 ? `${containerWidth * zoom / 100}px` : '100%',
-                    minWidth: '100%'
+                    display: 'flex', 
+                    justifyContent: 'center',
+                    minWidth: 'fit-content'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    {imageUrl && <img 
-                      src={imageUrl} 
-                      alt="Documento escaneado" 
-                      className="shadow-lg transition-all duration-200"
-                      onLoad={handleImageLoad}
-                      style={{
-                        width: '100%',
-                        maxWidth: 'none',
-                        height: 'auto',
-                        transform: `rotate(${rotation}deg) scale(${getRotationScale()})`,
-                        transformOrigin: 'center center',
-                        marginTop: getRotationMargin()
-                      }} 
-                    />}
-                  </div>
+                  {imageUrl && <img 
+                    src={imageUrl} 
+                    alt="Documento escaneado" 
+                    className="shadow-lg transition-all duration-200"
+                    onLoad={handleImageLoad}
+                    style={{
+                      width: `${zoom}%`,
+                      maxWidth: 'none',
+                      height: 'auto',
+                      transform: `rotate(${rotation}deg) scale(${getRotationScale()})`,
+                      transformOrigin: 'center center',
+                      marginTop: getRotationMargin()
+                    }} 
+                  />}
                 </div>
               </div>
               
@@ -1112,6 +1106,7 @@ const DocumentDetails = () => {
           </div>
         </div>
       </main>
-    </div>;
+    </div>
+  );
 };
 export default DocumentDetails;
