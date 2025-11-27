@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
@@ -98,12 +98,26 @@ const DocumentDetails = () => {
   const [rotation, setRotation] = useState(0);
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const [isManuallyValidated, setIsManuallyValidated] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(0);
   const [isExporting, setIsExporting] = useState(false);
   useEffect(() => {
     if (id) {
       loadDocument();
     }
   }, [id]);
+  
+  useEffect(() => {
+    const updateContainerWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.clientWidth);
+      }
+    };
+    
+    updateContainerWidth();
+    window.addEventListener('resize', updateContainerWidth);
+    return () => window.removeEventListener('resize', updateContainerWidth);
+  }, []);
   const loadDocument = async () => {
     setIsLoading(true);
     try {
@@ -563,9 +577,18 @@ const DocumentDetails = () => {
             </div>
             
             {/* Contenedor scrolleable con imagen zoomeable */}
-            <div className="flex-1 min-h-0 bg-muted/20 relative">
-              <ScrollArea className="h-full w-full">
-                <div className="p-4" style={{ width: 'fit-content', minWidth: '100%' }}>
+            <div className="flex-1 min-h-0 bg-muted/20 relative" ref={containerRef}>
+              <div 
+                className="h-full w-full overflow-auto"
+                style={{ scrollbarWidth: 'thin' }}
+              >
+                <div 
+                  className="p-4"
+                  style={{ 
+                    width: containerWidth > 0 ? `${containerWidth * zoom / 100}px` : '100%',
+                    minWidth: '100%'
+                  }}
+                >
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
                     {imageUrl && <img 
                       src={imageUrl} 
@@ -573,7 +596,7 @@ const DocumentDetails = () => {
                       className="shadow-lg transition-all duration-200"
                       onLoad={handleImageLoad}
                       style={{
-                        width: `${zoom}%`,
+                        width: '100%',
                         maxWidth: 'none',
                         height: 'auto',
                         transform: `rotate(${rotation}deg) scale(${getRotationScale()})`,
@@ -583,9 +606,7 @@ const DocumentDetails = () => {
                     />}
                   </div>
                 </div>
-                <ScrollBar orientation="vertical" />
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
+              </div>
               
               {/* Badge de legibilidad flotante */}
               <div className="absolute top-4 right-4 bg-background/95 backdrop-blur-sm px-3 py-1.5 rounded-full border shadow-sm">
