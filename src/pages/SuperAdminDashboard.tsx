@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Download, Eye, FileText, Users, Clock, Trash2, Plus } from 'lucide-react';
+import { LogOut, Download, Eye, FileText, Users, Clock, Trash2, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 interface ExtractedData {
@@ -138,7 +138,13 @@ const SuperAdminDashboard = () => {
       filtered = filtered.filter(doc => {
         const extractedData = doc.meta?.extractedData;
         if (!extractedData) return false;
-        return extractedData.parteNumero?.toLowerCase().includes(term) || extractedData.cliente?.toLowerCase().includes(term) || extractedData.emplazamiento?.toLowerCase().includes(term) || extractedData.obra?.toLowerCase().includes(term) || extractedData.montador?.nombre?.toLowerCase().includes(term) || extractedData.montador?.apellidos?.toLowerCase().includes(term) || doc.profiles?.full_name?.toLowerCase().includes(term);
+        
+        // Formatear fecha para búsqueda
+        const fechaFormateada = extractedData.fecha 
+          ? new Date(extractedData.fecha).toLocaleDateString('es-ES') 
+          : '';
+        
+        return extractedData.parteNumero?.toLowerCase().includes(term) || extractedData.cliente?.toLowerCase().includes(term) || extractedData.emplazamiento?.toLowerCase().includes(term) || extractedData.obra?.toLowerCase().includes(term) || fechaFormateada.toLowerCase().includes(term) || extractedData.montador?.nombre?.toLowerCase().includes(term) || extractedData.montador?.apellidos?.toLowerCase().includes(term) || doc.profiles?.full_name?.toLowerCase().includes(term);
       });
     }
     setFilteredDocuments(filtered);
@@ -364,6 +370,18 @@ const SuperAdminDashboard = () => {
         </div>
 
         <Card className="overflow-hidden">
+          <div className="p-4 border-b">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Buscar por Nº Parte, Cliente, Fecha, Obra o Emplazamiento..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
