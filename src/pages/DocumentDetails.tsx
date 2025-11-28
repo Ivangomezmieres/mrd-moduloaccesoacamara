@@ -128,6 +128,10 @@ const DocumentDetails = () => {
       // Cargar estado de validación manual
       setIsManuallyValidated((data.meta as any)?.manuallyValidated || false);
 
+      // Cargar rotación guardada
+      const savedRotation = (data.meta as any)?.rotation || 0;
+      setRotation(savedRotation);
+
       // Cargar datos extraídos
       const existingData = (data.meta as any)?.extractedData;
       if (existingData) {
@@ -398,14 +402,45 @@ const DocumentDetails = () => {
   const handleResetZoom = () => {
     setZoom(100);
   };
+  const saveRotation = async (newRotation: number) => {
+    if (!document) return;
+    
+    try {
+      const updatedMeta = {
+        ...document.meta,
+        rotation: newRotation
+      };
+      
+      const { error } = await supabase
+        .from('documents')
+        .update({ meta: updatedMeta as any })
+        .eq('id', document.id);
+      
+      if (error) {
+        console.error('Error saving rotation:', error);
+        return;
+      }
+      
+      // Actualizar estado local del documento
+      setDocument(prev => prev ? { ...prev, meta: updatedMeta } : null);
+    } catch (error) {
+      console.error('Error saving rotation:', error);
+    }
+  };
+
   const handleRotateLeft = () => {
-    setRotation(prev => (prev - 90) % 360);
+    const newRotation = (rotation - 90 + 360) % 360;
+    setRotation(newRotation);
+    saveRotation(newRotation);
   };
   const handleRotateRight = () => {
-    setRotation(prev => (prev + 90) % 360);
+    const newRotation = (rotation + 90) % 360;
+    setRotation(newRotation);
+    saveRotation(newRotation);
   };
   const handleResetRotation = () => {
     setRotation(0);
+    saveRotation(0);
   };
 
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -416,26 +451,8 @@ const DocumentDetails = () => {
     });
   };
 
-  // Calcular escala para ajustar imagen al rotar 90° o 270°
+  // Detectar si la rotación es lateral (90° o 270°)
   const isLateralRotation = Math.abs(rotation % 180) === 90;
-  const getRotationScale = () => {
-    if (!isLateralRotation || !imageDimensions) return 1;
-    const aspectRatio = imageDimensions.width / imageDimensions.height;
-    return aspectRatio;
-  };
-
-  // Calcular margen superior para evitar corte de imagen al rotar
-  const getRotationMargin = () => {
-    if (!isLateralRotation || !imageDimensions) return 0;
-    
-    const scale = getRotationScale();
-    // Si la escala es mayor que 1, necesitamos margen para el crecimiento hacia arriba
-    // El margen necesario es aproximadamente (scale - 1) / 2 del tamaño de la imagen
-    if (scale > 1) {
-      return `${((scale - 1) / 2) * 100}%`;
-    }
-    return 0;
-  };
   const renderField = (value: string | null | undefined, label: string) => {
     if (!value || value === '') {
       return (
@@ -571,14 +588,19 @@ const DocumentDetails = () => {
             {/* Contenedor scrolleable con imagen zoomeable */}
             <div className="flex-1 min-h-0 bg-muted/20 relative overflow-auto">
               <div 
+                className="p-4"
                 style={{ 
                   width: `${zoom}%`,
                   minWidth: zoom < 100 ? '100%' : undefined,
-                  padding: '16px',
                   boxSizing: 'border-box'
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <div 
+                  className="flex justify-center items-center"
+                  style={{
+                    minHeight: '100%'
+                  }}
+                >
                   {imageUrl && (
                     <img 
                       src={imageUrl} 
@@ -586,12 +608,13 @@ const DocumentDetails = () => {
                       className="shadow-lg transition-all duration-200"
                       onLoad={handleImageLoad}
                       style={{
-                        width: '100%',
-                        maxWidth: 'none',
-                        height: 'auto',
-                        transform: `rotate(${rotation}deg) scale(${getRotationScale()})`,
-                        transformOrigin: 'center center',
-                        marginTop: getRotationMargin()
+                        width: isLateralRotation ? 'auto' : '100%',
+                        height: isLateralRotation ? '100%' : 'auto',
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain',
+                        transform: `rotate(${rotation}deg)`,
+                        transformOrigin: 'center center'
                       }} 
                     />
                   )}
