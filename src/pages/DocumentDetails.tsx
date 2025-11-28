@@ -454,22 +454,31 @@ const DocumentDetails = () => {
   // Detectar si la rotación es lateral (90° o 270°)
   const isLateralRotation = Math.abs(rotation % 180) === 90;
 
-  // Calcular dimensiones del contenedor de imagen basadas en rotación
-  const getImageContainerStyles = () => {
-    if (!imageDimensions) {
-      return { width: '100%', paddingBottom: '75%' }; // Fallback 4:3
+  // Calcular transform con rotación y escala para adaptar al espacio
+  const getImageTransform = () => {
+    // Si no hay rotación lateral, solo aplicar la rotación
+    if (!isLateralRotation) {
+      return `rotate(${rotation}deg)`;
     }
     
-    const { width, height } = imageDimensions;
+    // Para rotación lateral (90° o 270°), calcular escala
+    // La imagen rotada tiene dimensiones invertidas visualmente
+    // Necesitamos escalar para que quepa en el contenedor
+    if (imageDimensions) {
+      const { width, height } = imageDimensions;
+      const aspectRatio = width / height;
+      
+      // Si la imagen es más ancha que alta (horizontal), al rotarla
+      // se convierte en más alta que ancha, necesitamos reducirla
+      // para que el nuevo "alto" (antiguo ancho) quepa
+      if (aspectRatio > 1) {
+        // Escalar inversamente al aspect ratio
+        const scale = 1 / aspectRatio;
+        return `rotate(${rotation}deg) scale(${scale})`;
+      }
+    }
     
-    // Si hay rotación lateral, invertir el aspect ratio
-    const effectiveWidth = isLateralRotation ? height : width;
-    const effectiveHeight = isLateralRotation ? width : height;
-    
-    return {
-      width: '100%',
-      aspectRatio: `${effectiveWidth} / ${effectiveHeight}`
-    };
+    return `rotate(${rotation}deg)`;
   };
   const renderField = (value: string | null | undefined, label: string) => {
     if (!value || value === '') {
@@ -606,34 +615,31 @@ const DocumentDetails = () => {
             {/* Contenedor scrolleable con imagen zoomeable */}
             <div className="flex-1 min-h-0 bg-muted/20 relative overflow-auto">
               <div 
-                className="p-4"
+                className="p-4 flex items-center justify-center"
                 style={{ 
                   width: `${zoom}%`,
                   minWidth: zoom < 100 ? '100%' : undefined,
+                  minHeight: '100%',
                   boxSizing: 'border-box'
                 }}
               >
-                {/* Contenedor con aspect ratio correcto para la rotación */}
-                <div 
-                  className="relative mx-auto"
-                  style={getImageContainerStyles()}
-                >
-                  {imageUrl && (
-                    <img 
-                      src={imageUrl} 
-                      alt="Documento escaneado" 
-                      className="shadow-lg transition-all duration-200 absolute inset-0"
-                      onLoad={handleImageLoad}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'contain',
-                        transform: `rotate(${rotation}deg)`,
-                        transformOrigin: 'center center'
-                      }} 
-                    />
-                  )}
-                </div>
+                {imageUrl && (
+                  <img 
+                    src={imageUrl} 
+                    alt="Documento escaneado" 
+                    className="shadow-lg transition-all duration-200"
+                    onLoad={handleImageLoad}
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: isLateralRotation ? 'none' : '100%',
+                      width: isLateralRotation ? 'auto' : '100%',
+                      height: isLateralRotation ? '100%' : 'auto',
+                      objectFit: 'contain',
+                      transform: getImageTransform(),
+                      transformOrigin: 'center center'
+                    }} 
+                  />
+                )}
               </div>
               
               {/* Badge de legibilidad flotante */}
