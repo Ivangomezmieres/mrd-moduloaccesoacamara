@@ -453,6 +453,24 @@ const DocumentDetails = () => {
 
   // Detectar si la rotación es lateral (90° o 270°)
   const isLateralRotation = Math.abs(rotation % 180) === 90;
+
+  // Calcular dimensiones del contenedor de imagen basadas en rotación
+  const getImageContainerStyles = () => {
+    if (!imageDimensions) {
+      return { width: '100%', paddingBottom: '75%' }; // Fallback 4:3
+    }
+    
+    const { width, height } = imageDimensions;
+    
+    // Si hay rotación lateral, invertir el aspect ratio
+    const effectiveWidth = isLateralRotation ? height : width;
+    const effectiveHeight = isLateralRotation ? width : height;
+    
+    return {
+      width: '100%',
+      aspectRatio: `${effectiveWidth} / ${effectiveHeight}`
+    };
+  };
   const renderField = (value: string | null | undefined, label: string) => {
     if (!value || value === '') {
       return (
@@ -595,23 +613,20 @@ const DocumentDetails = () => {
                   boxSizing: 'border-box'
                 }}
               >
+                {/* Contenedor con aspect ratio correcto para la rotación */}
                 <div 
-                  className="flex justify-center items-center"
-                  style={{
-                    minHeight: '100%'
-                  }}
+                  className="relative mx-auto"
+                  style={getImageContainerStyles()}
                 >
                   {imageUrl && (
                     <img 
                       src={imageUrl} 
                       alt="Documento escaneado" 
-                      className="shadow-lg transition-all duration-200"
+                      className="shadow-lg transition-all duration-200 absolute inset-0"
                       onLoad={handleImageLoad}
                       style={{
-                        width: isLateralRotation ? 'auto' : '100%',
-                        height: isLateralRotation ? '100%' : 'auto',
-                        maxWidth: '100%',
-                        maxHeight: '100%',
+                        width: '100%',
+                        height: '100%',
                         objectFit: 'contain',
                         transform: `rotate(${rotation}deg)`,
                         transformOrigin: 'center center'
