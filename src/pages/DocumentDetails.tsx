@@ -98,12 +98,30 @@ const DocumentDetails = () => {
   const [rotation, setRotation] = useState(0);
   const [isManuallyValidated, setIsManuallyValidated] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  
+  // Estados y ref para cálculo matemático de dimensiones
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
+  const [viewportSize, setViewportSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
 
   useEffect(() => {
     if (id) {
       loadDocument();
     }
   }, [id]);
+
+  // ResizeObserver para actualizar dimensiones del viewport
+  useEffect(() => {
+    if (!viewportRef.current) return;
+    const el = viewportRef.current;
+    const observer = new ResizeObserver(entries => {
+      const entry = entries[0];
+      const { width, height } = entry.contentRect;
+      setViewportSize({ width, height });
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   const loadDocument = async () => {
     setIsLoading(true);
     try {
@@ -442,24 +460,48 @@ const DocumentDetails = () => {
     saveRotation(0);
   };
 
-  // Obtener estilos del rotator (solo aplica la rotación)
-  const getRotatorStyles = (): React.CSSProperties => ({
-    transform: rotation !== 0 ? `rotate(${rotation}deg)` : undefined,
-    transformOrigin: 'center center',
-  });
+  // Handler para capturar dimensiones naturales de la imagen
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    setImageSize({ width: img.naturalWidth, height: img.naturalHeight });
+  };
 
-  // Obtener estilos de la imagen según orientación
-  const getImageStylesByOrientation = (): React.CSSProperties => {
-    // Mismos estilos para todas las orientaciones
-    // La rotación solo cambia el ángulo, no el tamaño
-    // object-fit: contain ajusta la imagen al espacio disponible
+  // Cálculo matemático preciso de dimensiones de la imagen
+  const getImageStyles = (): React.CSSProperties => {
+    // Fallback si no tenemos medidas
+    if (!imageSize || viewportSize.width === 0 || viewportSize.height === 0) {
+      return {
+        maxWidth: '100%',
+        maxHeight: '100%',
+        objectFit: 'contain',
+      };
+    }
+
+    const { width: imgW, height: imgH } = imageSize;
+    const { width: vpW, height: vpH } = viewportSize;
+
+    // 1) Dimensiones de la imagen DESPUÉS de aplicar la rotación
+    const isLateral = rotation === 90 || rotation === 270;
+    const rotatedW = isLateral ? imgH : imgW;
+    const rotatedH = isLateral ? imgW : imgH;
+
+    // 2) Escala base tipo "contain" para encajar en el viewport con zoom 100
+    const scaleBase = Math.min(vpW / rotatedW, vpH / rotatedH);
+
+    // 3) Aplicar zoom (zoom es el valor del slider en %, por ejemplo 100, 150, 80)
+    const zoomFactor = zoom / 100;
+    const scale = scaleBase * zoomFactor;
+
+    // 4) Tamaño del elemento IMG ANTES de rotar (usar dimensiones originales)
+    const finalWidth = imgW * scale;
+    const finalHeight = imgH * scale;
+
     return {
+      width: `${finalWidth}px`,
+      height: `${finalHeight}px`,
+      transform: rotation !== 0 ? `rotate(${rotation}deg)` : undefined,
+      transformOrigin: 'center center',
       display: 'block',
-      objectFit: 'contain',
-      maxWidth: '100%',
-      maxHeight: '100%',
-      width: 'auto',
-      height: 'auto',
     };
   };
   const renderField = (value: string | null | undefined, label: string) => {
@@ -595,29 +637,21 @@ const DocumentDetails = () => {
             </div>
             
             {/* Viewport: contenedor scrolleable con position relative para el badge */}
-            <div className="flex-1 min-h-0 bg-muted/20 overflow-auto flex items-center justify-center relative">
-              {/* Contenedor con zoom que permite scroll */}
-              <div 
-                className="flex items-center justify-center"
-                style={{ 
-                  width: `${zoom}%`,
-                  minWidth: zoom < 100 ? '100%' : undefined,
-                  minHeight: '100%',
-                  padding: '1rem',
-                  boxSizing: 'border-box',
-                }}
-              >
-                {/* Rotator: solo aplica la rotación */}
-                <div style={getRotatorStyles()}>
-                  {imageUrl && (
-                    <img 
-                      src={imageUrl} 
-                      alt="Documento escaneado" 
-                      className="shadow-lg"
-                      style={getImageStylesByOrientation()} 
-                    />
-                  )}
-                </div>
+            <div 
+              ref={viewportRef}
+              className="flex-1 min-h-0 bg-muted/20 overflow-auto flex items-center justify-center relative"
+            >
+              {/* Contenedor de imagen con cálculo matemático */}
+              <div className="flex items-center justify-center">
+                {imageUrl && (
+                  <img 
+                    src={imageUrl} 
+                    alt="Documento escaneado" 
+                    className="shadow-lg"
+                    style={getImageStyles()}
+                    onLoad={handleImageLoad}
+                  />
+                )}
               </div>
               
               {/* Badge de legibilidad - posicionado respecto al viewport gracias a relative */}
