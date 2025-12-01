@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
@@ -98,30 +98,12 @@ const DocumentDetails = () => {
   const [rotation, setRotation] = useState(0);
   const [isManuallyValidated, setIsManuallyValidated] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  
-  // Estados y ref para cálculo matemático de dimensiones
-  const viewportRef = useRef<HTMLDivElement | null>(null);
-  const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
-  const [viewportSize, setViewportSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
 
   useEffect(() => {
     if (id) {
       loadDocument();
     }
   }, [id]);
-
-  // ResizeObserver para actualizar dimensiones del viewport
-  useEffect(() => {
-    if (!viewportRef.current) return;
-    const el = viewportRef.current;
-    const observer = new ResizeObserver(entries => {
-      const entry = entries[0];
-      const { width, height } = entry.contentRect;
-      setViewportSize({ width, height });
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
   const loadDocument = async () => {
     setIsLoading(true);
     try {
@@ -460,50 +442,6 @@ const DocumentDetails = () => {
     saveRotation(0);
   };
 
-  // Handler para capturar dimensiones naturales de la imagen
-  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const img = e.currentTarget;
-    setImageSize({ width: img.naturalWidth, height: img.naturalHeight });
-  };
-
-  // Cálculo matemático preciso de dimensiones de la imagen
-  const getImageStyles = (): React.CSSProperties => {
-    // Fallback si no tenemos medidas
-    if (!imageSize || viewportSize.width === 0 || viewportSize.height === 0) {
-      return {
-        maxWidth: '100%',
-        maxHeight: '100%',
-        objectFit: 'contain',
-      };
-    }
-
-    const { width: imgW, height: imgH } = imageSize;
-    const { width: vpW, height: vpH } = viewportSize;
-
-    // 1) Dimensiones de la imagen DESPUÉS de aplicar la rotación
-    const isLateral = rotation === 90 || rotation === 270;
-    const rotatedW = isLateral ? imgH : imgW;
-    const rotatedH = isLateral ? imgW : imgH;
-
-    // 2) Escala base tipo "contain" para encajar en el viewport con zoom 100
-    const scaleBase = Math.min(vpW / rotatedW, vpH / rotatedH);
-
-    // 3) Aplicar zoom (zoom es el valor del slider en %, por ejemplo 100, 150, 80)
-    const zoomFactor = zoom / 100;
-    const scale = scaleBase * zoomFactor;
-
-    // 4) Tamaño del elemento IMG ANTES de rotar (usar dimensiones originales)
-    const finalWidth = imgW * scale;
-    const finalHeight = imgH * scale;
-
-    return {
-      width: `${finalWidth}px`,
-      height: `${finalHeight}px`,
-      transform: rotation !== 0 ? `rotate(${rotation}deg)` : undefined,
-      transformOrigin: 'center center',
-      display: 'block',
-    };
-  };
   const renderField = (value: string | null | undefined, label: string) => {
     if (!value || value === '') {
       return (
@@ -636,25 +574,42 @@ const DocumentDetails = () => {
               </div>
             </div>
             
-            {/* Viewport: contenedor scrolleable con position relative para el badge */}
-            <div 
-              ref={viewportRef}
+            {/* Viewport scrolleable */}
+            <div
               className="flex-1 min-h-0 bg-muted/20 overflow-auto flex items-center justify-center relative"
             >
-              {/* Contenedor de imagen con cálculo matemático */}
-              <div className="flex items-center justify-center">
+              {/* Contenedor de zoom - usa width% para que el scroll funcione bien */}
+              <div
+                className="inline-flex items-center justify-center p-4"
+                style={{
+                  // El zoom se controla ampliando el ancho real del contenedor,
+                  // NO con transform: scale, para que el scroll funcione bien.
+                  width: `${zoom ?? 100}%`,
+                  minWidth: (zoom ?? 100) < 100 ? '100%' : undefined,
+                  minHeight: '100%',
+                  boxSizing: 'border-box',
+                }}
+              >
                 {imageUrl && (
-                  <img 
-                    src={imageUrl} 
-                    alt="Documento escaneado" 
-                    className="shadow-lg"
-                    style={getImageStyles()}
-                    onLoad={handleImageLoad}
+                  <img
+                    src={imageUrl}
+                    alt="Documento escaneado"
+                    className="shadow-lg block"
+                    style={{
+                      // MISMO ESTILO PARA TODAS LAS ORIENTACIONES
+                      objectFit: 'contain',
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      width: 'auto',
+                      height: 'auto',
+                      transform: rotation ? `rotate(${rotation}deg)` : 'none',
+                      transformOrigin: 'center center',
+                    }}
                   />
                 )}
               </div>
-              
-              {/* Badge de legibilidad - posicionado respecto al viewport gracias a relative */}
+
+              {/* Badge de legibilidad - igual que ahora */}
               <div className="absolute top-4 right-4 bg-background/95 backdrop-blur-sm px-3 py-1.5 rounded-full border shadow-sm">
                 <div className="flex items-center gap-2">
                   <Eye className="h-3.5 w-3.5" />
