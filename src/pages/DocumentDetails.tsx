@@ -575,35 +575,35 @@ const DocumentDetails = () => {
             </div>
             
             {/* Viewport scrolleable */}
-            <div
-              className="flex-1 min-h-0 bg-muted/20 overflow-auto relative flex items-center justify-center"
-            >
-              {/* Contenedor interno con scroll controlado por zoom */}
+            <div className="flex-1 min-h-0 bg-muted/20 overflow-auto relative">
+              {/* Contenedor espaciador - su tamaño crece con el zoom para generar scroll */}
               <div
-                className="inline-block"
                 style={{
                   width: `${zoom ?? 100}%`,
                   height: `${zoom ?? 100}%`,
                   minWidth: '100%',
                   minHeight: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '16px',
+                  boxSizing: 'border-box',
                 }}
               >
-                <div className="w-full h-full flex items-center justify-center p-4">
-                  {imageUrl && (
-                    <img
-                      src={imageUrl}
-                      alt="Documento escaneado"
-                      className="shadow-lg block max-w-full max-h-full"
-                      style={{
-                        objectFit: 'contain',
-                        width: 'auto',
-                        height: 'auto',
-                        transform: rotation ? `rotate(${rotation}deg)` : 'none',
-                        transformOrigin: 'center center',
-                      }}
-                    />
-                  )}
-                </div>
+                {imageUrl && (
+                  <img
+                    src={imageUrl}
+                    alt="Documento escaneado"
+                    className="shadow-lg"
+                    style={{
+                      maxWidth: `${10000 / (zoom ?? 100)}%`,
+                      maxHeight: `${10000 / (zoom ?? 100)}%`,
+                      objectFit: 'contain',
+                      transform: `scale(${(zoom ?? 100) / 100})${rotation ? ` rotate(${rotation}deg)` : ''}`,
+                      transformOrigin: 'center center',
+                    }}
+                  />
+                )}
               </div>
 
               {/* Badge de legibilidad */}
