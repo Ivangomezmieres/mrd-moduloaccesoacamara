@@ -474,39 +474,63 @@ const DocumentDetails = () => {
   // Detectar si la rotación es lateral (90° o 270°)
   const isLateralRotation = Math.abs(rotation % 180) === 90;
 
-  // Calcular transform con rotación y escala ÓPTIMA para llenar el contenedor
-  const getImageTransform = () => {
-    // Sin rotación lateral, solo aplicar rotación
+  // Calcular estilos de imagen incluyendo dimensiones para rotación
+  const getImageStyles = (): React.CSSProperties => {
+    const baseStyles: React.CSSProperties = {
+      objectFit: 'contain',
+      transformOrigin: 'center center',
+    };
+    
+    // Sin rotación lateral, comportamiento normal
     if (!isLateralRotation) {
-      return `rotate(${rotation}deg)`;
+      return {
+        ...baseStyles,
+        maxWidth: '100%',
+        maxHeight: '100%',
+        transform: rotation !== 0 ? `rotate(${rotation}deg)` : undefined,
+      };
     }
     
-    // Para rotación lateral, calcular la escala óptima basada en las dimensiones del contenedor real
+    // Para rotación lateral (90°/270°), calcular dimensiones óptimas
     if (imageDimensions && containerSize.width > 0 && containerSize.height > 0) {
       const { width: imgW, height: imgH } = imageDimensions;
       const { width: contW, height: contH } = containerSize;
       
-      // Cuando la imagen está rotada 90°/270°:
-      // - El ancho visual = altura original de la imagen
-      // - El alto visual = ancho original de la imagen
-      const aspectRatio = imgW / imgH;
+      // Dimensiones visuales de la imagen rotada (intercambiadas)
+      const rotatedVisualW = imgH;
+      const rotatedVisualH = imgW;
       
-      // Si la imagen es horizontal (ancho > alto), al rotarla se vuelve vertical
-      if (aspectRatio > 1) {
-        // Calcular cuánto se escalaría la imagen para caber en el contenedor sin rotación
-        const baseScale = Math.min(contW / imgW, contH / imgH);
-        
-        // Calcular cuánto se debe escalar la imagen rotada para llenar el contenedor
-        const optimalScale = Math.min(contW / imgH, contH / imgW);
-        
-        // El factor final compensa la diferencia
-        const finalScale = optimalScale / baseScale;
-        
-        return `rotate(${rotation}deg) scale(${finalScale})`;
-      }
+      // Calcular escala para que la imagen rotada quepa en el contenedor (contain)
+      const scaleToFit = Math.min(contW / rotatedVisualW, contH / rotatedVisualH);
+      
+      // Dimensiones finales que queremos que tenga la imagen visualmente
+      const finalVisualW = rotatedVisualW * scaleToFit;
+      const finalVisualH = rotatedVisualH * scaleToFit;
+      
+      // Como CSS aplica rotate() DESPUÉS, debemos dar a la imagen
+      // las dimensiones que, al rotarse, produzcan el tamaño visual deseado
+      // Si rotamos 90°: lo que era altura se convierte en ancho visual
+      // Entonces: imgDisplayW debe ser finalVisualH, imgDisplayH debe ser finalVisualW
+      const imgDisplayW = finalVisualH;
+      const imgDisplayH = finalVisualW;
+      
+      return {
+        ...baseStyles,
+        width: imgDisplayW,
+        height: imgDisplayH,
+        maxWidth: 'none',
+        maxHeight: 'none',
+        transform: `rotate(${rotation}deg)`,
+      };
     }
     
-    return `rotate(${rotation}deg)`;
+    // Fallback si no tenemos dimensiones
+    return {
+      ...baseStyles,
+      maxWidth: '100%',
+      maxHeight: '100%',
+      transform: `rotate(${rotation}deg)`,
+    };
   };
   const renderField = (value: string | null | undefined, label: string) => {
     if (!value || value === '') {
@@ -657,13 +681,7 @@ const DocumentDetails = () => {
                     alt="Documento escaneado" 
                     className="shadow-lg transition-all duration-200"
                     onLoad={handleImageLoad}
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      objectFit: 'contain',
-                      transform: getImageTransform(),
-                      transformOrigin: 'center center'
-                    }} 
+                    style={getImageStyles()} 
                   />
                 )}
               </div>
