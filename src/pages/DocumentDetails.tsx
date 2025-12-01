@@ -96,10 +96,7 @@ const DocumentDetails = () => {
   const [isReextracting, setIsReextracting] = useState(false);
   const [zoom, setZoom] = useState(100);
   const [rotation, setRotation] = useState(0);
-  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const [isManuallyValidated, setIsManuallyValidated] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
@@ -107,24 +104,6 @@ const DocumentDetails = () => {
       loadDocument();
     }
   }, [id]);
-  
-  // Observar cambios de tamaño del contenedor de imagen
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerSize({
-          width: entry.contentRect.width - 32, // Restar padding (p-4 = 16px * 2)
-          height: entry.contentRect.height - 32
-        });
-      }
-    });
-    
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
   const loadDocument = async () => {
     setIsLoading(true);
     try {
@@ -463,66 +442,23 @@ const DocumentDetails = () => {
     saveRotation(0);
   };
 
-  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const img = e.currentTarget;
-    setImageDimensions({
-      width: img.naturalWidth,
-      height: img.naturalHeight
-    });
-  };
+  // Obtener estilos del rotator (solo aplica la rotación)
+  const getRotatorStyles = (): React.CSSProperties => ({
+    transform: rotation !== 0 ? `rotate(${rotation}deg)` : undefined,
+    transformOrigin: 'center center',
+  });
 
-  // Detectar si la rotación es lateral (90° o 270°)
-  const isLateralRotation = Math.abs(rotation % 180) === 90;
-
-  // Calcular estilos de imagen con dimensiones explícitas para rotación
-  const getImageStyles = (): React.CSSProperties => {
-    // Si no tenemos las dimensiones necesarias, usar comportamiento básico
-    if (!imageDimensions || containerSize.width <= 0 || containerSize.height <= 0) {
-      return {
-        maxWidth: '100%',
-        maxHeight: '100%',
-        objectFit: 'contain',
-        transform: rotation !== 0 ? `rotate(${rotation}deg)` : undefined,
-        transformOrigin: 'center center',
-      };
-    }
-    
-    const { width: imgW, height: imgH } = imageDimensions;
-    const { width: contW, height: contH } = containerSize;
-    
-    // Para 0° y 180°: calcular tamaño normal (contain)
-    if (rotation === 0 || rotation === 180) {
-      const scaleToFit = Math.min(contW / imgW, contH / imgH);
-      return {
-        width: imgW * scaleToFit,
-        height: imgH * scaleToFit,
-        objectFit: 'fill',
-        transform: rotation === 180 ? 'rotate(180deg)' : undefined,
-        transformOrigin: 'center center',
-      };
-    }
-    
-    // Para 90° y 270°: las dimensiones visuales de la imagen rotada son (imgH × imgW)
-    // Calcular escala para que la imagen ROTADA quepa en el contenedor
-    const scaleToFit = Math.min(contW / imgH, contH / imgW);
-    
-    // Tamaño visual final deseado (después de rotar)
-    const finalVisualW = imgH * scaleToFit;
-    const finalVisualH = imgW * scaleToFit;
-    
-    // Dimensiones del elemento IMG (ANTES de rotar)
-    // Como rotate(90deg) intercambia ancho↔alto visual:
-    // - El width del elemento se convierte en el alto visual
-    // - El height del elemento se convierte en el ancho visual
-    const elementW = finalVisualH;
-    const elementH = finalVisualW;
+  // Obtener estilos de la imagen según orientación
+  const getImageStylesByOrientation = (): React.CSSProperties => {
+    const isLateral = rotation === 90 || rotation === 270;
     
     return {
-      width: elementW,
-      height: elementH,
-      objectFit: 'fill',
-      transform: `rotate(${rotation}deg)`,
-      transformOrigin: 'center center',
+      maxWidth: 'none',
+      display: 'block',
+      ...(isLateral 
+        ? { height: '100%', width: 'auto' }  // 90° o 270°
+        : { width: '100%', height: 'auto' }  // 0° o 180°
+      ),
     };
   };
   const renderField = (value: string | null | undefined, label: string) => {
@@ -657,29 +593,33 @@ const DocumentDetails = () => {
               </div>
             </div>
             
-            {/* Contenedor scrolleable con imagen zoomeable */}
-            <div ref={containerRef} className="flex-1 min-h-0 bg-muted/20 relative overflow-auto">
+            {/* Viewport: contenedor scrolleable con position relative para el badge */}
+            <div className="flex-1 min-h-0 bg-muted/20 overflow-auto flex items-center justify-center relative">
+              {/* Contenedor con zoom que permite scroll */}
               <div 
-                className="p-4 flex items-center justify-center"
+                className="flex items-center justify-center"
                 style={{ 
                   width: `${zoom}%`,
                   minWidth: zoom < 100 ? '100%' : undefined,
                   minHeight: '100%',
-                  boxSizing: 'border-box'
+                  padding: '1rem',
+                  boxSizing: 'border-box',
                 }}
               >
-                {imageUrl && (
-                  <img 
-                    src={imageUrl} 
-                    alt="Documento escaneado" 
-                    className="shadow-lg transition-all duration-200"
-                    onLoad={handleImageLoad}
-                    style={getImageStyles()} 
-                  />
-                )}
+                {/* Rotator: solo aplica la rotación */}
+                <div style={getRotatorStyles()}>
+                  {imageUrl && (
+                    <img 
+                      src={imageUrl} 
+                      alt="Documento escaneado" 
+                      className="shadow-lg"
+                      style={getImageStylesByOrientation()} 
+                    />
+                  )}
+                </div>
               </div>
               
-              {/* Badge de legibilidad flotante */}
+              {/* Badge de legibilidad - posicionado respecto al viewport gracias a relative */}
               <div className="absolute top-4 right-4 bg-background/95 backdrop-blur-sm px-3 py-1.5 rounded-full border shadow-sm">
                 <div className="flex items-center gap-2">
                   <Eye className="h-3.5 w-3.5" />
