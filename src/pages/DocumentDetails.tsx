@@ -576,18 +576,19 @@ const DocumentDetails = () => {
             
             {/* Viewport scrolleable */}
             <div
-              className="flex-1 min-h-0 bg-muted/20 overflow-auto flex items-center justify-center relative"
+              className="flex-1 min-h-0 bg-muted/20 overflow-auto relative"
             >
-              {/* Contenedor de zoom - usa width% para que el scroll funcione bien */}
+              {/* Contenedor de zoom con transform scale y ajuste inverso para scroll */}
               <div
-                className="inline-flex items-center justify-center p-4"
+                className="p-4"
                 style={{
-                  // El zoom se controla ampliando el ancho real del contenedor,
-                  // NO con transform: scale, para que el scroll funcione bien.
-                  width: `${zoom ?? 100}%`,
-                  minWidth: (zoom ?? 100) < 100 ? '100%' : undefined,
-                  minHeight: '100%',
-                  boxSizing: 'border-box',
+                  transform: `scale(${(zoom ?? 100) / 100})`,
+                  transformOrigin: 'top left',
+                  width: `${10000 / (zoom ?? 100)}%`,
+                  height: `${10000 / (zoom ?? 100)}%`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
                 {imageUrl && (
@@ -596,7 +597,6 @@ const DocumentDetails = () => {
                     alt="Documento escaneado"
                     className="shadow-lg block"
                     style={{
-                      // MISMO ESTILO PARA TODAS LAS ORIENTACIONES
                       objectFit: 'contain',
                       maxWidth: '100%',
                       maxHeight: '100%',
@@ -610,7 +610,7 @@ const DocumentDetails = () => {
               </div>
 
               {/* Badge de legibilidad - igual que ahora */}
-              <div className="absolute top-4 right-4 bg-background/95 backdrop-blur-sm px-3 py-1.5 rounded-full border shadow-sm">
+              <div className="absolute top-4 right-4 bg-background/95 backdrop-blur-sm px-3 py-1.5 rounded-full border shadow-sm z-10">
                 <div className="flex items-center gap-2">
                   <Eye className="h-3.5 w-3.5" />
                   <span className="text-xs font-medium">
