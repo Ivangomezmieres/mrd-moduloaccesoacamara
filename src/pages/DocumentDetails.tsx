@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
@@ -98,6 +98,8 @@ const DocumentDetails = () => {
   const [rotation, setRotation] = useState(0);
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const [isManuallyValidated, setIsManuallyValidated] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
@@ -105,6 +107,24 @@ const DocumentDetails = () => {
       loadDocument();
     }
   }, [id]);
+  
+  // Observar cambios de tamaño del contenedor de imagen
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerSize({
+          width: entry.contentRect.width - 32, // Restar padding (p-4 = 16px * 2)
+          height: entry.contentRect.height - 32
+        });
+      }
+    });
+    
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
   const loadDocument = async () => {
     setIsLoading(true);
     try {
@@ -454,27 +474,35 @@ const DocumentDetails = () => {
   // Detectar si la rotación es lateral (90° o 270°)
   const isLateralRotation = Math.abs(rotation % 180) === 90;
 
-  // Calcular transform con rotación y escala para adaptar al espacio
+  // Calcular transform con rotación y escala ÓPTIMA para llenar el contenedor
   const getImageTransform = () => {
-    // Si no hay rotación lateral, solo aplicar la rotación
+    // Sin rotación lateral, solo aplicar rotación
     if (!isLateralRotation) {
       return `rotate(${rotation}deg)`;
     }
     
-    // Para rotación lateral (90° o 270°), calcular escala
-    // La imagen rotada tiene dimensiones invertidas visualmente
-    // Necesitamos escalar para que quepa en el contenedor
-    if (imageDimensions) {
-      const { width, height } = imageDimensions;
-      const aspectRatio = width / height;
+    // Para rotación lateral, calcular la escala óptima basada en las dimensiones del contenedor real
+    if (imageDimensions && containerSize.width > 0 && containerSize.height > 0) {
+      const { width: imgW, height: imgH } = imageDimensions;
+      const { width: contW, height: contH } = containerSize;
       
-      // Si la imagen es más ancha que alta (horizontal), al rotarla
-      // se convierte en más alta que ancha, necesitamos reducirla
-      // para que el nuevo "alto" (antiguo ancho) quepa
+      // Cuando la imagen está rotada 90°/270°:
+      // - El ancho visual = altura original de la imagen
+      // - El alto visual = ancho original de la imagen
+      const aspectRatio = imgW / imgH;
+      
+      // Si la imagen es horizontal (ancho > alto), al rotarla se vuelve vertical
       if (aspectRatio > 1) {
-        // Escalar inversamente al aspect ratio
-        const scale = 1 / aspectRatio;
-        return `rotate(${rotation}deg) scale(${scale})`;
+        // Calcular cuánto se escalaría la imagen para caber en el contenedor sin rotación
+        const baseScale = Math.min(contW / imgW, contH / imgH);
+        
+        // Calcular cuánto se debe escalar la imagen rotada para llenar el contenedor
+        const optimalScale = Math.min(contW / imgH, contH / imgW);
+        
+        // El factor final compensa la diferencia
+        const finalScale = optimalScale / baseScale;
+        
+        return `rotate(${rotation}deg) scale(${finalScale})`;
       }
     }
     
@@ -613,7 +641,7 @@ const DocumentDetails = () => {
             </div>
             
             {/* Contenedor scrolleable con imagen zoomeable */}
-            <div className="flex-1 min-h-0 bg-muted/20 relative overflow-auto">
+            <div ref={containerRef} className="flex-1 min-h-0 bg-muted/20 relative overflow-auto">
               <div 
                 className="p-4 flex items-center justify-center"
                 style={{ 
@@ -631,9 +659,7 @@ const DocumentDetails = () => {
                     onLoad={handleImageLoad}
                     style={{
                       maxWidth: '100%',
-                      maxHeight: isLateralRotation ? 'none' : '100%',
-                      width: isLateralRotation ? 'auto' : '100%',
-                      height: isLateralRotation ? '100%' : 'auto',
+                      maxHeight: '100%',
                       objectFit: 'contain',
                       transform: getImageTransform(),
                       transformOrigin: 'center center'
