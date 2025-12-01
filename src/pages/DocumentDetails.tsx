@@ -576,40 +576,37 @@ const DocumentDetails = () => {
             
             {/* Viewport scrolleable */}
             <div
-              className="flex-1 min-h-0 bg-muted/20 overflow-auto relative"
+              className="flex-1 min-h-0 bg-muted/20 overflow-auto relative flex items-center justify-center"
             >
-              {/* Contenedor de zoom con transform scale y ajuste inverso para scroll */}
+              {/* Contenedor interno con scroll controlado por zoom */}
               <div
-                className="p-4"
+                className="inline-block"
                 style={{
-                  transform: `scale(${(zoom ?? 100) / 100})`,
-                  transformOrigin: 'top left',
-                  width: `${10000 / (zoom ?? 100)}%`,
-                  height: `${10000 / (zoom ?? 100)}%`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  width: `${zoom ?? 100}%`,
+                  height: `${zoom ?? 100}%`,
+                  minWidth: '100%',
+                  minHeight: '100%',
                 }}
               >
-                {imageUrl && (
-                  <img
-                    src={imageUrl}
-                    alt="Documento escaneado"
-                    className="shadow-lg block"
-                    style={{
-                      objectFit: 'contain',
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      width: 'auto',
-                      height: 'auto',
-                      transform: rotation ? `rotate(${rotation}deg)` : 'none',
-                      transformOrigin: 'center center',
-                    }}
-                  />
-                )}
+                <div className="w-full h-full flex items-center justify-center p-4">
+                  {imageUrl && (
+                    <img
+                      src={imageUrl}
+                      alt="Documento escaneado"
+                      className="shadow-lg block max-w-full max-h-full"
+                      style={{
+                        objectFit: 'contain',
+                        width: 'auto',
+                        height: 'auto',
+                        transform: rotation ? `rotate(${rotation}deg)` : 'none',
+                        transformOrigin: 'center center',
+                      }}
+                    />
+                  )}
+                </div>
               </div>
 
-              {/* Badge de legibilidad - igual que ahora */}
+              {/* Badge de legibilidad */}
               <div className="absolute top-4 right-4 bg-background/95 backdrop-blur-sm px-3 py-1.5 rounded-full border shadow-sm z-10">
                 <div className="flex items-center gap-2">
                   <Eye className="h-3.5 w-3.5" />
