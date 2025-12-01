@@ -450,15 +450,16 @@ const DocumentDetails = () => {
 
   // Obtener estilos de la imagen según orientación
   const getImageStylesByOrientation = (): React.CSSProperties => {
-    const isLateral = rotation === 90 || rotation === 270;
-    
+    // Mismos estilos para todas las orientaciones
+    // La rotación solo cambia el ángulo, no el tamaño
+    // object-fit: contain ajusta la imagen al espacio disponible
     return {
-      maxWidth: 'none',
       display: 'block',
-      ...(isLateral 
-        ? { height: '100%', width: 'auto' }  // 90° o 270°
-        : { width: '100%', height: 'auto' }  // 0° o 180°
-      ),
+      objectFit: 'contain',
+      maxWidth: '100%',
+      maxHeight: '100%',
+      width: 'auto',
+      height: 'auto',
     };
   };
   const renderField = (value: string | null | undefined, label: string) => {
