@@ -474,57 +474,55 @@ const DocumentDetails = () => {
   // Detectar si la rotación es lateral (90° o 270°)
   const isLateralRotation = Math.abs(rotation % 180) === 90;
 
-  // Calcular estilos de imagen con rotación y escala compensatoria
+  // Calcular estilos de imagen con dimensiones explícitas para rotación
   const getImageStyles = (): React.CSSProperties => {
-    const baseStyles: React.CSSProperties = {
-      maxWidth: '100%',
-      maxHeight: '100%',
-      objectFit: 'contain',
-      transformOrigin: 'center center',
-    };
-    
-    // Sin rotación, comportamiento normal
-    if (rotation === 0) {
-      return baseStyles;
-    }
-    
-    // Para 180°, solo rotar (no cambia dimensiones visuales)
-    if (rotation === 180) {
+    // Si no tenemos las dimensiones necesarias, usar comportamiento básico
+    if (!imageDimensions || containerSize.width <= 0 || containerSize.height <= 0) {
       return {
-        ...baseStyles,
-        transform: 'rotate(180deg)',
+        maxWidth: '100%',
+        maxHeight: '100%',
+        objectFit: 'contain',
+        transform: rotation !== 0 ? `rotate(${rotation}deg)` : undefined,
+        transformOrigin: 'center center',
       };
     }
     
-    // Para rotación lateral (90° o 270°), calcular escala compensatoria
-    if (isLateralRotation && imageDimensions && containerSize.width > 0 && containerSize.height > 0) {
-      const { width: imgW, height: imgH } = imageDimensions;
-      const { width: contW, height: contH } = containerSize;
-      
-      // Paso 1: Calcular cómo CSS escalaría la imagen SIN rotación
-      const baseScale = Math.min(contW / imgW, contH / imgH);
-      const baseW = imgW * baseScale;
-      const baseH = imgH * baseScale;
-      
-      // Paso 2: Dimensiones visuales después de rotar 90°
-      // (el ancho visible es el alto original y viceversa)
-      const rotatedVisualW = baseH;
-      const rotatedVisualH = baseW;
-      
-      // Paso 3: Calcular qué escala adicional necesitamos para que
-      // la imagen rotada llene el máximo espacio posible sin recorte
-      const scaleAdjustment = Math.min(contW / rotatedVisualW, contH / rotatedVisualH);
-      
+    const { width: imgW, height: imgH } = imageDimensions;
+    const { width: contW, height: contH } = containerSize;
+    
+    // Para 0° y 180°: calcular tamaño normal (contain)
+    if (rotation === 0 || rotation === 180) {
+      const scaleToFit = Math.min(contW / imgW, contH / imgH);
       return {
-        ...baseStyles,
-        transform: `rotate(${rotation}deg) scale(${scaleAdjustment})`,
+        width: imgW * scaleToFit,
+        height: imgH * scaleToFit,
+        objectFit: 'fill',
+        transform: rotation === 180 ? 'rotate(180deg)' : undefined,
+        transformOrigin: 'center center',
       };
     }
     
-    // Fallback
+    // Para 90° y 270°: las dimensiones visuales de la imagen rotada son (imgH × imgW)
+    // Calcular escala para que la imagen ROTADA quepa en el contenedor
+    const scaleToFit = Math.min(contW / imgH, contH / imgW);
+    
+    // Tamaño visual final deseado (después de rotar)
+    const finalVisualW = imgH * scaleToFit;
+    const finalVisualH = imgW * scaleToFit;
+    
+    // Dimensiones del elemento IMG (ANTES de rotar)
+    // Como rotate(90deg) intercambia ancho↔alto visual:
+    // - El width del elemento se convierte en el alto visual
+    // - El height del elemento se convierte en el ancho visual
+    const elementW = finalVisualH;
+    const elementH = finalVisualW;
+    
     return {
-      ...baseStyles,
+      width: elementW,
+      height: elementH,
+      objectFit: 'fill',
       transform: `rotate(${rotation}deg)`,
+      transformOrigin: 'center center',
     };
   };
   const renderField = (value: string | null | undefined, label: string) => {
