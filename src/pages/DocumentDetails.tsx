@@ -642,18 +642,14 @@ const DocumentDetails = () => {
                       Revisa y corrige los datos extraídos del parte de trabajo
                     </p>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => {
-                  const dataStr = JSON.stringify(editedData, null, 2);
-                  const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-                  const exportFileDefaultName = `parte_${editedData?.parteNumero || document.id}.json`;
-                  const linkElement = window.document.createElement('a');
-                  linkElement.setAttribute('href', dataUri);
-                  linkElement.setAttribute('download', exportFileDefaultName);
-                  linkElement.click();
-                  toast.success('Datos exportados correctamente');
-                }}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Exportar Individual
+                  <Button size="sm" variant="outline" onClick={reExtractMontadores} disabled={isReextracting}>
+                    {isReextracting ? <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Reextrayendo...
+                      </> : <>
+                        <FileText className="h-4 w-4 mr-2" />
+                        Reextraer desde imagen
+                      </>}
                   </Button>
                 </div>
               </div>
@@ -849,21 +845,10 @@ const DocumentDetails = () => {
 
                   {/* === SECCIÓN 3: MONTADORES === */}
                   <div className="mb-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold text-base flex items-center gap-2">
-                        <User className="h-5 w-5 text-primary" />
-                        Montadores
-                      </h3>
-                      <Button size="sm" variant="outline" onClick={reExtractMontadores} disabled={isReextracting}>
-                        {isReextracting ? <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Reextrayendo...
-                          </> : <>
-                            <FileText className="h-4 w-4 mr-2" />
-                            Reextraer desde imagen
-                          </>}
-                      </Button>
-                    </div>
+                    <h3 className="font-semibold text-base flex items-center gap-2 mb-4">
+                      <User className="h-5 w-5 text-primary" />
+                      Montadores
+                    </h3>
 
                     {/* Listado de Montadores */}
                     {editedData?.montadores && editedData.montadores.length > 0 ? <div className="space-y-3 mb-6">
