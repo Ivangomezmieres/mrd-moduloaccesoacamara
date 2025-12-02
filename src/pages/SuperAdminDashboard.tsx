@@ -419,6 +419,7 @@ const SuperAdminDashboard = () => {
               <TableHead>ACCIONES</TableHead>
               <TableHead>Nº PARTE</TableHead>
               <TableHead>CLIENTE</TableHead>
+              <TableHead>OBRA</TableHead>
               <TableHead>FECHA</TableHead>
               <TableHead>HORAS</TableHead>
               <TableHead>FIRMAS</TableHead>
@@ -427,7 +428,7 @@ const SuperAdminDashboard = () => {
               </TableHeader>
               <TableBody>
                 {filteredDocuments.length === 0 ? <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       No se encontraron documentos
                     </TableCell>
                   </TableRow> : filteredDocuments.map(doc => {
@@ -472,6 +473,9 @@ const SuperAdminDashboard = () => {
                         </TableCell>
                         <TableCell>
                           {extracted?.cliente || <span className="text-muted-foreground">N/A</span>}
+                        </TableCell>
+                        <TableCell>
+                          {extracted?.obra || <span className="text-muted-foreground">N/A</span>}
                         </TableCell>
                         <TableCell>
                           {extracted?.fecha ? new Date(extracted.fecha).toLocaleDateString('es-ES') : <span className="text-muted-foreground">N/A</span>}
