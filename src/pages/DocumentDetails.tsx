@@ -98,7 +98,6 @@ const DocumentDetails = () => {
   const [rotation, setRotation] = useState(0);
   const [isManuallyValidated, setIsManuallyValidated] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-
   useEffect(() => {
     if (id) {
       loadDocument();
@@ -257,20 +256,26 @@ const DocumentDetails = () => {
       setIsReextracting(false);
     }
   };
-  
   const calculateHoursTotalsFromMontadores = (montadores: ExtractedData['montadores']) => {
     if (!montadores || montadores.length === 0) {
       return {
-        horasTotales: { ordinarias: 0, extras: 0, festivas: 0 },
-        desgloseDetallado: { activasNormales: 0, activasExtras: 0, viajeNormales: 0, viajeExtras: 0 }
+        horasTotales: {
+          ordinarias: 0,
+          extras: 0,
+          festivas: 0
+        },
+        desgloseDetallado: {
+          activasNormales: 0,
+          activasExtras: 0,
+          viajeNormales: 0,
+          viajeExtras: 0
+        }
       };
     }
-    
     const activasNormales = montadores.reduce((sum, m) => sum + (m.horasActivas?.normales ?? 0), 0);
     const activasExtras = montadores.reduce((sum, m) => sum + (m.horasActivas?.extras ?? 0), 0);
     const viajeNormales = montadores.reduce((sum, m) => sum + (m.horasViaje?.normales ?? 0), 0);
     const viajeExtras = montadores.reduce((sum, m) => sum + (m.horasViaje?.extras ?? 0), 0);
-    
     return {
       horasTotales: {
         ordinarias: activasNormales + viajeNormales,
@@ -285,7 +290,6 @@ const DocumentDetails = () => {
       }
     };
   };
-  
   const handleSaveEditedData = async () => {
     if (!document || !editedData) {
       toast.error('No hay datos para guardar');
@@ -295,14 +299,13 @@ const DocumentDetails = () => {
     try {
       // Calcular horas totales desde montadores editados
       const hoursTotals = calculateHoursTotalsFromMontadores(editedData.montadores);
-      
+
       // Datos a guardar con horas sincronizadas
       const dataToSave = {
         ...editedData,
         horasTotales: hoursTotals.horasTotales,
         desgloseDetallado: hoursTotals.desgloseDetallado
       };
-      
       const {
         error
       } = await supabase.from('documents').update({
@@ -443,30 +446,30 @@ const DocumentDetails = () => {
   };
   const saveRotation = async (newRotation: number) => {
     if (!document) return;
-    
     try {
       const updatedMeta = {
         ...document.meta,
         rotation: newRotation
       };
-      
-      const { error } = await supabase
-        .from('documents')
-        .update({ meta: updatedMeta as any })
-        .eq('id', document.id);
-      
+      const {
+        error
+      } = await supabase.from('documents').update({
+        meta: updatedMeta as any
+      }).eq('id', document.id);
       if (error) {
         console.error('Error saving rotation:', error);
         return;
       }
-      
+
       // Actualizar estado local del documento
-      setDocument(prev => prev ? { ...prev, meta: updatedMeta } : null);
+      setDocument(prev => prev ? {
+        ...prev,
+        meta: updatedMeta
+      } : null);
     } catch (error) {
       console.error('Error saving rotation:', error);
     }
   };
-
   const handleRotateLeft = () => {
     const newRotation = (rotation - 90 + 360) % 360;
     setRotation(newRotation);
@@ -481,35 +484,29 @@ const DocumentDetails = () => {
     setRotation(0);
     saveRotation(0);
   };
-
   const renderField = (value: string | null | undefined, label: string) => {
     if (!value || value === '') {
-      return (
-        <div className="flex items-center gap-2">
+      return <div className="flex items-center gap-2">
           <span className="text-muted-foreground italic">N/A</span>
           <Badge variant="outline" className="text-xs text-orange-600 border-orange-600">
             Dato no reconocido
           </Badge>
-        </div>
-      );
+        </div>;
     }
     return <span>{value}</span>;
   };
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+    return <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Cargando documento...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
   if (!document) {
     return null;
   }
-  return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+  return <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Header */}
       <header className="border-b bg-card flex-shrink-0 shadow-sm">
         <div className="container mx-auto px-4 py-4">
@@ -617,33 +614,24 @@ const DocumentDetails = () => {
             {/* Viewport scrolleable */}
             <div className="flex-1 min-h-0 bg-muted/20 overflow-auto relative">
               {/* Contenedor espaciador - su tamaño crece con el zoom para generar scroll */}
-              <div
-                style={{
-                  width: `${zoom ?? 100}%`,
-                  height: `${zoom ?? 100}%`,
-                  minWidth: '100%',
-                  minHeight: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '16px',
-                  boxSizing: 'border-box',
-                }}
-              >
-                {imageUrl && (
-                  <img
-                    src={imageUrl}
-                    alt="Documento escaneado"
-                    className="shadow-lg"
-                    style={{
-                      maxWidth: `${10000 / (zoom ?? 100)}%`,
-                      maxHeight: `${10000 / (zoom ?? 100)}%`,
-                      objectFit: 'contain',
-                      transform: `scale(${(zoom ?? 100) / 100})${rotation ? ` rotate(${rotation}deg)` : ''}`,
-                      transformOrigin: 'center center',
-                    }}
-                  />
-                )}
+              <div style={{
+              width: `${zoom ?? 100}%`,
+              height: `${zoom ?? 100}%`,
+              minWidth: '100%',
+              minHeight: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px',
+              boxSizing: 'border-box'
+            }}>
+                {imageUrl && <img src={imageUrl} alt="Documento escaneado" className="shadow-lg" style={{
+                maxWidth: `${10000 / (zoom ?? 100)}%`,
+                maxHeight: `${10000 / (zoom ?? 100)}%`,
+                objectFit: 'contain',
+                transform: `scale(${(zoom ?? 100) / 100})${rotation ? ` rotate(${rotation}deg)` : ''}`,
+                transformOrigin: 'center center'
+              }} />}
               </div>
 
               {/* Badge de legibilidad */}
@@ -1073,12 +1061,7 @@ const DocumentDetails = () => {
                       Metadatos de Validación
                     </h3>
                     <dl className="grid grid-cols-3 gap-x-6 gap-y-4">
-                      <div>
-                        <dt className="text-sm text-muted-foreground mb-1">Legibilidad</dt>
-                        <dd className="text-sm font-medium">
-                          {document.meta?.legibilityScore ? `${document.meta.legibilityScore}%` : 'N/A'}
-                        </dd>
-                      </div>
+                      
                       <div>
                         <dt className="text-sm text-muted-foreground mb-1">Subido por</dt>
                         <dd className="text-sm font-medium">
@@ -1135,7 +1118,6 @@ const DocumentDetails = () => {
           </div>
         </div>
       </main>
-    </div>
-  );
+    </div>;
 };
 export default DocumentDetails;
