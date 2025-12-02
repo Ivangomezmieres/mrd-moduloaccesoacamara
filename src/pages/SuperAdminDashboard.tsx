@@ -477,12 +477,7 @@ const SuperAdminDashboard = () => {
                           {extracted?.fecha ? new Date(extracted.fecha).toLocaleDateString('es-ES') : <span className="text-muted-foreground">N/A</span>}
                         </TableCell>
                         <TableCell>
-                          {totalHoras > 0 ? <div className="text-sm">
-                              <div className="font-medium">{totalHoras}h</div>
-                              <div className="text-xs text-muted-foreground">
-                                {horasData?.ordinarias}+{horasData?.extras}+{horasData?.festivas}
-                              </div>
-                            </div> : <span className="text-muted-foreground">0h</span>}
+                          {totalHoras > 0 ? <span className="font-medium">{totalHoras}h</span> : <span className="text-muted-foreground">0h</span>}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
