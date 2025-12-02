@@ -527,7 +527,7 @@ const DocumentDetails = () => {
               </div>
             </div>
             <div className="flex gap-2">
-              {!isEditMode && !isManuallyValidated ? <Button size="sm" variant="outline" onClick={() => setIsEditMode(true)}>
+              {!isEditMode && !isManuallyValidated ? <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => setIsEditMode(true)}>
                   <Pencil className="mr-2 h-4 w-4" />
                   Editar
                 </Button> : isManuallyValidated ? <Badge variant="secondary" className="text-xs">
