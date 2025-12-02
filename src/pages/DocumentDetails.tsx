@@ -257,6 +257,35 @@ const DocumentDetails = () => {
       setIsReextracting(false);
     }
   };
+  
+  const calculateHoursTotalsFromMontadores = (montadores: ExtractedData['montadores']) => {
+    if (!montadores || montadores.length === 0) {
+      return {
+        horasTotales: { ordinarias: 0, extras: 0, festivas: 0 },
+        desgloseDetallado: { activasNormales: 0, activasExtras: 0, viajeNormales: 0, viajeExtras: 0 }
+      };
+    }
+    
+    const activasNormales = montadores.reduce((sum, m) => sum + (m.horasActivas?.normales ?? 0), 0);
+    const activasExtras = montadores.reduce((sum, m) => sum + (m.horasActivas?.extras ?? 0), 0);
+    const viajeNormales = montadores.reduce((sum, m) => sum + (m.horasViaje?.normales ?? 0), 0);
+    const viajeExtras = montadores.reduce((sum, m) => sum + (m.horasViaje?.extras ?? 0), 0);
+    
+    return {
+      horasTotales: {
+        ordinarias: activasNormales + viajeNormales,
+        extras: activasExtras + viajeExtras,
+        festivas: 0
+      },
+      desgloseDetallado: {
+        activasNormales,
+        activasExtras,
+        viajeNormales,
+        viajeExtras
+      }
+    };
+  };
+  
   const handleSaveEditedData = async () => {
     if (!document || !editedData) {
       toast.error('No hay datos para guardar');
@@ -264,12 +293,22 @@ const DocumentDetails = () => {
     }
     setIsSavingChanges(true);
     try {
+      // Calcular horas totales desde montadores editados
+      const hoursTotals = calculateHoursTotalsFromMontadores(editedData.montadores);
+      
+      // Datos a guardar con horas sincronizadas
+      const dataToSave = {
+        ...editedData,
+        horasTotales: hoursTotals.horasTotales,
+        desgloseDetallado: hoursTotals.desgloseDetallado
+      };
+      
       const {
         error
       } = await supabase.from('documents').update({
         meta: {
           ...document.meta,
-          extractedData: editedData
+          extractedData: dataToSave
         } as any
       }).eq('id', document.id);
       if (error) {
@@ -281,9 +320,10 @@ const DocumentDetails = () => {
         ...document,
         meta: {
           ...document.meta,
-          extractedData: editedData
+          extractedData: dataToSave
         }
       });
+      setEditedData(dataToSave);
       toast.success('Cambios guardados correctamente');
       setIsEditMode(false);
     } catch (error) {
