@@ -122,6 +122,49 @@ OTROS CAMPOS A EXTRAER DEL DOCUMENTO:
   * Firma del jefe de equipo/montador (true si hay firma visible, false si no)
   * Firma del cliente/encargado (true si hay firma visible, false si no)
 
+═══════════════════════════════════════════════════════════════════════════════
+⚠️ REGLAS CRÍTICAS PARA EXTRACCIÓN DE FECHAS MANUSCRITAS ⚠️
+═══════════════════════════════════════════════════════════════════════════════
+
+ERROR COMÚN A EVITAR: Las barras "/" manuscritas frecuentemente se confunden con el dígito "1".
+Ejemplo: La fecha "3/12/2025" se lee erróneamente como "31/12/2025".
+
+INSTRUCCIONES OBLIGATORIAS:
+
+1. UNA FECHA SIEMPRE TIENE EXACTAMENTE DOS SEPARADORES (barras "/")
+   - Estructura: DÍA / MES / AÑO
+   - Los separadores pueden parecer: "/", "|", "\\", líneas inclinadas, o incluso "1" si está mal interpretado
+
+2. REGLA DE ORO - BUSCA PRIMERO LOS DOS SEPARADORES:
+   - Localiza visualmente las DOS barras separadoras en la fecha
+   - Una vez identificadas, lee los dígitos ENTRE los separadores
+   - El dígito "1" solo pertenece al día/mes si está CLARAMENTE separado de la barra
+
+3. VALIDACIÓN ANTI-ERROR "1":
+   - Si detectas un día de dos dígitos terminando en "1" (ej: "31", "21", "11")
+   - VERIFICA: ¿Ese "1" está justo antes de una barra "/"?
+   - Si SÍ → probablemente ese "1" ES la barra, no un dígito
+   - Aplica la misma lógica para el mes
+
+4. EJEMPLOS DE CORRECCIÓN:
+   ❌ OCR incorrecto → ✅ Fecha correcta
+   - "31/12/2025" con barras visibles entre 3, 12, 2025 → "3/12/2025"
+   - "21/11/2025" con barras visibles entre 2, 1, 2025 → "2/1/2025"
+   - "311122025" (sin separadores claros) → busca el patrón lógico: "3/11/2025"
+
+5. PRIORIDADES DE INTERPRETACIÓN:
+   - PRIMERO: Identifica los DOS separadores visuales
+   - SEGUNDO: Lee los números ENTRE los separadores
+   - TERCERO: Valida que día (1-31), mes (1-12), año (2024-2025) sean coherentes
+
+6. VALIDACIÓN FINAL:
+   - ¿El día está entre 1-31?
+   - ¿El mes está entre 1-12?
+   - ¿Identificaste exactamente DOS separadores?
+   - Si respondiste NO a alguna → revisa la fecha nuevamente
+
+═══════════════════════════════════════════════════════════════════════════════
+
 IMPORTANTE GENERAL:
 - Si un campo de texto está vacío o ilegible, usar null
 - Las horas deben ser números enteros, no texto
@@ -406,6 +449,13 @@ async function extractHeaderOnly(imageBase64: string, openaiKey: string) {
 - horario: Horario de trabajo (ej: "7:30 a 17:30")
 - fecha: Fecha en formato YYYY-MM-DD
 - firmas: { montador: boolean, cliente: boolean }
+
+⚠️ REGLA CRÍTICA PARA FECHAS:
+Las barras "/" manuscritas se confunden con el dígito "1".
+- Busca PRIMERO los DOS separadores "/" en la fecha
+- Lee los dígitos ENTRE los separadores, no los confundas con las barras
+- Ejemplo: si ves "31/12/2025" pero hay barra visible entre 3 y 12 → es "3/12/2025"
+- El "1" antes de "/" generalmente ES la barra, no un dígito
 
 Responde SOLO con JSON válido, sin explicaciones.`
               },
