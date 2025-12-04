@@ -536,84 +536,88 @@ const SuperAdminDashboard = () => {
                     className={isDuplicate ? 'bg-orange-50 hover:bg-orange-100' : ''}
                   >
                     <TableCell>
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="info" onClick={() => handleViewDetails(doc)}>
-                              <Eye className="h-4 w-4 mr-1" />
-                              Ver
-                            </Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleDeleteDocument(doc.id, doc.storage_path)} className="rounded-md bg-red-400 hover:bg-red-300 text-white">
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Eliminar
-                            </Button>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            {isDuplicate && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <AlertTriangle className="h-5 w-5 text-orange-500 flex-shrink-0" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Este parte está duplicado. Existe otro registro con el mismo Nº de Parte.</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="info" onClick={() => handleViewDetails(doc)}>
+                          <Eye className="h-4 w-4 mr-1" />
+                          Ver
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => handleDeleteDocument(doc.id, doc.storage_path)} className="rounded-md bg-red-400 hover:bg-red-300 text-white">
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Eliminar
+                        </Button>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {isDuplicate && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <AlertTriangle className="h-5 w-5 text-orange-500 flex-shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Este parte está duplicado. Existe otro registro con el mismo Nº de Parte.</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                        {extracted?.parteNumero || <span className="text-muted-foreground">N/A</span>}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {correlacion ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge 
+                                className={`cursor-default ${
+                                  correlacion.estado === 'OK' 
+                                    ? 'bg-green-500 hover:bg-green-500 text-white'
+                                    : correlacion.estado === 'Hueco'
+                                    ? 'bg-orange-500 hover:bg-orange-500 text-white'
+                                    : 'bg-gray-400 hover:bg-gray-400 text-white'
+                                }`}
+                              >
+                                {correlacion.estado}
+                              </Badge>
+                            </TooltipTrigger>
+                            {correlacion.estado === 'Hueco' && correlacion.faltantes && (
+                              <TooltipContent>
+                                <p>
+                                  {correlacion.faltantes.length === 1
+                                    ? `Falta el parte ${correlacion.faltantes[0]}`
+                                    : `Faltan los partes: ${correlacion.faltantes.join(', ')}`
+                                  }
+                                </p>
+                              </TooltipContent>
                             )}
-                            {extracted?.parteNumero || <span className="text-muted-foreground">N/A</span>}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {correlacion ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge 
-                                    className={`cursor-default ${
-                                      correlacion.estado === 'OK' 
-                                        ? 'bg-green-500 hover:bg-green-500 text-white'
-                                        : correlacion.estado === 'Hueco'
-                                        ? 'bg-orange-500 hover:bg-orange-500 text-white'
-                                        : 'bg-gray-400 hover:bg-gray-400 text-white'
-                                    }`}
-                                  >
-                                    {correlacion.estado}
-                                  </Badge>
-                                </TooltipTrigger>
-                                {correlacion.estado === 'Hueco' && correlacion.faltantes && (
-                                  <TooltipContent>
-                                    <p>
-                                      {correlacion.faltantes.length === 1
-                                        ? `Falta el parte ${correlacion.faltantes[0]}`
-                                        : `Faltan los partes: ${correlacion.faltantes.join(', ')}`
-                                      }
-                                    </p>
-                                  </TooltipContent>
-                                )}
-                              </Tooltip>
-                            </TooltipProvider>
-                          ) : (
-                            <Badge className="bg-gray-400 hover:bg-gray-400 text-white">N/A</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {extracted?.cliente || <span className="text-muted-foreground">N/A</span>}
-                        </TableCell>
-                        <TableCell>
-                          {extracted?.obra || <span className="text-muted-foreground">N/A</span>}
-                        </TableCell>
-                        <TableCell>
-                          {extracted?.fecha ? new Date(extracted.fecha).toLocaleDateString('es-ES') : <span className="text-muted-foreground">N/A</span>}
-                        </TableCell>
-                        <TableCell>
-                          {doc.validated_at ? <Badge className="rounded-md bg-primary hover:bg-primary/90 text-primary-foreground border-primary h-9 px-3 text-sm min-w-[110px] justify-center">
-                              Validado
-                            </Badge> : <Badge className="rounded-md bg-orange-400 hover:bg-orange-400 text-white border-orange-400 h-9 px-3 text-sm min-w-[110px] justify-center">
-                              Pendiente
-                            </Badge>}
-                      </TableCell>
-                    </TableRow>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <Badge className="bg-gray-400 hover:bg-gray-400 text-white">N/A</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {extracted?.cliente || <span className="text-muted-foreground">N/A</span>}
+                    </TableCell>
+                    <TableCell>
+                      {extracted?.obra || <span className="text-muted-foreground">N/A</span>}
+                    </TableCell>
+                    <TableCell>
+                      {extracted?.fecha ? new Date(extracted.fecha).toLocaleDateString('es-ES') : <span className="text-muted-foreground">N/A</span>}
+                    </TableCell>
+                    <TableCell>
+                      {doc.validated_at ? (
+                        <Badge className="rounded-md bg-primary hover:bg-primary/90 text-primary-foreground border-primary h-9 px-3 text-sm min-w-[110px] justify-center">
+                          Validado
+                        </Badge>
+                      ) : (
+                        <Badge className="rounded-md bg-orange-400 hover:bg-orange-400 text-white border-orange-400 h-9 px-3 text-sm min-w-[110px] justify-center">
+                          Pendiente
+                        </Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
                   );
                 })}
               </TableBody>
