@@ -59,7 +59,7 @@ interface ExtractedData {
   };
 }
 
-interface Document {
+interface DocumentRecord {
   id: string;
   storage_path: string;
   uploader: string;
@@ -89,7 +89,7 @@ interface CorrelacionInfo {
 
 const UMBRAL_DIFERENCIA = 20;
 
-const calcularCorrelacion = (documents: Document[]): { 
+const calcularCorrelacion = (documents: DocumentRecord[]): { 
   correlacionPorId: Record<string, CorrelacionInfo>;
   totalHuecos: number;
   todosLosFaltantes: number[];
@@ -141,8 +141,8 @@ const calcularCorrelacion = (documents: Document[]): {
 
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [filteredDocuments, setFilteredDocuments] = useState<Document[]>([]);
+  const [documents, setDocuments] = useState<DocumentRecord[]>([]);
+  const [filteredDocuments, setFilteredDocuments] = useState<DocumentRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [userId, setUserId] = useState<string | null>(null);
@@ -222,7 +222,7 @@ const SuperAdminDashboard = () => {
     setFilteredDocuments(filtered);
   };
 
-  const handleViewDetails = (doc: Document) => {
+  const handleViewDetails = (doc: DocumentRecord) => {
     navigate(`/admin/document/${doc.id}`);
   };
 
@@ -649,3 +649,4 @@ const SuperAdminDashboard = () => {
 };
 
 export default SuperAdminDashboard;
+
