@@ -13,11 +13,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Loader2, CheckCircle2, FileText } from "lucide-react";
 import logoMrd from "@/assets/logo-mrd.jpg";
+
+interface LinkedDocument {
+  id: string;
+  meta: {
+    extractedData?: {
+      parteNumero?: string;
+    };
+  } | null;
+}
 
 interface Obra {
   id: string;
+  document_id: string | null;
   orden_trabajo: string;
   cliente: string | null;
   obra: string | null;
@@ -25,6 +35,7 @@ interface Obra {
   validado: boolean;
   created_at: string;
   updated_at: string;
+  documents?: LinkedDocument | null;
 }
 
 const ObraManagement = () => {
@@ -65,7 +76,13 @@ const ObraManagement = () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("obras")
-      .select("*")
+      .select(`
+        *,
+        documents:document_id (
+          id,
+          meta
+        )
+      `)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -75,7 +92,7 @@ const ObraManagement = () => {
         variant: "destructive",
       });
     } else {
-      setObras(data || []);
+      setObras((data as unknown as Obra[]) || []);
     }
     setLoading(false);
   };
@@ -174,6 +191,11 @@ const ObraManagement = () => {
     );
   };
 
+  const getParteNumero = (obra: Obra): string | null => {
+    if (!obra.documents?.meta?.extractedData?.parteNumero) return null;
+    return obra.documents.meta.extractedData.parteNumero;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -214,6 +236,7 @@ const ObraManagement = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[100px]">Nº Parte</TableHead>
                 <TableHead className="w-[120px]">O.T.</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Obra</TableHead>
@@ -224,50 +247,67 @@ const ObraManagement = () => {
             <TableBody>
               {obras.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     No hay obras registradas. Las O.T. se añadirán automáticamente al procesar partes.
                   </TableCell>
                 </TableRow>
               ) : (
-                obras.map((obra) => (
-                  <TableRow 
-                    key={obra.id}
-                    className={obra.validado ? "bg-primary/10" : ""}
-                  >
-                    <TableCell className="font-medium">
-                      {renderEditableCell(obra, "orden_trabajo")}
-                    </TableCell>
-                    <TableCell>
-                      {renderEditableCell(obra, "cliente")}
-                    </TableCell>
-                    <TableCell>
-                      {renderEditableCell(obra, "obra")}
-                    </TableCell>
-                    <TableCell>
-                      {renderEditableCell(obra, "carpeta_drive")}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-center gap-2">
-                        {savingId === obra.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                obras.map((obra) => {
+                  const parteNumero = getParteNumero(obra);
+                  return (
+                    <TableRow 
+                      key={obra.id}
+                      className={obra.validado ? "bg-primary/10" : ""}
+                    >
+                      <TableCell>
+                        {obra.document_id ? (
+                          <Button
+                            variant="link"
+                            className="p-0 h-auto font-medium text-primary hover:text-primary/80"
+                            onClick={() => navigate(`/admin/document/${obra.document_id}`)}
+                          >
+                            <FileText className="h-4 w-4 mr-1" />
+                            {parteNumero || "Ver parte"}
+                          </Button>
                         ) : (
-                          <>
-                            <Switch
-                              checked={obra.validado}
-                              onCheckedChange={() => toggleValidado(obra.id, obra.validado)}
-                            />
-                            {obra.validado && (
-                              <span className="flex items-center gap-1 text-primary text-sm font-medium">
-                                <CheckCircle2 className="h-4 w-4" />
-                                Validado
-                              </span>
-                            )}
-                          </>
+                          <span className="text-muted-foreground">-</span>
                         )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {renderEditableCell(obra, "orden_trabajo")}
+                      </TableCell>
+                      <TableCell>
+                        {renderEditableCell(obra, "cliente")}
+                      </TableCell>
+                      <TableCell>
+                        {renderEditableCell(obra, "obra")}
+                      </TableCell>
+                      <TableCell>
+                        {renderEditableCell(obra, "carpeta_drive")}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-center gap-2">
+                          {savingId === obra.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Switch
+                                checked={obra.validado}
+                                onCheckedChange={() => toggleValidado(obra.id, obra.validado)}
+                              />
+                              {obra.validado && (
+                                <span className="flex items-center gap-1 text-primary text-sm font-medium">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                  Validado
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>

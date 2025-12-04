@@ -66,6 +66,7 @@ export type Database = {
           carpeta_drive: string | null
           cliente: string | null
           created_at: string
+          document_id: string | null
           id: string
           obra: string | null
           orden_trabajo: string
@@ -76,6 +77,7 @@ export type Database = {
           carpeta_drive?: string | null
           cliente?: string | null
           created_at?: string
+          document_id?: string | null
           id?: string
           obra?: string | null
           orden_trabajo: string
@@ -86,13 +88,22 @@ export type Database = {
           carpeta_drive?: string | null
           cliente?: string | null
           created_at?: string
+          document_id?: string | null
           id?: string
           obra?: string | null
           orden_trabajo?: string
           updated_at?: string
           validado?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "obras_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
