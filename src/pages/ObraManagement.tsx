@@ -201,7 +201,7 @@ const ObraManagement = () => {
         {/* Navigation */}
         <div className="mb-6">
           <Button
-            variant="outline"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
             onClick={() => navigate("/admin/dashboard")}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
