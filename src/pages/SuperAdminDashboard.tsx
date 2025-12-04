@@ -162,19 +162,13 @@ const SuperAdminDashboard = () => {
   }, [documents]);
 
   const checkAuth = async () => {
-    const {
-      data: {
-        session
-      }
-    } = await supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate('/auth');
       return;
     }
     setUserId(session.user.id);
-    const {
-      data: roles
-    } = await supabase.from('user_roles').select('role').eq('user_id', session.user.id);
+    const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id', session.user.id);
     const hasSuperAdmin = roles?.some(r => r.role === 'superadmin');
     if (!hasSuperAdmin) {
       toast.error('No tienes permisos para acceder a esta página');
@@ -184,17 +178,12 @@ const SuperAdminDashboard = () => {
 
   const loadDocuments = async () => {
     setIsLoading(true);
-    const {
-      data,
-      error
-    } = await supabase.from('documents').select(`
+    const { data, error } = await supabase.from('documents').select(`
         *,
         profiles:uploader (
           full_name
         )
-      `).order('created_at', {
-      ascending: false
-    });
+      `).order('created_at', { ascending: false });
     if (error) {
       console.error('Error loading documents:', error);
       toast.error('Error al cargar documentos');
@@ -216,7 +205,16 @@ const SuperAdminDashboard = () => {
           ? new Date(extractedData.fecha).toLocaleDateString('es-ES') 
           : '';
         
-        return extractedData.parteNumero?.toLowerCase().includes(term) || extractedData.cliente?.toLowerCase().includes(term) || extractedData.emplazamiento?.toLowerCase().includes(term) || extractedData.obra?.toLowerCase().includes(term) || fechaFormateada.toLowerCase().includes(term) || extractedData.montador?.nombre?.toLowerCase().includes(term) || extractedData.montador?.apellidos?.toLowerCase().includes(term) || doc.profiles?.full_name?.toLowerCase().includes(term);
+        return (
+          extractedData.parteNumero?.toLowerCase().includes(term) ||
+          extractedData.cliente?.toLowerCase().includes(term) ||
+          extractedData.emplazamiento?.toLowerCase().includes(term) ||
+          extractedData.obra?.toLowerCase().includes(term) ||
+          fechaFormateada.toLowerCase().includes(term) ||
+          extractedData.montador?.nombre?.toLowerCase().includes(term) ||
+          extractedData.montador?.apellidos?.toLowerCase().includes(term) ||
+          doc.profiles?.full_name?.toLowerCase().includes(term)
+        );
       });
     }
     setFilteredDocuments(filtered);
@@ -230,18 +228,14 @@ const SuperAdminDashboard = () => {
     const confirmed = window.confirm('¿Estás seguro de que deseas eliminar este documento? Esta acción no se puede deshacer.');
     if (!confirmed) return;
     try {
-      const {
-        error: storageError
-      } = await supabase.storage.from('scans').remove([storagePath]);
+      const { error: storageError } = await supabase.storage.from('scans').remove([storagePath]);
       if (storageError) {
         console.error('Error deleting file from storage:', storageError);
         toast.error('Error al eliminar archivo del storage');
         return;
       }
 
-      const {
-        error: dbError
-      } = await supabase.from('documents').delete().eq('id', docId);
+      const { error: dbError } = await supabase.from('documents').delete().eq('id', docId);
       if (dbError) {
         console.error('Error deleting document from database:', dbError);
         toast.error('Error al eliminar documento de la base de datos');
@@ -258,9 +252,7 @@ const SuperAdminDashboard = () => {
 
   const handleLogout = async () => {
     try {
-      const {
-        error
-      } = await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
       if (error) {
         console.warn('Logout warning:', error.message);
         if (error.message.includes('session')) {
@@ -317,24 +309,12 @@ const SuperAdminDashboard = () => {
 
     const headerRange = XLSX.utils.decode_range(ws['!ref'] || 'A1');
     for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
-      const cellAddress = XLSX.utils.encode_cell({
-        r: 0,
-        c: col
-      });
+      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
       if (!ws[cellAddress]) continue;
       ws[cellAddress].s = {
-        font: {
-          bold: true
-        },
-        alignment: {
-          horizontal: 'center',
-          vertical: 'center'
-        },
-        fill: {
-          fgColor: {
-            rgb: 'E8E8E8'
-          }
-        }
+        font: { bold: true },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        fill: { fgColor: { rgb: 'E8E8E8' } }
       };
     }
 
@@ -410,7 +390,7 @@ const SuperAdminDashboard = () => {
                 alt="MRD Estructuras Tubulares" 
                 className="h-12 w-auto object-contain"
               />
-              <h1 className="text-2xl font-bold">Gestor para extracción de datos de partes de trabajo</h1>
+              <h1 className="text-2xl font-bold">Gestor para extraccion de datos de partes de trabajo</h1>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => navigate('/admin/users')}>
@@ -480,7 +460,7 @@ const SuperAdminDashboard = () => {
               onClick={() => navigate('/admin/obras')}
             >
               <Building className="h-5 w-5 mr-2" />
-              Creación Obra
+              Creacion Obra
             </Button>
 
             <Button 
@@ -499,7 +479,7 @@ const SuperAdminDashboard = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Buscar por Nº Parte, Cliente, Fecha, Obra o Emplazamiento..."
+                placeholder="Buscar por N Parte, Cliente, Fecha, Obra o Emplazamiento..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -511,8 +491,8 @@ const SuperAdminDashboard = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>ACCIONES</TableHead>
-                  <TableHead>Nº PARTE</TableHead>
-                  <TableHead>CORRELACIÓN</TableHead>
+                  <TableHead>N PARTE</TableHead>
+                  <TableHead>CORRELACION</TableHead>
                   <TableHead>CLIENTE</TableHead>
                   <TableHead>OBRA</TableHead>
                   <TableHead>FECHA</TableHead>
@@ -559,7 +539,7 @@ const SuperAdminDashboard = () => {
                                     <AlertTriangle className="h-5 w-5 text-orange-500 flex-shrink-0" />
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Este parte está duplicado. Existe otro registro con el mismo Nº de Parte.</p>
+                                    <p>Este parte esta duplicado. Existe otro registro con el mismo N de Parte.</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -663,4 +643,3 @@ const SuperAdminDashboard = () => {
 };
 
 export default SuperAdminDashboard;
-
