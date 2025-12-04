@@ -429,20 +429,17 @@ const SuperAdminDashboard = () => {
               <TableHead>CLIENTE</TableHead>
               <TableHead>OBRA</TableHead>
               <TableHead>FECHA</TableHead>
-              <TableHead>HORAS</TableHead>
               <TableHead>FIRMAS</TableHead>
               <TableHead>ESTADO</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredDocuments.length === 0 ? <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       No se encontraron documentos
                     </TableCell>
                   </TableRow> : filteredDocuments.map(doc => {
                 const extracted = doc.meta?.extractedData;
-                const horasData = extracted?.horasTotales || extracted?.horas;
-                const totalHoras = horasData ? horasData.ordinarias + horasData.extras + horasData.festivas : 0;
                 const parteNumero = extracted?.parteNumero;
                 const isDuplicate = parteNumero ? duplicateParteNumeros.has(parteNumero) : false;
                 
@@ -487,9 +484,6 @@ const SuperAdminDashboard = () => {
                         </TableCell>
                         <TableCell>
                           {extracted?.fecha ? new Date(extracted.fecha).toLocaleDateString('es-ES') : <span className="text-muted-foreground">N/A</span>}
-                        </TableCell>
-                        <TableCell>
-                          {totalHoras > 0 ? <span className="font-medium">{totalHoras}h</span> : <span className="text-muted-foreground">0h</span>}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
