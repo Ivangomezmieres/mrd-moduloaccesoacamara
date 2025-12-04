@@ -205,7 +205,7 @@ const ObraManagement = () => {
             onClick={() => navigate("/admin/dashboard")}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver al Panel de Control
+            Panel de Control
           </Button>
         </div>
 
