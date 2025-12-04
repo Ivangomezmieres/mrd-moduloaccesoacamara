@@ -185,7 +185,7 @@ const ObraManagement = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-primary text-primary-foreground p-4">
+      <div className="bg-background border-b p-4">
         <div className="container mx-auto flex items-center gap-4">
           <img 
             src={logoMrd} 
