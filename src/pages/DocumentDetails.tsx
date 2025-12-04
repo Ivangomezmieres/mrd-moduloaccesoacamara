@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Download, FileText, User, Briefcase, Calendar, Building, PenTool, ZoomIn, ZoomOut, Loader2, Pencil, Save, XCircle, Shield, Clock, MapPin, Eye, Lock, Cloud, RotateCcw, RotateCw } from 'lucide-react';
+import { ArrowLeft, Download, FileText, User, Briefcase, Calendar, Building, PenTool, ZoomIn, ZoomOut, Loader2, Pencil, Save, XCircle, Shield, Clock, MapPin, Eye, Lock, Cloud, RotateCcw, RotateCw, FileCheck } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
@@ -815,78 +815,6 @@ const DocumentDetails = () => {
                         </div>
                       </div>
 
-                      {/* Estado de Firmas */}
-                      <div>
-                        <label className="text-sm text-muted-foreground mb-2 block">Estado de Firmas</label>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                          <div className="flex flex-col items-center justify-center p-4 bg-muted/20 rounded-md min-h-[100px] gap-2">
-                            <span className="text-sm font-medium text-center">Firma del Inspector</span>
-                            {isEditMode ? <Select value={editedData?.firmas?.inspector ? "true" : "false"} onValueChange={value => {
-                            setEditedData(prev => prev ? {
-                              ...prev,
-                              firmas: {
-                                ...prev.firmas,
-                                inspector: value === "true"
-                              }
-                            } : prev);
-                          }}>
-                                <SelectTrigger className="w-[160px] h-9">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="bg-background">
-                                  <SelectItem value="true">✓ Firmado</SelectItem>
-                                  <SelectItem value="false">✗ No firmado</SelectItem>
-                                </SelectContent>
-                              </Select> : <Badge variant={editedData?.firmas?.inspector ? "default" : "secondary"} className="w-auto">
-                                {editedData?.firmas?.inspector ? '✓ Firmado' : '✗ No firmado'}
-                              </Badge>}
-                          </div>
-                          <div className="flex flex-col items-center justify-center p-4 bg-muted/20 rounded-md min-h-[100px] gap-2">
-                            <span className="text-sm font-medium text-center">Firma del Montador</span>
-                            {isEditMode ? <Select value={editedData?.firmas?.montador ? "true" : "false"} onValueChange={value => {
-                            setEditedData(prev => prev ? {
-                              ...prev,
-                              firmas: {
-                                ...prev.firmas,
-                                montador: value === "true"
-                              }
-                            } : prev);
-                          }}>
-                                <SelectTrigger className="w-[160px] h-9">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="bg-background">
-                                  <SelectItem value="true">✓ Firmado</SelectItem>
-                                  <SelectItem value="false">✗ No firmado</SelectItem>
-                                </SelectContent>
-                              </Select> : <Badge variant={editedData?.firmas?.montador ? "default" : "secondary"} className="w-auto">
-                                {editedData?.firmas?.montador ? '✓ Firmado' : '✗ No firmado'}
-                              </Badge>}
-                          </div>
-                          <div className="flex flex-col items-center justify-center p-4 bg-muted/20 rounded-md min-h-[100px] gap-2">
-                            <span className="text-sm font-medium text-center">Firma del Cliente</span>
-                            {isEditMode ? <Select value={editedData?.firmas?.cliente ? "true" : "false"} onValueChange={value => {
-                            setEditedData(prev => prev ? {
-                              ...prev,
-                              firmas: {
-                                ...prev.firmas,
-                                cliente: value === "true"
-                              }
-                            } : prev);
-                          }}>
-                                <SelectTrigger className="w-[160px] h-9">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="bg-background">
-                                  <SelectItem value="true">✓ Firmado</SelectItem>
-                                  <SelectItem value="false">✗ No firmado</SelectItem>
-                                </SelectContent>
-                              </Select> : <Badge variant={editedData?.firmas?.cliente ? "default" : "secondary"} className="w-auto">
-                                {editedData?.firmas?.cliente ? '✓ Firmado' : '✗ No firmado'}
-                              </Badge>}
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   </div>
 
@@ -1070,6 +998,82 @@ const DocumentDetails = () => {
                             </div>
                           </div>
                         </div> : <p className="text-sm text-muted-foreground">No hay datos de montadores disponibles</p>}
+                    </div>
+
+                    {/* Estado de Firmas */}
+                    <div className="border-t pt-6 mt-6">
+                      <h4 className="font-semibold text-sm mb-4 flex items-center gap-2">
+                        <FileCheck className="h-4 w-4" />
+                        Estado de Firmas
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="flex flex-col items-center justify-center p-4 bg-muted/20 rounded-md min-h-[100px] gap-2">
+                          <span className="text-sm font-medium text-center">Firma del Inspector</span>
+                          {isEditMode ? <Select value={editedData?.firmas?.inspector ? "true" : "false"} onValueChange={value => {
+                            setEditedData(prev => prev ? {
+                              ...prev,
+                              firmas: {
+                                ...prev.firmas,
+                                inspector: value === "true"
+                              }
+                            } : prev);
+                          }}>
+                            <SelectTrigger className="w-[160px] h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background">
+                              <SelectItem value="true">✓ Firmado</SelectItem>
+                              <SelectItem value="false">✗ No firmado</SelectItem>
+                            </SelectContent>
+                          </Select> : <Badge variant={editedData?.firmas?.inspector ? "default" : "secondary"} className="w-auto">
+                            {editedData?.firmas?.inspector ? '✓ Firmado' : '✗ No firmado'}
+                          </Badge>}
+                        </div>
+                        <div className="flex flex-col items-center justify-center p-4 bg-muted/20 rounded-md min-h-[100px] gap-2">
+                          <span className="text-sm font-medium text-center">Firma del Montador</span>
+                          {isEditMode ? <Select value={editedData?.firmas?.montador ? "true" : "false"} onValueChange={value => {
+                            setEditedData(prev => prev ? {
+                              ...prev,
+                              firmas: {
+                                ...prev.firmas,
+                                montador: value === "true"
+                              }
+                            } : prev);
+                          }}>
+                            <SelectTrigger className="w-[160px] h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background">
+                              <SelectItem value="true">✓ Firmado</SelectItem>
+                              <SelectItem value="false">✗ No firmado</SelectItem>
+                            </SelectContent>
+                          </Select> : <Badge variant={editedData?.firmas?.montador ? "default" : "secondary"} className="w-auto">
+                            {editedData?.firmas?.montador ? '✓ Firmado' : '✗ No firmado'}
+                          </Badge>}
+                        </div>
+                        <div className="flex flex-col items-center justify-center p-4 bg-muted/20 rounded-md min-h-[100px] gap-2">
+                          <span className="text-sm font-medium text-center">Firma del Cliente</span>
+                          {isEditMode ? <Select value={editedData?.firmas?.cliente ? "true" : "false"} onValueChange={value => {
+                            setEditedData(prev => prev ? {
+                              ...prev,
+                              firmas: {
+                                ...prev.firmas,
+                                cliente: value === "true"
+                              }
+                            } : prev);
+                          }}>
+                            <SelectTrigger className="w-[160px] h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background">
+                              <SelectItem value="true">✓ Firmado</SelectItem>
+                              <SelectItem value="false">✗ No firmado</SelectItem>
+                            </SelectContent>
+                          </Select> : <Badge variant={editedData?.firmas?.cliente ? "default" : "secondary"} className="w-auto">
+                            {editedData?.firmas?.cliente ? '✓ Firmado' : '✗ No firmado'}
+                          </Badge>}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
