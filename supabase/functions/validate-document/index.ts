@@ -165,6 +165,38 @@ INSTRUCCIONES OBLIGATORIAS:
 
 ═══════════════════════════════════════════════════════════════════════════════
 
+═══════════════════════════════════════════════════════════════════════════════
+⚠️ EXTRACCIÓN DEL CAMPO O.T. (ORDEN DE TRABAJO) ⚠️
+═══════════════════════════════════════════════════════════════════════════════
+
+DEFINICIÓN: El O.T. es un número de EXACTAMENTE 5 DÍGITOS que SIEMPRE empieza por "1".
+Rango válido: 10000-19999
+
+DÓNDE BUSCARLO:
+- En el campo CLIENTE (ej: "ACCIONA (11511)", "CONVIAL OT (11942)")
+- En el campo EMPLAZAMIENTO
+- En el campo OBRA
+
+FORMATOS DE APARICIÓN:
+1. Con prefijo "OT" o "O.T.": "OT 11942", "OT11942", "OT (11942)", "OT(11942)", "O.T. 11942"
+2. Entre paréntesis: "(11511)", "( 11511 )"
+3. Solo el número: "11942" (menos común)
+
+REGLAS DE EXTRACCIÓN:
+1. Busca un patrón de 5 dígitos que empiece por "1" (regex: 1\d{4})
+2. Puede estar precedido por "OT" o "O.T." (con o sin espacio)
+3. Puede estar entre paréntesis
+4. Extrae SOLO el número de 5 dígitos, sin letras, paréntesis ni espacios
+5. Si no encuentras ningún O.T. válido, devuelve null
+
+EJEMPLOS:
+- "CONSTRUCCIA OT (11932)" → ordenTrabajo: "11932"
+- "ACCIONA (11511)" → ordenTrabajo: "11511"
+- "CONVIAL OT 11942" → ordenTrabajo: "11942"
+- "CLIENTE XYZ" (sin O.T.) → ordenTrabajo: null
+
+═══════════════════════════════════════════════════════════════════════════════
+
 IMPORTANTE GENERAL:
 - Si un campo de texto está vacío o ilegible, usar null
 - Las horas deben ser números enteros, no texto
@@ -178,6 +210,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura exacta:
   "cliente": "string o null",
   "emplazamiento": "string o null",
   "obra": "string o null",
+  "ordenTrabajo": "string de 5 dígitos (1XXXX) o null",
   "trabajoRealizado": "string o null",
   "horario": "string o null",
   "montadores": [
