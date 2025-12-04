@@ -61,6 +61,39 @@ export type Database = {
           },
         ]
       }
+      obras: {
+        Row: {
+          carpeta_drive: string | null
+          cliente: string | null
+          created_at: string
+          id: string
+          obra: string | null
+          orden_trabajo: string
+          updated_at: string
+          validado: boolean
+        }
+        Insert: {
+          carpeta_drive?: string | null
+          cliente?: string | null
+          created_at?: string
+          id?: string
+          obra?: string | null
+          orden_trabajo: string
+          updated_at?: string
+          validado?: boolean
+        }
+        Update: {
+          carpeta_drive?: string | null
+          cliente?: string | null
+          created_at?: string
+          id?: string
+          obra?: string | null
+          orden_trabajo?: string
+          updated_at?: string
+          validado?: boolean
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

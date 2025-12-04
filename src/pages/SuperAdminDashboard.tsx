@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Download, Eye, FileText, Users, Clock, Trash2, Plus, Search, AlertTriangle } from 'lucide-react';
+import { LogOut, Download, Eye, FileText, Users, Clock, Trash2, Plus, Search, AlertTriangle, Building } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
@@ -387,6 +387,14 @@ const SuperAdminDashboard = () => {
             <Button variant="outline" onClick={exportToExcel}>
               <Download className="mr-2 h-4 w-4" />
               Exportar Excel
+            </Button>
+
+            <Button 
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              onClick={() => navigate('/admin/obras')}
+            >
+              <Building className="h-5 w-5 mr-2" />
+              Creación Obra
             </Button>
 
             <Button 

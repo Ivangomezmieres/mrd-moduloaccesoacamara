@@ -12,6 +12,7 @@ import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
 import DocumentDetails from "./pages/DocumentDetails";
 import PartsProcessor from "./pages/PartsProcessor";
+import ObraManagement from "./pages/ObraManagement";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/admin/processor" element={<PartsProcessor />} />
           <Route path="/admin/document/:id" element={<DocumentDetails />} />
           <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/obras" element={<ObraManagement />} />
           <Route path="/install" element={<Install />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
