@@ -389,15 +389,18 @@ const SuperAdminDashboard = () => {
   const duplicateParteNumeros = getDuplicateParteNumeros();
 
   if (isLoading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center">
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Cargando dashboard...</p>
         </div>
-      </div>;
+      </div>
+    );
   }
 
-  return <div className="min-h-screen bg-background">
+  return (
+    <div className="min-h-screen bg-background">
       <header className="border-b bg-card sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
@@ -527,9 +530,10 @@ const SuperAdminDashboard = () => {
                 const isDuplicate = parteNumero ? duplicateParteNumeros.has(parteNumero) : false;
                 const correlacion = correlacionPorId[doc.id];
                 
-                return <TableRow 
-                  key={doc.id}
-                  className={isDuplicate ? 'bg-orange-50 hover:bg-orange-100' : ''}
+                return (
+                  <TableRow 
+                    key={doc.id}
+                    className={isDuplicate ? 'bg-orange-50 hover:bg-orange-100' : ''}
                 >
                         <TableCell>
                           <div className="flex gap-2">
@@ -608,9 +612,10 @@ const SuperAdminDashboard = () => {
                             </Badge> : <Badge className="rounded-md bg-orange-400 hover:bg-orange-400 text-white border-orange-400 h-9 px-3 text-sm min-w-[110px] justify-center">
                               Pendiente
                             </Badge>}
-                        </TableCell>
-                      </TableRow>;
-              })}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
@@ -645,7 +650,8 @@ const SuperAdminDashboard = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </div>;
+    </div>
+  );
 };
 
 export default SuperAdminDashboard;
