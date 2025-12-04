@@ -70,7 +70,7 @@ interface DocumentRecord {
   reviewed_by: string | null;
   review_notes: string | null;
   meta: {
-    validationResult: any;
+    validationResult: unknown;
     extractedData?: ExtractedData;
     legibilityScore: number;
     hadAutoCrop: boolean;
@@ -89,11 +89,7 @@ interface CorrelacionInfo {
 
 const UMBRAL_DIFERENCIA = 20;
 
-const calcularCorrelacion = (documents: DocumentRecord[]): { 
-  correlacionPorId: Record<string, CorrelacionInfo>;
-  totalHuecos: number;
-  todosLosFaltantes: number[];
-} => {
+function calcularCorrelacion(documents: DocumentRecord[]) {
   const docsConNumero = documents
     .filter(doc => {
       const num = doc.meta?.extractedData?.parteNumero;
@@ -136,16 +132,19 @@ const calcularCorrelacion = (documents: DocumentRecord[]): {
     }
   });
 
-  return { correlacionPorId, totalHuecos, todosLosFaltantes: todosLosFaltantes.sort((a, b) => a - b) };
-};
+  return { 
+    correlacionPorId, 
+    totalHuecos, 
+    todosLosFaltantes: todosLosFaltantes.sort((a, b) => a - b) 
+  };
+}
 
-const SuperAdminDashboard = () => {
+export default function SuperAdminDashboard() {
   const navigate = useNavigate();
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [filteredDocuments, setFilteredDocuments] = useState<DocumentRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [userId, setUserId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [showHuecosModal, setShowHuecosModal] = useState(false);
 
   useEffect(() => {
@@ -161,39 +160,39 @@ const SuperAdminDashboard = () => {
     return calcularCorrelacion(documents);
   }, [documents]);
 
-  const checkAuth = async () => {
+  async function checkAuth() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate('/auth');
       return;
     }
-    setUserId(session.user.id);
-    const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id', session.user.id);
+    const { data: roles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', session.user.id);
     const hasSuperAdmin = roles?.some(r => r.role === 'superadmin');
     if (!hasSuperAdmin) {
-      toast.error('No tienes permisos para acceder a esta página');
+      toast.error('No tienes permisos para acceder a esta pagina');
       navigate('/scan');
     }
-  };
+  }
 
-  const loadDocuments = async () => {
+  async function loadDocuments() {
     setIsLoading(true);
-    const { data, error } = await supabase.from('documents').select(`
-        *,
-        profiles:uploader (
-          full_name
-        )
-      `).order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('documents')
+      .select(`*, profiles:uploader (full_name)`)
+      .order('created_at', { ascending: false });
     if (error) {
       console.error('Error loading documents:', error);
       toast.error('Error al cargar documentos');
     } else {
-      setDocuments((data || []) as any);
+      setDocuments((data || []) as unknown as DocumentRecord[]);
     }
     setIsLoading(false);
-  };
+  }
 
-  const filterDocuments = () => {
+  function filterDocuments() {
     let filtered = documents;
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -218,14 +217,14 @@ const SuperAdminDashboard = () => {
       });
     }
     setFilteredDocuments(filtered);
-  };
+  }
 
-  const handleViewDetails = (doc: DocumentRecord) => {
+  function handleViewDetails(doc: DocumentRecord) {
     navigate(`/admin/document/${doc.id}`);
-  };
+  }
 
-  const handleDeleteDocument = async (docId: string, storagePath: string) => {
-    const confirmed = window.confirm('¿Estás seguro de que deseas eliminar este documento? Esta acción no se puede deshacer.');
+  async function handleDeleteDocument(docId: string, storagePath: string) {
+    const confirmed = window.confirm('Estas seguro de que deseas eliminar este documento? Esta accion no se puede deshacer.');
     if (!confirmed) return;
     try {
       const { error: storageError } = await supabase.storage.from('scans').remove([storagePath]);
@@ -248,38 +247,38 @@ const SuperAdminDashboard = () => {
       console.error('Unexpected error deleting document:', error);
       toast.error('Error inesperado al eliminar documento');
     }
-  };
+  }
 
-  const handleLogout = async () => {
+  async function handleLogout() {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.warn('Logout warning:', error.message);
         if (error.message.includes('session')) {
-          toast.info('Sesión cerrada localmente');
+          toast.info('Sesion cerrada localmente');
         } else {
-          toast.error('Error al cerrar sesión: ' + error.message);
+          toast.error('Error al cerrar sesion: ' + error.message);
         }
       } else {
-        toast.success('Sesión cerrada correctamente');
+        toast.success('Sesion cerrada correctamente');
       }
     } catch (err) {
       console.error('Logout exception:', err);
-      toast.error('Error inesperado al cerrar sesión');
+      toast.error('Error inesperado al cerrar sesion');
     } finally {
       localStorage.removeItem('supabase.auth.token');
       navigate('/auth');
     }
-  };
+  }
 
-  const exportToExcel = () => {
+  function exportToExcel() {
     const excelData = filteredDocuments.map(doc => {
       const extracted = doc.meta?.extractedData;
       const horasData = extracted?.horasTotales || extracted?.horas;
       const totalHoras = horasData ? horasData.ordinarias + horasData.extras + horasData.festivas : 0;
       return {
         'ID': doc.id,
-        'Nº Parte': extracted?.parteNumero || 'N/A',
+        'N Parte': extracted?.parteNumero || 'N/A',
         'Cliente': extracted?.cliente || 'N/A',
         'Emplazamiento': extracted?.emplazamiento || 'N/A',
         'Obra': extracted?.obra || 'N/A',
@@ -289,10 +288,10 @@ const SuperAdminDashboard = () => {
         'Horas Extras': horasData?.extras || 0,
         'Horas Festivas': horasData?.festivas || 0,
         'Total Horas': totalHoras,
-        'Firma Montador': extracted?.firmas?.montador ? 'Sí' : 'No',
-        'Firma Cliente': extracted?.firmas?.cliente ? 'Sí' : 'No',
+        'Firma Montador': extracted?.firmas?.montador ? 'Si' : 'No',
+        'Firma Cliente': extracted?.firmas?.cliente ? 'Si' : 'No',
         'Estado': doc.status,
-        'Legibilidad %': doc.meta?.legibilityScore || 0,
+        'Legibilidad': doc.meta?.legibilityScore || 0,
         'Subido por': doc.profiles?.full_name || 'N/A',
         'Fecha Subida': new Date(doc.created_at).toLocaleString('es-ES'),
         'Validado': doc.validated_at ? new Date(doc.validated_at).toLocaleString('es-ES') : 'No'
@@ -307,36 +306,24 @@ const SuperAdminDashboard = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Documentos');
 
-    const headerRange = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-    for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
-      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
-      if (!ws[cellAddress]) continue;
-      ws[cellAddress].s = {
-        font: { bold: true },
-        alignment: { horizontal: 'center', vertical: 'center' },
-        fill: { fgColor: { rgb: 'E8E8E8' } }
-      };
-    }
-
-    const colWidths = Object.keys(excelData[0]).map(key => ({
-      wch: Math.max(key.length, ...excelData.map(row => String(row[key as keyof typeof row]).length)) + 2
-    }));
-    ws['!cols'] = colWidths;
-
     const today = new Date();
-    const dateString = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
-    const fileName = `Exportacion_Datos_${dateString}.xlsx`;
+    const dateString = today.getDate().toString().padStart(2, '0') + '-' + 
+      (today.getMonth() + 1).toString().padStart(2, '0') + '-' + 
+      today.getFullYear();
+    const fileName = 'Exportacion_Datos_' + dateString + '.xlsx';
 
     XLSX.writeFile(wb, fileName);
     toast.success('Archivo Excel descargado correctamente');
-  };
+  }
 
   const stats = {
     total: documents.length,
     pending: documents.filter(d => d.status === 'pending').length,
     approved: documents.filter(d => d.status === 'approved').length,
     rejected: documents.filter(d => d.status === 'rejected').length,
-    avgLegibility: documents.length > 0 ? Math.round(documents.reduce((acc, d) => acc + (d.meta?.legibilityScore || 0), 0) / documents.length) : 0,
+    avgLegibility: documents.length > 0 
+      ? Math.round(documents.reduce((acc, d) => acc + (d.meta?.legibilityScore || 0), 0) / documents.length) 
+      : 0,
     totalHours: documents.reduce((acc, d) => {
       const extracted = d.meta?.extractedData;
       const horasData = extracted?.horasTotales || extracted?.horas;
@@ -346,7 +333,7 @@ const SuperAdminDashboard = () => {
     uniqueClients: new Set(documents.map(d => d.meta?.extractedData?.cliente).filter(Boolean)).size
   };
 
-  const getDuplicateParteNumeros = (): Set<string> => {
+  function getDuplicateParteNumeros(): Set<string> {
     const parteNumeroCounts: Record<string, number> = {};
     
     documents.forEach(doc => {
@@ -364,7 +351,7 @@ const SuperAdminDashboard = () => {
     });
     
     return duplicates;
-  };
+  }
 
   const duplicateParteNumeros = getDuplicateParteNumeros();
 
@@ -432,15 +419,15 @@ const SuperAdminDashboard = () => {
             </Card>
 
             <Card 
-              className={`px-4 py-3 flex-shrink-0 cursor-pointer transition-colors ${
-                todosLosFaltantes.length > 0 ? 'border-orange-400 bg-orange-50 hover:bg-orange-100' : ''
-              }`}
+              className={'px-4 py-3 flex-shrink-0 cursor-pointer transition-colors ' + 
+                (todosLosFaltantes.length > 0 ? 'border-orange-400 bg-orange-50 hover:bg-orange-100' : '')
+              }
               onClick={() => todosLosFaltantes.length > 0 && setShowHuecosModal(true)}
             >
               <div className="flex items-center gap-2">
-                <AlertTriangle className={`h-5 w-5 ${todosLosFaltantes.length > 0 ? 'text-orange-500' : 'text-muted-foreground'}`} />
+                <AlertTriangle className={'h-5 w-5 ' + (todosLosFaltantes.length > 0 ? 'text-orange-500' : 'text-muted-foreground')} />
                 <div>
-                  <p className={`text-xl font-bold ${todosLosFaltantes.length > 0 ? 'text-orange-600' : ''}`}>
+                  <p className={'text-xl font-bold ' + (todosLosFaltantes.length > 0 ? 'text-orange-600' : '')}>
                     {todosLosFaltantes.length}
                   </p>
                   <p className="text-xs text-muted-foreground">Partes que faltan</p>
@@ -524,7 +511,12 @@ const SuperAdminDashboard = () => {
                               <Eye className="h-4 w-4 mr-1" />
                               Ver
                             </Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleDeleteDocument(doc.id, doc.storage_path)} className="rounded-md bg-red-400 hover:bg-red-300 text-white">
+                            <Button 
+                              size="sm" 
+                              variant="destructive" 
+                              onClick={() => handleDeleteDocument(doc.id, doc.storage_path)} 
+                              className="rounded-md bg-red-400 hover:bg-red-300 text-white"
+                            >
                               <Trash2 className="h-4 w-4 mr-1" />
                               Eliminar
                             </Button>
@@ -553,13 +545,13 @@ const SuperAdminDashboard = () => {
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Badge 
-                                    className={`cursor-default ${
-                                      correlacion.estado === 'OK' 
+                                    className={'cursor-default ' + 
+                                      (correlacion.estado === 'OK' 
                                         ? 'bg-green-500 hover:bg-green-500 text-white'
                                         : correlacion.estado === 'Hueco'
                                         ? 'bg-orange-500 hover:bg-orange-500 text-white'
-                                        : 'bg-gray-400 hover:bg-gray-400 text-white'
-                                    }`}
+                                        : 'bg-gray-400 hover:bg-gray-400 text-white')
+                                    }
                                   >
                                     {correlacion.estado}
                                   </Badge>
@@ -568,8 +560,8 @@ const SuperAdminDashboard = () => {
                                   <TooltipContent>
                                     <p>
                                       {correlacion.faltantes.length === 1
-                                        ? `Falta el parte ${correlacion.faltantes[0]}`
-                                        : `Faltan los partes: ${correlacion.faltantes.join(', ')}`
+                                        ? 'Falta el parte ' + correlacion.faltantes[0]
+                                        : 'Faltan los partes: ' + correlacion.faltantes.join(', ')
                                       }
                                     </p>
                                   </TooltipContent>
@@ -587,7 +579,10 @@ const SuperAdminDashboard = () => {
                           {extracted?.obra || <span className="text-muted-foreground">N/A</span>}
                         </TableCell>
                         <TableCell>
-                          {extracted?.fecha ? new Date(extracted.fecha).toLocaleDateString('es-ES') : <span className="text-muted-foreground">N/A</span>}
+                          {extracted?.fecha 
+                            ? new Date(extracted.fecha).toLocaleDateString('es-ES') 
+                            : <span className="text-muted-foreground">N/A</span>
+                          }
                         </TableCell>
                         <TableCell>
                           {doc.validated_at ? (
@@ -640,6 +635,4 @@ const SuperAdminDashboard = () => {
       </Dialog>
     </div>
   );
-};
-
-export default SuperAdminDashboard;
+}
