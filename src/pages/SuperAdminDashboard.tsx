@@ -534,8 +534,8 @@ const SuperAdminDashboard = () => {
                   <TableRow 
                     key={doc.id}
                     className={isDuplicate ? 'bg-orange-50 hover:bg-orange-100' : ''}
-                >
-                        <TableCell>
+                  >
+                    <TableCell>
                           <div className="flex gap-2">
                             <Button size="sm" variant="info" onClick={() => handleViewDetails(doc)}>
                               <Eye className="h-4 w-4 mr-1" />
