@@ -190,7 +190,7 @@ const PartsProcessor = () => {
               onClick={() => navigate('/admin/dashboard')}
             >
               <ArrowLeft className="h-5 w-5 mr-2" />
-              Volver a Panel de Control
+              Panel de Control
             </Button>
             <div>
               <h1 className="text-2xl font-bold">Procesador de Partes</h1>
