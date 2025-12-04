@@ -99,10 +99,13 @@ const calcularCorrelacion = (documents: Document[]): {
       const num = doc.meta?.extractedData?.parteNumero;
       return num && !isNaN(parseInt(num, 10));
     })
-    .map(doc => ({
-      id: doc.id,
-      numero: parseInt(doc.meta?.extractedData?.parteNumero!, 10)
-    }))
+    .map(doc => {
+      const parteNumero = doc.meta?.extractedData?.parteNumero || '0';
+      return {
+        id: doc.id,
+        numero: parseInt(parteNumero, 10)
+      };
+    })
     .sort((a, b) => a.numero - b.numero);
 
   const correlacionPorId: Record<string, CorrelacionInfo> = {};
