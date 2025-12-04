@@ -5,11 +5,9 @@ import { Button } from '@/components/ui/button';
 import { ScanLine, Download } from 'lucide-react';
 
 const Index = () => {
-  console.log('Index component mounted');
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log('Index useEffect running');
     checkAuth();
   }, []);
 
