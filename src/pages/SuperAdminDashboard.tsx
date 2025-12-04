@@ -618,8 +618,8 @@ const SuperAdminDashboard = () => {
                       )}
                     </TableCell>
                   </TableRow>
-                  );
-                })}
+                );
+              })}
               </TableBody>
             </Table>
           </div>
