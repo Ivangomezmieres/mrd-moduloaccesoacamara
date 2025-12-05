@@ -20,6 +20,16 @@ import {
   TooltipProvider,
 } from '@/components/ui/tooltip';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Users,
   LogOut,
   FileText,
@@ -31,6 +41,7 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
@@ -68,6 +79,7 @@ export default function SuperAdminDashboard() {
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuthAndLoadData();
@@ -219,6 +231,61 @@ export default function SuperAdminDashboard() {
     }
   }
 
+  async function handleDeleteDocument() {
+    if (!documentToDelete) return;
+
+    try {
+      // Find the document to get storage_path
+      const docToDelete = documents.find((d) => d.id === documentToDelete);
+      
+      // Get storage_path from database
+      const { data: docData, error: fetchError } = await supabase
+        .from('documents')
+        .select('storage_path')
+        .eq('id', documentToDelete)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching document:', fetchError);
+        toast.error('Error al obtener información del documento');
+        return;
+      }
+
+      // Delete file from storage if exists
+      if (docData?.storage_path) {
+        const { error: storageError } = await supabase.storage
+          .from('scans')
+          .remove([docData.storage_path]);
+
+        if (storageError) {
+          console.error('Error deleting file from storage:', storageError);
+          // Continue with document deletion even if storage fails
+        }
+      }
+
+      // Delete document from database (cascades to obras)
+      const { error: deleteError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', documentToDelete);
+
+      if (deleteError) {
+        console.error('Error deleting document:', deleteError);
+        toast.error('Error al eliminar el documento');
+        return;
+      }
+
+      // Update local state
+      setDocuments((prev) => prev.filter((d) => d.id !== documentToDelete));
+      toast.success('Parte eliminado correctamente');
+    } catch (error) {
+      console.error('Error in delete process:', error);
+      toast.error('Error al eliminar el parte');
+    } finally {
+      setDocumentToDelete(null);
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -325,6 +392,7 @@ export default function SuperAdminDashboard() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-20">Acciones</TableHead>
                   <TableHead>N Parte</TableHead>
                   <TableHead>O.T.</TableHead>
                   <TableHead>Cliente</TableHead>
@@ -341,7 +409,7 @@ export default function SuperAdminDashboard() {
                   const isDuplicate = pn && duplicateParteNumbers.has(pn);
                   const totalHours = calculateTotalHours(doc);
 
-                  return (
+                    return (
                     <TableRow
                       key={doc.id}
                       className={`cursor-pointer ${
@@ -351,6 +419,19 @@ export default function SuperAdminDashboard() {
                       }`}
                       onClick={() => navigate(`/admin/document/${doc.id}`)}
                     >
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDocumentToDelete(doc.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {isDuplicate && (
@@ -377,7 +458,7 @@ export default function SuperAdminDashboard() {
                 })}
                 {paginatedDocuments.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       No se encontraron documentos
                     </TableCell>
                   </TableRow>
@@ -418,6 +499,27 @@ export default function SuperAdminDashboard() {
             </div>
           )}
         </main>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={!!documentToDelete} onOpenChange={(open) => !open && setDocumentToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Eliminar Parte</AlertDialogTitle>
+              <AlertDialogDescription>
+                ¿Seguro que deseas eliminar este parte de forma permanente? Esta acción no se puede deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={handleDeleteDocument}
+              >
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </TooltipProvider>
   );
