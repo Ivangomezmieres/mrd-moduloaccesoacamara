@@ -409,7 +409,7 @@ export default function SuperAdminDashboard() {
                   const isDuplicate = pn && duplicateParteNumbers.has(pn);
                   const totalHours = calculateTotalHours(doc);
 
-                    return (
+                  return (
                     <TableRow
                       key={doc.id}
                       className={`cursor-pointer ${
