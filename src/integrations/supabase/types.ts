@@ -99,7 +99,7 @@ export type Database = {
           {
             foreignKeyName: "obras_document_id_fkey"
             columns: ["document_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "documents"
             referencedColumns: ["id"]
           },
