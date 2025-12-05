@@ -349,7 +349,7 @@ export default function SuperAdminDashboard() {
                           ? 'bg-orange-50 hover:bg-orange-100'
                           : 'hover:bg-muted/50'
                       }`}
-                      onClick={() => navigate(`/document/${doc.id}`)}
+                      onClick={() => navigate(`/admin/document/${doc.id}`)}
                     >
                       <TableCell>
                         <div className="flex items-center gap-2">
